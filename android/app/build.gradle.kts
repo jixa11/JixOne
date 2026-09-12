@@ -11,8 +11,8 @@ android {
         applicationId = "com.jixone.app"
         minSdk = 26
         targetSdk = 34
-        versionCode = 3
-        versionName = "1.1.1-beta1"
+        versionCode = 4
+        versionName = "1.1.1-beta2"
     }
 
     signingConfigs {

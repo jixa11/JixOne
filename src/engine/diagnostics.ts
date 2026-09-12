@@ -1,6 +1,7 @@
 'use client';
 import { hasNativeBridge, nativeFetch } from '@/engine/nativeFetch';
 import { searchTracks } from '@/engine/ytclient';
+import { getApiBase } from '@/engine/apiBase';
 
 export type DiagState = 'run' | 'pass' | 'fail';
 
@@ -80,16 +81,25 @@ export async function runDiagnostics(onUpdate: (steps: DiagStep[]) => void): Pro
   onUpdate([...steps]);
 
   if (steps[1].state === 'fail') {
+    const helper = hasNativeBridge() ? getApiBase() : '';
+    if (helper) {
+      return {
+        steps,
+        mode,
+        verdictFa: 'یوتیوب مستقیم از شبکه‌ی گوشی در دسترس نیست، ولی سرور کمکی تنظیم شده — جستجو از طریق سرور انجام می‌شود و باید کار کند.',
+        verdictEn: 'YouTube is not directly reachable from this network, but a helper server is configured — search runs through it and should work.',
+      };
+    }
     return {
       steps,
       mode,
       verdictFa:
         mode === 'device'
-          ? 'یوتیوب از شبکه‌ی تو در دسترس نیست. اگه فیلترشکن داری روشنش کن و تست را دوباره بگیر — مثل وقتی که یوتیوب را توی مرورگر باز می‌کنی.'
+          ? 'یوتیوب از شبکه‌ی تو در دسترس نیست. اگه فیلترشکن داری روشنش کن و تست را دوباره بگیر — مثل وقتی که یوتیوب را توی مرورگر باز می‌کنی. یا از تنظیمات، «سرور کمکی جستجو» را وارد کن.'
           : 'سرور به یوتیوب دسترسی ندارد — تنظیمات سرور را چک کن.',
       verdictEn:
         mode === 'device'
-          ? 'YouTube is unreachable from your network. If you use a VPN, turn it ON and run this test again — the app needs the same access as opening youtube.com in a browser.'
+          ? 'YouTube is unreachable from your network. If you use a VPN, turn it ON and run this test again — the app needs the same access as opening youtube.com in a browser. Or set a "Search helper server" in Settings.'
           : 'The server cannot reach YouTube — check the server settings.',
     };
   }

@@ -1,6 +1,7 @@
 'use client';
 import { flattenYTM, MOOD_QUERIES, RawSong } from '@/lib/ytm-shared';
 import { hasNativeBridge, nativeFetch } from '@/engine/nativeFetch';
+import { apiFetch } from '@/engine/apiBase';
 
 let clientPromise: Promise<any> | null = null;
 
@@ -22,6 +23,13 @@ function makeMockTube(): any {
       return mockPlayerResponse;
     },
   };
+}
+
+function withTimeout<T>(p: Promise<T>, ms: number, label = 'timeout'): Promise<T> {
+  return Promise.race([
+    p,
+    new Promise<T>((_, rej) => setTimeout(() => rej(new Error(label)), ms)),
+  ]);
 }
 
 /**
@@ -57,18 +65,45 @@ export function canUseClientEngine(): boolean {
   return hasNativeBridge() || isE2E();
 }
 
+/**
+ * Search with a resilient fallback chain:
+ *   1. device engine (APK): innertube over the native bridge, 12s timeout
+ *   2. helper server (/api/yt/search) — in the browser it is same-origin,
+ *      in the APK it goes through the bridge to the configured helper server
+ * Throws only when BOTH fail, so the UI can show a real error state.
+ */
 export async function searchTracks(query: string): Promise<RawSong[]> {
+  const errors: string[] = [];
+
   if (canUseClientEngine()) {
-    const yt = await getYTClient();
-    const res: any = await yt.music.search(query, { filter: 'songs' });
-    const out = flattenYTM(res?.contents ?? res, []).slice(0, 40);
-    if (out.length > 0 || isE2E()) return out;
-    // device engine found nothing → still try server (if any) before giving up
+    try {
+      const yt = await withTimeout(getYTClient(), 15000, 'client boot timeout');
+      const res: any = await withTimeout(
+        yt.music.search(query, { filter: 'songs' }),
+        12000,
+        'device search timeout'
+      );
+      const out = flattenYTM(res?.contents ?? res, []).slice(0, 40);
+      if (out.length > 0 || isE2E()) return out;
+      errors.push('device:0 results');
+    } catch (e: any) {
+      errors.push(`device:${e?.message ?? 'error'}`);
+    }
   }
-  // plain browser (no native bridge): search via our server, no CORS there
-  const r = await fetch(`/api/yt/search?q=${encodeURIComponent(query)}`, { cache: 'no-store' });
-  const d = await r.json();
-  return (d?.tracks ?? []) as RawSong[];
+
+  // helper server (browser: relative same-origin; APK: absolute via bridge)
+  try {
+    const r = await apiFetch(`/api/yt/search?q=${encodeURIComponent(query)}`, { cache: 'no-store' });
+    const d = await r.json();
+    const tracks = (d?.tracks ?? []) as RawSong[];
+    if (tracks.length > 0) return tracks;
+    if (d?.ok) return tracks; // server answered, genuinely no results
+    errors.push(`server:${d?.error ?? 'bad response'}`);
+  } catch (e: any) {
+    errors.push(`server:${e?.message ?? 'error'}`);
+  }
+
+  throw new Error(errors.join(' | ') || 'no search path available');
 }
 
 export async function homeTracks(mood = 'iran_now'): Promise<RawSong[]> {

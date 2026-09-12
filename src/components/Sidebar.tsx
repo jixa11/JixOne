@@ -228,20 +228,21 @@ export default function Sidebar() {
   );
 }
 
-/** mobile bottom nav */
+/** mobile bottom nav — fixed LTR order so the layout is IDENTICAL in fa/en,
+ *  with Home centered as requested */
 export function MobileNav() {
   const view = useView((s) => s.current);
   const push = useView((s) => s.push);
   const lang = useSettings((s) => s.lang);
   const items = [
-    { icon: Home, label: t(lang, 'home'), name: 'home' as const },
     { icon: Search, label: t(lang, 'search'), name: 'search' as const },
     { icon: Library, label: t(lang, 'library'), name: 'library' as const },
+    { icon: Home, label: t(lang, 'home'), name: 'home' as const },
     { icon: Download, label: t(lang, 'downloads'), name: 'downloads' as const },
     { icon: Cog, label: t(lang, 'settings'), name: 'settings' as const },
   ];
   return (
-    <nav className="glass fixed bottom-[76px] z-20 w-full border-t border-line md:hidden" aria-label="mobile nav">
+    <nav dir="ltr" className="glass fixed bottom-[76px] z-20 w-full border-t border-line md:hidden" aria-label="mobile nav">
       <div className="flex items-center justify-around py-1">
         {items.map((it) => {
           const active = view.name === it.name;
@@ -255,7 +256,7 @@ export function MobileNav() {
               )}
             >
               {active && <span className="absolute -top-1 h-[3px] w-5 rounded-full bg-[var(--accent)] shadow-[var(--glow-soft)]" />}
-              <it.icon size={19} strokeWidth={active ? 2.4 : 2} />
+              <it.icon size={it.name === 'home' ? 22 : 19} strokeWidth={active ? 2.4 : 2} />
               {it.label}
             </button>
           );

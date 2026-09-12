@@ -36,11 +36,11 @@ class MainActivity : Activity() {
 
         val prefs = getSharedPreferences("jixone", MODE_PRIVATE)
         val remote = prefs.getString("base_url", null)?.trim()?.trimEnd('/')
-        launchWeb(remote?.takeIf { it.isNotBlank() }, savedInstanceState)
+        launchWeb(remote?.takeIf { it.isNotBlank() })
     }
 
     @SuppressLint("SetJavaScriptEnabled")
-    private fun launchWeb(remoteUrl: String?, state: Bundle?) {
+    private fun launchWeb(remoteUrl: String?) {
         val baseUrl = remoteUrl ?: EMBEDDED_BASE
 
         webView = WebView(this)
@@ -60,11 +60,9 @@ class MainActivity : Activity() {
         webView.addJavascriptInterface(WebBridge(applicationContext), "AndroidBridge")
         webView.setBackgroundColor(Color.parseColor("#0a0a0f"))
 
-        if (state != null) {
-            webView.restoreState(state)
-        } else {
-            webView.loadUrl(remoteUrl ?: EMBEDDED_INDEX)
-        }
+        // Always load fresh — never restore a dead WebView session (black screen fix).
+        // Local assets + HTTP cache make this fast.
+        webView.loadUrl(remoteUrl ?: EMBEDDED_INDEX)
     }
 
     private fun WebSettingsCompat(s: WebSettings) {
@@ -105,24 +103,29 @@ class MainActivity : Activity() {
         }
     }
 
-    override fun onSaveInstanceState(outState: Bundle) {
-        super.onSaveInstanceState(outState)
-        if (::webView.isInitialized) webView.saveState(outState)
-    }
-
-    override fun onBackPressed() {
-        if (::webView.isInitialized && webView.canGoBack()) webView.goBack()
-        else moveTaskToBack(true)
-    }
-
-    override fun onDestroy() {
-        JixOneHost.activity = null
-        super.onDestroy()
+    override fun onPause() {
+        super.onPause()
+        if (::webView.isInitialized) webView.onPause()
     }
 
     override fun onResume() {
         super.onResume()
         JixOneHost.activity = this
+        if (::webView.isInitialized) webView.onResume()
+    }
+
+    override fun onDestroy() {
+        JixOneHost.activity = null
+        if (::webView.isInitialized) {
+            webView.loadUrl("about:blank")
+            webView.destroy()
+        }
+        super.onDestroy()
+    }
+
+    override fun onBackPressed() {
+        if (::webView.isInitialized && webView.canGoBack()) webView.goBack()
+        else moveTaskToBack(true)
     }
 
 

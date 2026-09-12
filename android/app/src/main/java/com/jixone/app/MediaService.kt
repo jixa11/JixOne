@@ -280,9 +280,32 @@ class WebBridge(private val context: Context) {
      * WebView cannot call the YouTube/InnerTube APIs directly. JS routes requests
      * through this native bridge instead — plain sockets have no CORS.
      * Returns a JSON envelope: {status, headers, body} or {error}.
+     * (Legacy synchronous form — kept for compatibility.)
      */
     @android.webkit.JavascriptInterface
-    fun nativeFetch(url: String, method: String, headersJson: String, body: String?): String {
+    fun nativeFetch(url: String, method: String, headersJson: String, body: String?): String =
+        httpEnvelope(url, method, headersJson, body)
+
+    /**
+     * ASYNC transport (v2): returns immediately, performs HTTP on a background
+     * thread and delivers the (base64-wrapped) envelope back to JS via
+     * window.__nfDone(id, base64). Keeps the WebView JS thread free — the old
+     * synchronous version froze the whole app while requests were in flight.
+     */
+    @android.webkit.JavascriptInterface
+    fun nativeFetch2(id: String, url: String, method: String, headersJson: String, body: String?) {
+        Thread {
+            val envelope = httpEnvelope(url, method, headersJson, body)
+            val b64 = android.util.Base64.encodeToString(
+                envelope.toByteArray(Charsets.UTF_8),
+                android.util.Base64.NO_WRAP
+            )
+            val js = "window.__nfDone && window.__nfDone('$id','$b64')"
+            JixOneHost.activity?.evalJs(js)
+        }.start()
+    }
+
+    private fun httpEnvelope(url: String, method: String, headersJson: String, body: String?): String {
         return try {
             val conn = URL(url).openConnection() as HttpURLConnection
             conn.requestMethod = if (method.isBlank()) "GET" else method.uppercase()

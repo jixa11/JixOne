@@ -9,6 +9,7 @@ import { useLibrary } from '@/store/library';
 import { useView } from '@/store/view';
 import { t, greetKey, num, type DictKey } from '@/lib/i18n';
 import { homeTracks } from '@/engine/ytclient';
+import { readCache, writeCache, cacheKey } from '@/engine/fastCache';
 import { CURATED_TRACKS, POPULAR_ARTISTS } from '@/lib/catalog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Play, Shuffle, Sparkles, WifiOff, RefreshCw } from 'lucide-react';
@@ -42,17 +43,27 @@ export default function HomeView() {
 
   useEffect(() => {
     let dead = false;
-    const id = setTimeout(() => setTracks(null), 0);
-    // device-side search (primary) → server fallback → curated offline catalog
+    // instant paint from cache (stale-while-revalidate) — no skeleton on repeat visits
+    const cached = readCache<Track[]>(cacheKey('home', mood));
+    if (cached && Array.isArray(cached) && cached.length > 0) {
+      setTracks(cached);
+      setCurated(false);
+    } else {
+      setTracks(null); // first visit for this mood — show skeleton
+    }
+    // device-side search (primary) → helper-server fallback → curated offline catalog
     homeTracks(mood)
-      .catch(() => fetch(`/api/yt/home?mood=${mood}`).then((r) => r.json()).then((d) => d.tracks ?? []))
       .then((t2) => {
         if (dead) return;
-        if (t2 && t2.length > 0) { setTracks(t2); setCurated(false); }
-        else { setTracks(CURATED_TRACKS); setCurated(true); }
+        if (t2 && t2.length > 0) {
+          setTracks(t2); setCurated(false);
+          writeCache(cacheKey('home', mood), t2);
+        } else if (!cached?.length) {
+          setTracks(CURATED_TRACKS); setCurated(true);
+        }
       })
-      .catch(() => { if (!dead) { setTracks(CURATED_TRACKS); setCurated(true); } });
-    return () => { dead = true; clearTimeout(id); };
+      .catch(() => { if (!dead && !cached?.length) { setTracks(CURATED_TRACKS); setCurated(true); } });
+    return () => { dead = true; };
   }, [mood, reloadTick]);
 
   const playAll = (shuffle = false) => {

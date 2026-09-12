@@ -8,6 +8,7 @@ import { storageUsage } from '@/engine/downloader';
 import { signInAndImport, resyncPlaylists } from '@/lib/signin';
 import { googleClientId } from '@/lib/google-auth';
 import { runDiagnostics, diagReportText, DiagStep } from '@/engine/diagnostics';
+import { getApiBase, setApiBase } from '@/engine/apiBase';
 import { useState, useEffect } from 'react';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
@@ -40,6 +41,7 @@ export default function SettingsView() {
   const [demoOpen, setDemoOpen] = useState(false);
   const [isAndroid, setIsAndroid] = useState(false);
   const [srv, setSrv] = useState('');
+  const [fb, setFb] = useState('');
   const [diagSteps, setDiagSteps] = useState<DiagStep[] | null>(null);
   const [diagBusy, setDiagBusy] = useState(false);
   const [diagVerdict, setDiagVerdict] = useState<{ fa: string; en: string } | null>(null);
@@ -47,10 +49,24 @@ export default function SettingsView() {
   useEffect(() => { storageUsage().then((u) => setUsage(u.usage)); }, []);
   useEffect(() => {
     const b = (window as any).AndroidBridge;
+    setFb(getApiBase());
     if (!b) return;
     setIsAndroid(true);
     try { setSrv(b.getServerUrl?.() ?? ''); } catch { /* noop */ }
   }, []);
+
+  const applyFb = () => {
+    const u = fb.trim().replace(/\/+$/, '');
+    if (u && !u.startsWith('http')) { toast(t(lang, 'advServerInvalid')); return; }
+    setApiBase(u);
+    setFb(u);
+    toast(t(lang, 'fbApplied'));
+  };
+  const clearFb = () => {
+    setApiBase('');
+    setFb('');
+    toast(t(lang, 'fbCleared'));
+  };
 
   const applyServer = () => {
     const b = (window as any).AndroidBridge;
@@ -350,33 +366,71 @@ export default function SettingsView() {
       {/* CUSTOM SERVER (Android advanced) — app is fully standalone by default */}
       {isAndroid && (
         <Section icon={Globe} title={t(lang, 'advServer')}>
-          <div className="space-y-2.5">
-            <div className="text-[11px] leading-relaxed text-dim">{t(lang, 'advServerDesc')}</div>
-            <div className="flex gap-2">
-              <div className="min-w-0 flex-1 rounded-2xl border border-line bg-surface2 px-4 py-2.5 transition-all duration-200 focus-within:border-[color-mix(in_srgb,var(--accent)_55%,transparent)]">
-                <input
-                  value={srv}
-                  onChange={(e) => setSrv(e.target.value)}
-                  placeholder={t(lang, 'advServerHint')}
-                  dir="ltr"
-                  className="w-full bg-transparent text-[13px] outline-none placeholder:text-dim"
-                />
+          <div className="space-y-4">
+            {/* helper server: search/playback fallback when YouTube is blocked on the phone */}
+            <div className="space-y-2.5">
+              <div className="text-[13px] font-bold">{t(lang, 'fbServer')}</div>
+              <div className="text-[11px] leading-relaxed text-dim">{t(lang, 'fbServerDesc')}</div>
+              <div className="flex gap-2">
+                <div className="min-w-0 flex-1 rounded-2xl border border-line bg-surface2 px-4 py-2.5 transition-all duration-200 focus-within:border-[color-mix(in_srgb,var(--accent)_55%,transparent)]">
+                  <input
+                    value={fb}
+                    onChange={(e) => setFb(e.target.value)}
+                    placeholder={t(lang, 'fbServerHint')}
+                    dir="ltr"
+                    className="w-full bg-transparent text-[13px] outline-none placeholder:text-dim"
+                  />
+                </div>
+                <button
+                  onClick={applyFb}
+                  className="neon-play rounded-full px-5 text-xs font-bold transition-transform active:scale-95"
+                >
+                  {t(lang, 'fbApply')}
+                </button>
               </div>
-              <button
-                onClick={applyServer}
-                className="neon-play rounded-full px-5 text-xs font-bold transition-transform active:scale-95"
-              >
-                {t(lang, 'advServerApply')}
-              </button>
+              <div className="flex items-center justify-between gap-3">
+                <div className="text-[10.5px] leading-relaxed text-dim">{t(lang, 'fbServerNote')}</div>
+                <button
+                  onClick={clearFb}
+                  className="shrink-0 rounded-full border border-line px-4 py-2 text-[11px] font-semibold text-dim transition-colors hover:bg-surface hover:text-foreground"
+                >
+                  {t(lang, 'fbClear')}
+                </button>
+              </div>
             </div>
-            <div className="flex items-center justify-between gap-3">
-              <div className="text-[10.5px] leading-relaxed text-dim">{t(lang, 'advServerWarn')}</div>
-              <button
-                onClick={resetServer}
-                className="shrink-0 rounded-full border border-line px-4 py-2 text-[11px] font-semibold text-dim transition-colors hover:bg-surface hover:text-foreground"
-              >
-                {t(lang, 'advServerReset')}
-              </button>
+
+            <div className="border-t border-line" aria-hidden />
+
+            {/* full remote app mode (unchanged) */}
+            <div className="space-y-2.5">
+              <div className="text-[13px] font-bold">{t(lang, 'advServerMode')}</div>
+              <div className="text-[11px] leading-relaxed text-dim">{t(lang, 'advServerDesc')}</div>
+              <div className="flex gap-2">
+                <div className="min-w-0 flex-1 rounded-2xl border border-line bg-surface2 px-4 py-2.5 transition-all duration-200 focus-within:border-[color-mix(in_srgb,var(--accent)_55%,transparent)]">
+                  <input
+                    value={srv}
+                    onChange={(e) => setSrv(e.target.value)}
+                    placeholder={t(lang, 'advServerHint')}
+                    dir="ltr"
+                    className="w-full bg-transparent text-[13px] outline-none placeholder:text-dim"
+                  />
+                </div>
+                <button
+                  onClick={applyServer}
+                  className="neon-play rounded-full px-5 text-xs font-bold transition-transform active:scale-95"
+                >
+                  {t(lang, 'advServerApply')}
+                </button>
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <div className="text-[10.5px] leading-relaxed text-dim">{t(lang, 'advServerWarn')}</div>
+                <button
+                  onClick={resetServer}
+                  className="shrink-0 rounded-full border border-line px-4 py-2 text-[11px] font-semibold text-dim transition-colors hover:bg-surface hover:text-foreground"
+                >
+                  {t(lang, 'advServerReset')}
+                </button>
+              </div>
             </div>
           </div>
         </Section>

@@ -1,6 +1,7 @@
 'use client';
 import type { QualityId } from '@/lib/types';
 import { getYTClient, canUseClientEngine } from '@/engine/ytclient';
+import { apiFetch } from '@/engine/apiBase';
 
 export interface ExtractedStream {
   url: string;
@@ -18,6 +19,13 @@ const PREF: Record<QualityId, number[]> = {
   low: [249, 139, 250, 140, 251],
 };
 
+function withTimeout<T>(p: Promise<T>, ms: number, label = 'timeout'): Promise<T> {
+  return Promise.race([
+    p,
+    new Promise<T>((_, rej) => setTimeout(() => rej(new Error(label)), ms)),
+  ]);
+}
+
 function pickFromInfo(info: any, quality: QualityId): ExtractedStream | null {
   const formats: any[] = info?.streaming_data?.adaptive_formats ?? [];
   const basics = info?.basic_info ?? {};
@@ -33,27 +41,26 @@ function pickFromInfo(info: any, quality: QualityId): ExtractedStream | null {
 }
 
 /** Extract a direct audio stream URL.
- *  - APK: extraction happens on the DEVICE through the native bridge (no CORS, no server).
+ *  - APK: extraction happens on the DEVICE through the native bridge (no CORS, no server);
+ *    if that fails (YouTube unreachable), fall back to the helper server route.
  *  - plain web: through our own server route (/api/yt/player) — CORS-free. */
 export async function extractStream(videoId: string, quality: QualityId): Promise<ExtractedStream> {
   if (canUseClientEngine()) {
-    const yt = await getYTClient();
-    let info: any;
     try {
-      // iOS client: usually returns streams from residential IPs without poToken
-      info = await yt.getInfo(videoId, { client: 'IOS' });
-    } catch {
-      info = await yt.getInfo(videoId); // web fallback
-    }
-    const picked = pickFromInfo(info, quality);
-    if (picked) return picked;
-    if (canUseClientEngine() && (window as any).AndroidBridge) {
-      // device mode has no server fallback
-      throw new Error('NO_STREAM');
-    }
+      const yt = await withTimeout(getYTClient(), 15000, 'client boot timeout');
+      let info: any;
+      try {
+        // iOS client: usually returns streams from residential IPs without poToken
+        info = await withTimeout(yt.getInfo(videoId, { client: 'IOS' }), 15000, 'device extract timeout');
+      } catch {
+        info = await withTimeout(yt.getInfo(videoId), 15000, 'device extract timeout'); // web fallback
+      }
+      const picked = pickFromInfo(info, quality);
+      if (picked) return picked;
+    } catch { /* fall through to server */ }
   }
-  // plain browser: server-side extraction
-  const r = await fetch(`/api/yt/player?id=${encodeURIComponent(videoId)}&q=${encodeURIComponent(quality)}`, { cache: 'no-store' });
+  // server-side extraction (browser: relative; APK: helper server via bridge)
+  const r = await apiFetch(`/api/yt/player?id=${encodeURIComponent(videoId)}&q=${encodeURIComponent(quality)}`, { cache: 'no-store' }, 25000);
   const d = await r.json();
   if (d?.ok && d?.url) {
     return { url: d.url, itag: d.itag ?? 0, size: d.size, durationSec: d.durationSec, title: d.title, artist: d.artist };
@@ -65,14 +72,14 @@ export async function extractMetaOnly(videoId: string): Promise<{ title?: string
   if (canUseClientEngine()) {
     try {
       const yt = await getYTClient();
-      const info: any = await yt.getInfo(videoId, { client: 'IOS' });
+      const info: any = await withTimeout(yt.getInfo(videoId, { client: 'IOS' }), 15000, 'timeout');
       return { title: info?.basic_info?.title, artist: info?.basic_info?.author, durationSec: info?.basic_info?.duration };
     } catch {
       /* fall through to server meta */
     }
   }
   try {
-    const r = await fetch(`/api/yt/search?id=${encodeURIComponent(videoId)}`, { cache: 'no-store' });
+    const r = await apiFetch(`/api/yt/search?id=${encodeURIComponent(videoId)}`, { cache: 'no-store' }, 20000);
     const d = await r.json();
     if (d?.ok && d?.track) {
       return { title: d.track.title, artist: d.track.artist, durationSec: undefined };

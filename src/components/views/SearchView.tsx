@@ -7,8 +7,9 @@ import { useSettings } from '@/store/settings';
 import { useView } from '@/store/view';
 import { t } from '@/lib/i18n';
 import { searchTracks } from '@/engine/ytclient';
+import { readCache, writeCache, cacheKey } from '@/engine/fastCache';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Search as SearchIcon, Play, SearchX, Music4 } from 'lucide-react';
+import { Search as SearchIcon, Play, SearchX, Music4, CloudOff, RefreshCw } from 'lucide-react';
 
 export default function SearchView() {
   const lang = useSettings((s) => s.lang);
@@ -17,6 +18,8 @@ export default function SearchView() {
   const [q, setQ] = useState(seed ?? '');
   const [tracks, setTracks] = useState<Track[] | null>(null);
   const [loading, setLoading] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const [tick, setTick] = useState(0);
   const debounce = useRef<any>(null);
 
   // consume artist seed once
@@ -28,19 +31,37 @@ export default function SearchView() {
   useEffect(() => {
     clearTimeout(debounce.current);
     if (!q.trim()) {
-      const id = setTimeout(() => { setTracks(null); setLoading(false); }, 0);
+      const id = setTimeout(() => { setTracks(null); setLoading(false); setFailed(false); }, 0);
       return () => clearTimeout(id);
+    }
+    // instant cached results while the fresh search runs (stale-while-revalidate)
+    const cached = readCache<Track[]>(cacheKey('search', q.trim().toLowerCase()));
+    if (cached && Array.isArray(cached) && cached.length > 0) {
+      setTracks(cached);
+      setFailed(false);
     }
     debounce.current = setTimeout(() => {
       setLoading(true);
-      // device-side search (primary) → server fallback
+      // device-side search (primary) → helper-server fallback (searchTracks handles both)
       searchTracks(q)
-        .catch(() => fetch(`/api/yt/search?q=${encodeURIComponent(q)}`).then((r) => r.json()).then((d) => d.tracks ?? []))
-        .then((t2) => { setTracks(t2 ?? []); setLoading(false); })
-        .catch(() => { setTracks([]); setLoading(false); });
+        .then((t2) => {
+          const list = (t2 ?? []) as Track[];
+          setTracks(list);
+          setFailed(false);
+          setLoading(false);
+          if (list.length > 0) writeCache(cacheKey('search', q.trim().toLowerCase()), list);
+        })
+        .catch(() => {
+          // keep cached rows visible if we have them; otherwise show the error state
+          if (!cached || cached.length === 0) setTracks([]);
+          setFailed(true);
+          setLoading(false);
+        });
     }, 450);
     return () => clearTimeout(debounce.current);
-  }, [q]);
+  }, [q, tick]);
+
+  const retry = () => { setFailed(false); setLoading(true); setTick((x) => x + 1); };
 
   return (
     <div className="view-in mx-auto max-w-[900px] px-4 pb-8">
@@ -66,7 +87,7 @@ export default function SearchView() {
           </span>
           <p className="max-w-[320px] text-[13px] leading-relaxed text-dim">{t(lang, 'searchHint')}</p>
         </div>
-      ) : loading ? (
+      ) : loading && tracks.length === 0 ? (
         <div className="flex flex-col gap-2">
           {Array.from({ length: 8 }).map((_, i) => (
             <div key={i} className="flex items-center gap-3 rounded-xl p-2">
@@ -90,6 +111,20 @@ export default function SearchView() {
         </div>
       ) : (
         <>
+          {failed && (
+            <div className="mb-3 flex items-center justify-between gap-3 rounded-xl border border-[var(--warning)]/40 bg-[var(--warning)]/10 px-4 py-2.5">
+              <div className="flex min-w-0 items-center gap-2 text-[11.5px] leading-relaxed">
+                <CloudOff size={15} className="shrink-0 text-[var(--warning)]" />
+                <span className="text-dim">{t(lang, 'searchStale')}</span>
+              </div>
+              <button
+                onClick={retry}
+                className="flex shrink-0 items-center gap-1.5 rounded-full border border-line bg-surface px-3.5 py-1.5 text-[10.5px] font-semibold text-dim transition-colors hover:bg-surface2 hover:text-foreground"
+              >
+                <RefreshCw size={12} /> {t(lang, 'retry')}
+              </button>
+            </div>
+          )}
           {tracks.length > 1 && (
             <button
               onClick={() => usePlayer.getState().setQueue(tracks, 0, { kind: 'search' })}
@@ -104,6 +139,21 @@ export default function SearchView() {
             ))}
           </div>
         </>
+      )}
+
+      {!loading && failed && tracks.length === 0 && (
+        <div className="mt-4 flex flex-col items-center gap-3 text-center">
+          <div className="max-w-[360px] rounded-2xl border border-line bg-surface p-4 text-start">
+            <div className="mb-1 text-[13px] font-bold">{t(lang, 'searchFailTitle')}</div>
+            <div className="text-[11.5px] leading-relaxed text-dim">{t(lang, 'searchFailDesc')}</div>
+          </div>
+          <button
+            onClick={retry}
+            className="neon-play flex items-center gap-2 rounded-full px-5 py-2.5 text-[13px] font-bold transition-transform active:scale-95"
+          >
+            <RefreshCw size={14} /> {t(lang, 'retry')}
+          </button>
+        </div>
       )}
     </div>
   );

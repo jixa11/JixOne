@@ -1,0 +1,145 @@
+export type Lang = 'fa' | 'en';
+
+const dict = {
+  fa: {
+    appName: 'JixOne',
+    home: 'خانه', search: 'جستجو', library: 'کتابخانه', downloads: 'دانلودها', settings: 'تنظیمات',
+    goodMorning: 'صبح بخیر', goodAfternoon: 'ظهر بخیر', goodEvening: 'شب بخیر', goodNight: 'وقت بخیر',
+    searchPlaceholder: 'آهنگ، خواننده، آلبوم...', quickPicks: 'انتخاب‌های سریع', trending: 'داغ امروز',
+    playAll: 'پخش همه', shuffle: 'تصادفی', shufflePlay: 'پخش تصادفی', likedSongs: 'آهنگ‌های مورد علاقه',
+    you: 'تو', playlist: 'پلی‌لیست',
+    recentPlayed: 'اخیراً پخش‌شده', playlists: 'پلی‌لیست‌ها', newPlaylist: 'پلی‌لیست جدید',
+    createPlaylist: 'ساخت پلی‌لیست', playlistName: 'نام پلی‌لیست', addSongs: 'افزودن آهنگ',
+    deletePlaylist: 'حذف پلی‌لیست', rename: 'تغییر نام', songs: 'آهنگ', emptyPlaylist: 'این پلی‌لیست خالیه',
+    addToPlaylist: 'افزودن به پلی‌لیست', remove: 'حذف', like: 'علاقه‌مندی', liked: 'ثبت شد',
+    queue: 'صف پخش', nowPlaying: 'در حال پخش', upNext: 'بعدی',
+    download: 'دانلود', downloadAll: 'دانلود همه', downloaded: 'دانلودشده', quality: 'کیفیت',
+    totalSize: 'حجم کل', cancel: 'لغو', retry: 'تلاش مجدد', pause: 'توقف', resume: 'ادامه',
+    waitingNet: 'در انتظار شبکه', extracting: 'آماده‌سازی...', done: 'انجام شد', error: 'خطا',
+    autoDownload: 'دانلود خودکار آهنگ‌های جدید', settingsThemes: 'تم‌ها', glowIntensity: 'شدت افکت نئون',
+    low: 'کم', mid: 'متوسط', high: 'بالا', language: 'زبان', playbackMode: 'پخش آنلاین',
+    modeAuto: 'بدون تبلیغ (با fallback)', modeOfficial: 'پلیر رسمی یوتیوب', modeAdfree: 'بدون تبلیغ',
+    downloadQuality: 'کیفیت پیش‌فرض دانلود', askBeforeDownload: 'پرسیدن حجم قبل از دانلود گروهی',
+    playSync: 'ثبت پخش‌های آفلاین در یوتیوب', playSyncDesc: 'وقتی آنلاین شدی، آهنگ‌هایی که آفلاین گوش دادی در پس‌زمینه (بی‌صدا) بازپخش می‌شن تا پلی واقعی ثبت شود. دیتا مصرف می‌کند.',
+    guest: 'مهمان', loginSoon: 'ورود با گوگل (به‌زودی)', about: 'درباره',
+    offlineReady: 'آفلاین قابل پخش', storageUsed: 'فضای مصرفی', clearDownloads: 'حذف همه دانلودها',
+    noResults: 'نتیجه‌ای پیدا نشد', tryDiff: 'عبارت دیگری امتحان کن',
+    playing: 'در حال پخش', paused: 'متوقف', stopped: 'متوقف شد',
+    adfreeFail: 'موتور بی‌تبلیغ در دسترس نیست — برگشت به پلیر رسمی',
+    extractFail: 'استخراج ناموفق — VPN روشن است؟',
+    addedTo: 'به پلی‌لیست اضافه شد', needName: 'یه اسم بده!', deleted: 'حذف شد',
+    confirmDelete: 'مطمئنی؟', yes: 'بله', no: 'نه', startDownload: 'شروع دانلود',
+    dnTitle: 'دانلود پلی‌لیست', dlStart: 'دانلود شروع شد', dlDone: 'دانلود کامل شد',
+    ofSongs: 'از', continueDownloads: 'ادامه دانلودها', syncingPlays: 'همگام‌سازی پخش‌ها...',
+    watchVideo: 'دیدن ویدیو', closeVideo: 'بستن ویدیو', theater: 'تمام‌صفحه',
+    shuffleOn: 'شافل روشن', repeatOne: 'تکرار یکی', repeatAll: 'تکرار همه', repeatOff: 'تکرار خاموش',
+    minOne: 'دقیقه', songs_count: 'آهنگ', nothingPlaying: 'چیزی در حال پخش نیست',
+    tapToPlay: 'برای شروع یه آهنگ انتخاب کن', searchHint: 'مثلاً: The Weeknd، Dua Lipa، Coldplay',
+    emptyLibrary: 'کتابخانه‌ات خالیه — اولین پلی‌لیستت رو بساز!',
+    guestBadge: 'حالت مهمان — داده‌ها محلی ذخیره می‌شوند',
+    serverUrl: 'آدرس سرور (پیشرفته)', videoMode: 'حالت ویدیو',
+    addedToLiked: 'به علاقه‌مندی‌ها اضافه شد', removedFromLiked: 'از علاقه‌مندی‌ها حذف شد',
+    addedToDl: 'به صف دانلود اضافه شد', addedToQueue: 'به صف پخش اضافه شد', playlistCreated: 'پلی‌لیست ساخته شد',
+    emptyLiked: 'هنوز آهنگی رو لایک نکردی — از پلیر، قلب رو بزن', emptyHistory: 'تاریخچه‌ات خالیه — اولین آهنگ رو پخش کن',
+    goSearch: 'جستجوی آهنگ', checkConn: 'اتصال اینترنت یا VPN رو چک کن و دوباره تلاش کن', emptyDownloads: 'هنوز چیزی دانلود نکردی — از منوی هر آهنگ یا دکمه دانلود پلی‌لیست شروع کن',
+    popularArtists: 'محبوب‌ترین هنرمندان', curatedBadge: 'منتخب JixOne — از کاتالوگ یوتیوب',
+    account: 'حساب کاربری', signInGoogle: 'ورود با گوگل', signOut: 'خروج از حساب',
+    syncPlaylists: 'همگام‌سازی پلی‌لیست‌ها', importingPlaylists: 'در حال دریافت پلی‌لیست‌های یوتیوب موزیک...',
+    fromYTMusic: 'از یوتیوب موزیک', connected: 'متصل',
+    demoTitle: 'ورود آزمایشی', demoContinue: 'ادامه با حساب آزمایشی',
+    demoDesc: 'سرور فعلی شناسه OAuth گوگل (GOOGLE_CLIENT_ID) ندارد؛ برای تجربه‌ی جریان ورود و همگام‌سازی پلی‌لیست‌ها، با یک حساب آزمایشی وارد شو. در نسخه‌ی نهایی با تنظیم شناسه، ورود واقعی فعال می‌شود.',
+    noPlaylistsFound: 'پلی‌لیستی در یوتیوب موزیک پیدا نشد',
+    importedN: 'پلی‌لیست از یوتیوب موزیک وارد شد', playlistImported: 'پلی‌لیست شما از یوتیوب موزیک',
+    welcomeUser: 'خوش آمدی',
+  },
+  en: {
+    appName: 'JixOne',
+    home: 'Home', search: 'Search', library: 'Library', downloads: 'Downloads', settings: 'Settings',
+    goodMorning: 'Good morning', goodAfternoon: 'Good afternoon', goodEvening: 'Good evening', goodNight: 'Hi there',
+    searchPlaceholder: 'Songs, artists, albums...', quickPicks: 'Quick picks', trending: 'Trending today',
+    playAll: 'Play all', shuffle: 'Shuffle', shufflePlay: 'Shuffle play', likedSongs: 'Liked songs',
+    you: 'You', playlist: 'Playlist',
+    recentPlayed: 'Recently played', playlists: 'Playlists', newPlaylist: 'New playlist',
+    createPlaylist: 'Create playlist', playlistName: 'Playlist name', addSongs: 'Add songs',
+    deletePlaylist: 'Delete playlist', rename: 'Rename', songs: 'songs', emptyPlaylist: 'This playlist is empty',
+    addToPlaylist: 'Add to playlist', remove: 'Remove', like: 'Like', liked: 'Liked',
+    queue: 'Queue', nowPlaying: 'Now playing', upNext: 'Up next',
+    download: 'Download', downloadAll: 'Download all', downloaded: 'Downloaded', quality: 'Quality',
+    totalSize: 'Total size', cancel: 'Cancel', retry: 'Retry', pause: 'Pause', resume: 'Resume',
+    waitingNet: 'Waiting for network', extracting: 'Preparing...', done: 'Done', error: 'Error',
+    autoDownload: 'Auto-download new songs', settingsThemes: 'Themes', glowIntensity: 'Neon glow intensity',
+    low: 'Low', mid: 'Medium', high: 'High', language: 'Language', playbackMode: 'Online playback',
+    modeAuto: 'Ad-free (with fallback)', modeOfficial: 'Official YouTube player', modeAdfree: 'Ad-free',
+    downloadQuality: 'Default download quality', askBeforeDownload: 'Ask size before batch download',
+    playSync: 'Register offline plays on YouTube', playSyncDesc: 'When you are back online, offline-listened tracks are replayed muted in background to register real plays. Uses mobile data.',
+    guest: 'Guest', loginSoon: 'Google login (soon)', about: 'About',
+    offlineReady: 'Offline ready', storageUsed: 'Storage used', clearDownloads: 'Remove all downloads',
+    noResults: 'No results found', tryDiff: 'Try another search',
+    playing: 'Playing', paused: 'Paused', stopped: 'Stopped',
+    adfreeFail: 'Ad-free engine unavailable — switched to official player',
+    extractFail: 'Extraction failed — is your VPN on?',
+    addedTo: 'Added to playlist', needName: 'Give it a name!', deleted: 'Deleted',
+    confirmDelete: 'Are you sure?', yes: 'Yes', no: 'No', startDownload: 'Start download',
+    dnTitle: 'Download playlist', dlStart: 'Download started', dlDone: 'Download complete',
+    ofSongs: 'of', continueDownloads: 'Resuming downloads', syncingPlays: 'Syncing plays...',
+    watchVideo: 'Watch video', closeVideo: 'Close video', theater: 'Theater',
+    shuffleOn: 'Shuffle on', repeatOne: 'Repeat one', repeatAll: 'Repeat all', repeatOff: 'Repeat off',
+    minOne: 'min', songs_count: 'songs', nothingPlaying: 'Nothing playing',
+    tapToPlay: 'Pick a song to start', searchHint: 'e.g. The Weeknd, Dua Lipa, Coldplay',
+    emptyLibrary: 'Your library is empty — create your first playlist!',
+    guestBadge: 'Guest mode — data stored locally',
+    serverUrl: 'Server URL (advanced)', videoMode: 'Video mode',
+    addedToLiked: 'Added to liked songs', removedFromLiked: 'Removed from liked songs',
+    addedToDl: 'Added to download queue', addedToQueue: 'Added to queue', playlistCreated: 'Playlist created',
+    emptyLiked: 'No liked songs yet — tap the heart in the player', emptyHistory: 'No history yet — play your first song',
+    goSearch: 'Search songs', checkConn: 'Check your internet or VPN and try again', emptyDownloads: 'Nothing downloaded yet — use the song menu or the playlist download button',
+    popularArtists: 'Popular artists', curatedBadge: 'Curated picks — from the YouTube catalog',
+    account: 'Account', signInGoogle: 'Sign in with Google', signOut: 'Sign out',
+    syncPlaylists: 'Sync playlists', importingPlaylists: 'Fetching your YouTube Music playlists...',
+    fromYTMusic: 'From YouTube Music', connected: 'Connected',
+    demoTitle: 'Demo sign-in', demoContinue: 'Continue with demo account',
+    demoDesc: 'This server has no Google OAuth client ID (GOOGLE_CLIENT_ID) yet; to experience the sign-in and playlist-sync flow, continue with a demo account. Real OAuth activates once the client ID is configured in the final build.',
+    noPlaylistsFound: 'No playlists found on YouTube Music',
+    importedN: 'playlists imported from YouTube Music', playlistImported: 'Your playlist from YouTube Music',
+    welcomeUser: 'Welcome',
+  },
+} as const;
+
+export type DictKey = keyof typeof dict.fa;
+
+export function t(lang: Lang, key: DictKey): string {
+  return (dict[lang] as Record<string, string>)[key] ?? (dict.fa as Record<string, string>)[key] ?? key;
+}
+
+export function greetKey(): DictKey {
+  const h = new Date().getHours();
+  if (h >= 5 && h < 12) return 'goodMorning';
+  if (h >= 12 && h < 17) return 'goodAfternoon';
+  if (h >= 17 && h < 22) return 'goodEvening';
+  return 'goodNight';
+}
+
+export function fmtTime(sec?: number): string {
+  if (!sec || sec < 0 || !isFinite(sec)) return '0:00';
+  const m = Math.floor(sec / 60), s = Math.floor(sec % 60);
+  return `${m}:${s.toString().padStart(2, '0')}`;
+}
+
+export function fmtSize(bytes?: number, lang: Lang = 'fa'): string {
+  if (!bytes || bytes <= 0) return '—';
+  const mb = bytes / (1024 * 1024);
+  const num = mb >= 1024 ? (mb / 1024).toFixed(2) + ' GB' : mb >= 10 ? Math.round(mb) + ' MB' : mb.toFixed(1) + ' MB';
+  if (lang === 'fa') {
+    return num.replace(/\d/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[+d]).replace('MB', 'مگابایت').replace('GB', 'گیگابایت');
+  }
+  return num;
+}
+
+const FA_DIGITS = '۰۱۲۳۴۵۶۷۸۹';
+export function faNum(n: number | string): string {
+  return String(n).replace(/\d/g, (d) => FA_DIGITS[+d]);
+}
+/** language-aware digits: Persian digits only in fa UI */
+export function num(n: number | string, lang: Lang): string {
+  return lang === 'fa' ? faNum(n) : String(n);
+}

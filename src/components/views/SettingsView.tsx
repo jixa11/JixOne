@@ -1,0 +1,298 @@
+'use client';
+import { THEMES } from '@/lib/themes';
+import { useSettings, GlowLevel, PlaybackMode } from '@/store/settings';
+import { useLibrary } from '@/store/library';
+import { useAuth } from '@/store/auth';
+import { t, fmtSize } from '@/lib/i18n';
+import { storageUsage } from '@/engine/downloader';
+import { signInAndImport, resyncPlaylists } from '@/lib/signin';
+import { googleClientId } from '@/lib/google-auth';
+import { useState, useEffect } from 'react';
+import { Switch } from '@/components/ui/switch';
+import { toast } from 'sonner';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Check, Globe, Radio, Download, Sparkles, ShieldOff, Info,
+  LogOut, RefreshCw, UserRound,
+} from 'lucide-react';
+
+function GoogleG({ size = 16 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24">
+      <path fill="#4285F4" d="M23.5 12.3c0-.9-.1-1.5-.3-2.2H12v4.1h6.5c-.1 1.1-.8 2.7-2.4 3.8l-.02.15 3.5 2.7.24.02c2.2-2.05 3.5-5.05 3.5-8.6z" />
+      <path fill="#34A853" d="M12 24c3.2 0 5.9-1.1 7.9-2.9l-3.8-2.9c-1 .7-2.4 1.2-4.1 1.2-3.1 0-5.8-2.1-6.8-5l-.14.01-3.6 2.8-.05.13C3.4 21.3 7.4 24 12 24z" />
+      <path fill="#FBBC05" d="M5.2 14.4c-.25-.75-.4-1.55-.4-2.4s.15-1.65.42-2.4l-.01-.16-3.65-2.8-.12.06C.5 8.2 0 10 0 12s.5 3.8 1.44 5.3l3.76-2.9z" />
+      <path fill="#EA4335" d="M12 4.6c2.2 0 3.7.95 4.6 1.75l3.35-3.27C17.9 1.15 15.2 0 12 0 7.4 0 3.4 2.7 1.44 6.7l3.75 2.9c1-2.9 3.7-5 6.81-5z" />
+    </svg>
+  );
+}
+
+export default function SettingsView() {
+  const s = useSettings();
+  const lang = s.lang;
+  const offlinePlaysCount = useLibrary((st) => st.offlinePlays).length;
+  const user = useAuth((st) => st.user);
+  const signOut = useAuth((st) => st.signOut);
+  const hasClientId = !!googleClientId();
+  const [usage, setUsage] = useState(0);
+  const [busy, setBusy] = useState(false);
+  const [demoOpen, setDemoOpen] = useState(false);
+  useEffect(() => { storageUsage().then((u) => setUsage(u.usage)); }, []);
+
+  const doRealSignIn = async () => {
+    setBusy(true);
+    toast(t(lang, 'importingPlaylists'));
+    const res = await signInAndImport(lang);
+    setBusy(false);
+    if (res.ok) {
+      toast(`${res.imported} ${t(lang, 'importedN')}`);
+    } else if (res.reason === 'no-playlists') {
+      toast(t(lang, 'noPlaylistsFound'));
+    } else {
+      toast(lang === 'fa' ? 'ورود گوگل ناموفق بود' : 'Google sign-in failed');
+    }
+  };
+
+  const doDemoSignIn = async () => {
+    setBusy(true);
+    setDemoOpen(false);
+    toast(t(lang, 'importingPlaylists'));
+    const res = await signInAndImport(lang);
+    setBusy(false);
+    if (res.ok) toast(`${res.imported} ${t(lang, 'importedN')}`);
+  };
+
+  const doSync = async () => {
+    setBusy(true);
+    toast(t(lang, 'importingPlaylists'));
+    const res = await resyncPlaylists(lang);
+    setBusy(false);
+    if (res.ok) toast(`${res.imported} ${t(lang, 'importedN')}`);
+    else toast(t(lang, 'noPlaylistsFound'));
+  };
+
+  return (
+    <div className="view-in mx-auto max-w-[760px] px-4 pb-10">
+      <h1 className="mb-6 text-2xl font-black sm:text-3xl">{t(lang, 'settings')}</h1>
+
+      {/* ACCOUNT — Google sign-in + YTMusic playlist sync */}
+      <Section icon={UserRound} title={t(lang, 'account')}>
+        {!user ? (
+          <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
+              <div className="text-[13px] font-semibold">{t(lang, 'signInGoogle')}</div>
+              <div className="mt-0.5 max-w-[420px] text-[11.5px] leading-relaxed text-dim">
+                {t(lang, 'fromYTMusic')} — YouTube Data API (youtube.readonly)
+              </div>
+            </div>
+            <button
+              onClick={() => (hasClientId ? doRealSignIn() : setDemoOpen(true))}
+              disabled={busy}
+              className="flex shrink-0 items-center gap-2.5 rounded-full bg-white px-5 py-2.5 text-[13px] font-bold text-[#1f1f1f] shadow-md transition-all hover:shadow-lg hover:brightness-[0.98] active:scale-[0.97] disabled:opacity-60"
+            >
+              <GoogleG /> {t(lang, 'signInGoogle')}
+            </button>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="flex min-w-0 items-center gap-3">
+              {user.picture ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={user.picture} alt="" className="h-11 w-11 shrink-0 rounded-full object-cover" />
+              ) : (
+                <span
+                  className="grid h-11 w-11 shrink-0 place-items-center rounded-full text-base font-black text-white"
+                  style={{ background: 'linear-gradient(135deg, var(--accent), var(--accent-2))' }}
+                >
+                  {user.name.slice(0, 1).toUpperCase()}
+                </span>
+              )}
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 text-[13.5px] font-bold">
+                  <span className="truncate">{user.name}</span>
+                  <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${user.demo ? 'bg-[var(--warning)]' : 'bg-[var(--success)]'}`} />
+                  <span className="shrink-0 text-[10.5px] font-semibold text-dim">{user.demo ? t(lang, 'demoTitle') : t(lang, 'connected')}</span>
+                </div>
+                {user.email && <div className="truncate text-[11px] text-dim">{user.email}</div>}
+              </div>
+            </div>
+            <div className="flex shrink-0 gap-2 max-sm:w-full">
+              <button
+                onClick={doSync}
+                disabled={busy}
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-full border border-line bg-surface px-4 py-2 text-[11.5px] font-semibold transition-colors hover:bg-surface2 disabled:opacity-60 sm:flex-none"
+              >
+                <RefreshCw size={13} className={busy ? 'animate-spin' : ''} /> {t(lang, 'syncPlaylists')}
+              </button>
+              <button
+                onClick={() => { signOut(); toast(lang === 'fa' ? 'از حساب خارج شدی' : 'Signed out'); }}
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-full border border-line bg-surface px-4 py-2 text-[11.5px] font-semibold text-[var(--danger)] transition-colors hover:bg-surface2 sm:flex-none"
+              >
+                <LogOut size={13} /> {t(lang, 'signOut')}
+              </button>
+            </div>
+          </div>
+        )}
+        {user?.demo && (
+          <div className="mt-3 rounded-xl bg-surface2 p-3 text-[11px] leading-relaxed text-dim">
+            {t(lang, 'demoDesc')}
+          </div>
+        )}
+      </Section>
+
+      {/* THEMES */}
+      <Section icon={Sparkles} title={t(lang, 'settingsThemes')}>
+        <div className="stagger grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {THEMES.map((th) => (
+            <button
+              key={th.id}
+              onClick={() => s.set({ theme: th.id })}
+              className={`group relative overflow-hidden rounded-2xl border p-3 text-start transition-all ${
+                s.theme === th.id ? 'border-[var(--accent)] shadow-[var(--glow-soft)]' : 'border-line hover:border-dim'
+              }`}
+              style={{ background: th.swatch[0] }}
+            >
+              <div className="mb-2 flex gap-1.5">
+                <span className="h-4 w-4 rounded-full" style={{ background: th.swatch[1], boxShadow: `0 0 10px ${th.swatch[1]}` }} />
+                <span className="h-4 w-4 rounded-full" style={{ background: th.swatch[2] }} />
+                <span className="h-4 w-4 rounded-full opacity-80" style={{ background: th.swatch[3] }} />
+              </div>
+              <div className="text-[11px] font-bold" style={{ color: th.swatch[0] === '#f7f7f9' ? '#111' : '#fff' }}>
+                {th.name[lang]}
+              </div>
+              {s.theme === th.id && (
+                <span className="absolute end-2 top-2 grid h-5 w-5 place-items-center rounded-full" style={{ background: th.swatch[1] }}>
+                  <Check size={12} className="text-black" />
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+        <div className="mt-4">
+          <div className="mb-2 text-xs font-bold">{t(lang, 'glowIntensity')}</div>
+          <div className="seg" role="radiogroup" aria-label={t(lang, 'glowIntensity')}>
+            {(['low', 'mid', 'high'] as GlowLevel[]).map((g) => (
+              <button key={g} data-on={s.glow === g} role="radio" aria-checked={s.glow === g} onClick={() => s.set({ glow: g })}>
+                {t(lang, g === 'low' ? 'low' : g === 'mid' ? 'mid' : 'high')}
+              </button>
+            ))}
+          </div>
+        </div>
+      </Section>
+
+      {/* LANGUAGE */}
+      <Section icon={Globe} title={t(lang, 'language')}>
+        <div className="seg" role="radiogroup" aria-label={t(lang, 'language')}>
+          {(['en', 'fa'] as const).map((l) => (
+            <button key={l} data-on={s.lang === l} role="radio" aria-checked={s.lang === l} onClick={() => s.set({ lang: l })}>
+              {l === 'fa' ? 'فارسی' : 'English'}
+            </button>
+          ))}
+        </div>
+      </Section>
+
+      {/* PLAYBACK */}
+      <Section icon={Radio} title={t(lang, 'playbackMode')}>
+        <div className="seg mb-3 max-w-full flex-wrap" role="radiogroup" aria-label={t(lang, 'playbackMode')}>
+          {([
+            { id: 'auto', label: t(lang, 'modeAuto') },
+            { id: 'official', label: t(lang, 'modeOfficial') },
+            { id: 'adfree', label: t(lang, 'modeAdfree') },
+          ] as { id: PlaybackMode; label: string }[]).map((m) => (
+            <button key={m.id} data-on={s.playbackMode === m.id} role="radio" aria-checked={s.playbackMode === m.id} onClick={() => s.set({ playbackMode: m.id })}>
+              {m.label}
+            </button>
+          ))}
+        </div>
+        <div className="flex items-start gap-2 rounded-xl bg-surface2 p-3 text-[11px] leading-relaxed text-dim">
+          <ShieldOff size={14} className="mt-0.5 shrink-0 text-[var(--accent)]" />
+          {lang === 'fa'
+            ? 'حالت بی‌تبلیغ از موتور ایزوله استفاده می‌کند؛ اگر یوتیوب مسیر را ببندد، خودکار به پلیر رسمی برمی‌گردد. حالت رسمی همیشه پایدار است (با تبلیغ برای اکانت فری).'
+            : 'Ad-free mode uses the isolated engine; if YouTube blocks it, playback auto-falls back to the official player. Official mode is always stable (with ads on free accounts).'}
+        </div>
+      </Section>
+
+      {/* DOWNLOADS */}
+      <Section icon={Download} title={t(lang, 'downloads')}>
+        <Row label={t(lang, 'downloadQuality')} desc={`160 / 70 / 50 kbps — Opus`}>
+          <div className="seg" role="radiogroup" aria-label={t(lang, 'downloadQuality')}>
+            {(['high', 'mid', 'low'] as const).map((q) => (
+              <button key={q} data-on={s.downloadQuality === q} role="radio" aria-checked={s.downloadQuality === q} onClick={() => s.set({ downloadQuality: q })}>
+                {t(lang, q === 'high' ? 'high' : q === 'mid' ? 'mid' : 'low')}
+              </button>
+            ))}
+          </div>
+        </Row>
+        <Row label={t(lang, 'askBeforeDownload')}>
+          <Switch checked={s.askBeforeBatch} onCheckedChange={(v) => s.set({ askBeforeBatch: v })} />
+        </Row>
+        <Row label={t(lang, 'playSync')} desc={t(lang, 'playSyncDesc')}>
+          <Switch checked={s.playSync} onCheckedChange={(v) => s.set({ playSync: v })} />
+        </Row>
+        {offlinePlaysCount > 0 && (
+          <div className="mt-2 rounded-xl bg-surface2 p-3 text-[11px] text-dim">
+            {lang === 'fa' ? 'در صف ثبت:' : 'Pending registration:'} {offlinePlaysCount}
+          </div>
+        )}
+      </Section>
+
+      {/* ABOUT */}
+      <Section icon={Info} title={t(lang, 'about')}>
+        <div className="space-y-1.5 text-xs text-dim">
+          <div>JixOne — {lang === 'fa' ? 'پلیر موزیک متن‌باز با کاتالوگ YouTube Music' : 'Open-source player with YouTube Music catalog'}</div>
+          <div>{user ? `${t(lang, 'welcomeUser')}, ${user.name}` : t(lang, 'guestBadge')}</div>
+          <div>{lang === 'fa' ? 'این اپ وابسته به گوگل/یوتیوب نیست — پخش از پلیر رسمی یوتیوب انجام می‌شود.' : 'Not affiliated with Google/YouTube — playback via official player.'}</div>
+          {usage > 0 && <div>{t(lang, 'storageUsed')}: {fmtSize(usage, lang)}</div>}
+        </div>
+      </Section>
+
+      {/* demo sign-in dialog */}
+      <Dialog open={demoOpen} onOpenChange={setDemoOpen}>
+        <DialogContent className="border-line bg-[var(--app-bg-2)] sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><GoogleG size={18} /> {t(lang, 'demoTitle')}</DialogTitle>
+          </DialogHeader>
+          <p className="text-[12.5px] leading-relaxed text-dim">{t(lang, 'demoDesc')}</p>
+          <div className="flex justify-end gap-2 pt-1">
+            <button
+              onClick={() => setDemoOpen(false)}
+              className="rounded-full border border-line px-5 py-2.5 text-xs font-semibold text-dim transition-colors hover:bg-surface hover:text-foreground"
+            >
+              {t(lang, 'cancel')}
+            </button>
+            <button
+              onClick={doDemoSignIn}
+              disabled={busy}
+              className="neon-play rounded-full px-5 py-2.5 text-xs font-bold transition-transform active:scale-95 disabled:opacity-60"
+            >
+              {t(lang, 'demoContinue')}
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+function Section({ icon: Icon, title, children }: { icon: any; title: string; children: React.ReactNode }) {
+  return (
+    <div className="mb-6 rounded-2xl border border-line bg-surface p-5">
+      <div className="mb-4 flex items-center gap-2 text-sm font-black">
+        <Icon size={16} className="text-[var(--accent)]" /> {title}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function Row({ label, desc, children }: { label: string; desc?: string; children: React.ReactNode }) {
+  return (
+    <div className="flex items-center justify-between gap-4 py-2">
+      <div className="min-w-0">
+        <div className="text-[13px] font-semibold">{label}</div>
+        {desc && <div className="mt-0.5 text-[11px] leading-relaxed text-dim">{desc}</div>}
+      </div>
+      <div className="shrink-0">{children}</div>
+    </div>
+  );
+}

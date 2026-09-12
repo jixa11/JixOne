@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="horizontal"
+    android:background="@drawable/widget_bg"
+    android:padding="10dp"
+    android:gravity="center_vertical">
+
+    <ImageView
+        android:id="@+id/w_art"
+        android:layout_width="72dp"
+        android:layout_height="72dp"
+        android:scaleType="centerCrop"
+        android:src="@drawable/ic_notif"
+        android:contentDescription="art" />
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:paddingStart="12dp"
+        android:paddingEnd="8dp">
+
+        <TextView
+            android:id="@+id/w_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="JixOne"
+            android:textColor="#FFFFFF"
+            android:textSize="15sp"
+            android:textStyle="bold"
+            android:maxLines="1"
+            android:ellipsize="end" />
+
+        <TextView
+            android:id="@+id/w_artist"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text=""
+            android:textColor="#9b9ba7"
+            android:textSize="12sp"
+            android:maxLines="1"
+            android:ellipsize="end" />
+    </LinearLayout>
+
+    <FrameLayout
+        android:id="@+id/w_prev_btn"
+        android:layout_width="40dp"
+        android:layout_height="40dp">
+        <ImageView
+            android:layout_width="22dp"
+            android:layout_height="22dp"
+            android:layout_gravity="center"
+            android:src="@drawable/ic_prev"
+            android:contentDescription="prev" />
+    </FrameLayout>
+
+    <FrameLayout
+        android:id="@+id/w_play_btn"
+        android:layout_width="46dp"
+        android:layout_height="46dp"
+        android:layout_marginStart="4dp"
+        android:layout_marginEnd="4dp"
+        android:background="#ff2d55">
+        <ImageView
+            android:id="@+id/w_play_icon"
+            android:layout_width="22dp"
+            android:layout_height="22dp"
+            android:layout_gravity="center"
+            android:src="@drawable/ic_play"
+            android:contentDescription="play" />
+    </FrameLayout>
+
+    <FrameLayout
+        android:id="@+id/w_next_btn"
+        android:layout_width="40dp"
+        android:layout_height="40dp">
+        <ImageView
+            android:layout_width="22dp"
+            android:layout_height="22dp"
+            android:layout_gravity="center"
+            android:src="@drawable/ic_next"
+            android:contentDescription="next" />
+    </FrameLayout>
+</LinearLayout>

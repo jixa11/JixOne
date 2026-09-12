@@ -48,9 +48,120 @@ function jixStreamUrl(picked: PickedAudio): string {
   return `${APPASSETS}/jixstream/?${params.toString()}`;
 }
 
-/** Device-side extraction: try each innertube client through the native bridge
- *  until one yields a playable audio URL. Runs 100% on the phone. */
+/** Device-side extraction — NATIVE FAST PATH (Metrolist-style).
+ *  One raw innertube POST per client executed in Kotlin (device IP, exact
+ *  client context) + a byte-range probe so only URLs that really stream come
+ *  back. This replaces youtubei.js as the primary path: the JS chain kept
+ *  returning po-token-locked URLs that 403'd on fetch (no stream / 403). */
+function b64ToUtf8Fallback(b64: string): string {
+  const bin = atob(b64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return new TextDecoder('utf-8').decode(bytes);
+}
+
+async function extractNative(videoId: string, quality: QualityId): Promise<ExtractedStream | null> {
+  const b = (typeof window !== 'undefined' ? (window as any).AndroidBridge : undefined);
+  if (typeof b?.innertubePlayer2 !== 'function') return null;
+  const w = window as any;
+  if (!w.__itDone) {
+    w.__itPending = {} as Record<string, (b64: string) => void>;
+    w.__itDone = (id: string, b64: string) => {
+      try { w.__itPending?.[id]?.(b64); } catch { /* dropped */ }
+      delete w.__itPending?.[id];
+    };
+  }
+  const callId = Math.random().toString(36).slice(2) + Date.now().toString(36);
+  const raw = await new Promise<string>((resolve, reject) => {
+    const timer = setTimeout(() => {
+      delete w.__itPending[callId];
+      reject(new Error('native extract timeout'));
+    }, 30000);
+    w.__itPending[callId] = (b64: string) => {
+      clearTimeout(timer);
+      try {
+        resolve(typeof b64 === 'string' && !b64.startsWith('{') ? b64ToUtf8Fallback(b64) : b64);
+      } catch (e) { reject(e); }
+    };
+    try {
+      b.innertubePlayer2(callId, videoId, quality);
+    } catch (e: any) {
+      clearTimeout(timer);
+      delete w.__itPending[callId];
+      reject(new Error(`bridge call failed: ${e?.message ?? e}`));
+    }
+  });
+  let data: any;
+  try { data = JSON.parse(raw); } catch { throw new Error('native envelope malformed'); }
+  if (!data?.ok || !data?.url) {
+    throw new Error(`NATIVE ${data?.error ?? 'failed'} ${data?.attempts ?? ''}`.slice(0, 160));
+  }
+  const picked: PickedAudio = {
+    url: data.url,
+    itag: data.itag ?? 0,
+    size: data.size ?? undefined,
+    mime: data.mime ?? undefined,
+    durationSec: data.duration ?? undefined,
+    title: data.title ?? undefined,
+    artist: data.author ?? undefined,
+    ua: data.ua,
+  };
+  return {
+    url: jixStreamUrl(picked),
+    itag: picked.itag,
+    size: picked.size,
+    durationSec: picked.durationSec,
+    title: picked.title,
+    artist: picked.artist,
+    proxied: true,
+  };
+}
+
+/** Device-side extraction: native innertube first (Metrolist-style), then the
+ *  youtubei.js client chain through the native bridge as a second chance. */
 async function extractOnDevice(videoId: string, quality: QualityId): Promise<ExtractedStream> {
+  // — 1) native Kotlin extractor (primary, exactly like Metrolist/InnerTune)
+  try {
+    const native = await extractNative(videoId, quality);
+    if (native) return native;
+  } catch (nativeErr) {
+    // — 2) youtubei.js chain via native bridge (legacy second chance)
+    const errors: string[] = [`native:${(nativeErr as Error)?.message?.slice(0, 60) ?? 'failed'}`];
+    try {
+      const { Innertube } = await import('youtubei.js/web.bundle');
+      for (const clientType of STREAM_CLIENTS) {
+        try {
+          const yt = await withTimeout(
+            Innertube.create({ client_type: clientType as any, fetch: nativeFetch as any, retrieve_player: clientType === 'WEB_REMIX' }),
+            12000,
+            `${clientType} boot`
+          );
+          const info: any = await withTimeout(yt.getBasicInfo(videoId), 12000, `${clientType} extract`);
+          const base = pickAudioFromInfo(info, PREF[quality]);
+          if (base) {
+            const picked: PickedAudio = { ...base, ua: CLIENT_UA[clientType] };
+            const wrapped = jixStreamUrl(picked);
+            return {
+              url: wrapped,
+              itag: picked.itag,
+              size: picked.size,
+              durationSec: picked.durationSec,
+              title: picked.title,
+              artist: picked.artist,
+              proxied: true,
+            };
+          }
+          errors.push(`${clientType}:no-url`);
+        } catch (e: any) {
+          errors.push(`${clientType}:${(e?.message ?? 'error').slice(0, 40)}`);
+        }
+      }
+    } catch (chainErr: any) {
+      errors.push(`chain:${(chainErr?.message ?? 'error').slice(0, 60)}`);
+    }
+    throw new Error(`EXTRACT_CHAIN_FAILED ${errors.join(' | ')}`);
+  }
+  // bridge has no innertubePlayer2 (old APK) → run the legacy chain directly
   const { Innertube } = await import('youtubei.js/web.bundle');
   const errors: string[] = [];
   for (const clientType of STREAM_CLIENTS) {
@@ -64,16 +175,7 @@ async function extractOnDevice(videoId: string, quality: QualityId): Promise<Ext
       const base = pickAudioFromInfo(info, PREF[quality]);
       if (base) {
         const picked: PickedAudio = { ...base, ua: CLIENT_UA[clientType] };
-        const wrapped = jixStreamUrl(picked);
-        return {
-          url: wrapped,
-          itag: picked.itag,
-          size: picked.size,
-          durationSec: picked.durationSec,
-          title: picked.title,
-          artist: picked.artist,
-          proxied: true,
-        };
+        return { url: jixStreamUrl(picked), itag: picked.itag, size: picked.size, durationSec: picked.durationSec, title: picked.title, artist: picked.artist, proxied: true };
       }
       errors.push(`${clientType}:no-url`);
     } catch (e: any) {

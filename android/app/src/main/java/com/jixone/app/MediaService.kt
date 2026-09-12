@@ -305,6 +305,35 @@ class WebBridge(private val context: Context) {
         }.start()
     }
 
+    /**
+     * Metrolist-style native stream extraction (v3): ONE raw innertube player
+     * POST per client from the device's own IP + byte-range PROBE so only URLs
+     * that really stream are returned (kills the 403/no-stream class of bugs).
+     * ASYNC like nativeFetch2 — background thread, callback via window.__itDone.
+     */
+    @android.webkit.JavascriptInterface
+    fun innertubePlayer2(id: String, videoId: String, quality: String) {
+        Thread {
+            val result = try {
+                InnertubeClient.player(videoId, quality)
+            } catch (e: Exception) {
+                try {
+                    org.json.JSONObject()
+                        .put("ok", false)
+                        .put("error", "NATIVE_CRASH")
+                        .put("attempts", e.message?.take(80) ?: "unknown")
+                        .toString()
+                } catch (_: Exception) { "{\"ok\":false,\"error\":\"NATIVE_CRASH\",\"attempts\":\"\"}" }
+            }
+            val b64 = android.util.Base64.encodeToString(
+                result.toByteArray(Charsets.UTF_8),
+                android.util.Base64.NO_WRAP
+            )
+            val js = "window.__itDone && window.__itDone('$id','$b64')"
+            JixOneHost.activity?.evalJs(js)
+        }.start()
+    }
+
     private fun httpEnvelope(url: String, method: String, headersJson: String, body: String?): String {
         return try {
             val conn = URL(url).openConnection() as HttpURLConnection

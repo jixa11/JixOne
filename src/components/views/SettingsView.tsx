@@ -12,7 +12,6 @@ import { getApiBase, setApiBase } from '@/engine/apiBase';
 import { useState, useEffect } from 'react';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import {
   Check, Globe, Radio, Download, Sparkles, ShieldOff, Info,
   LogOut, RefreshCw, UserRound, Activity, X, Loader2, Copy,
@@ -38,7 +37,6 @@ export default function SettingsView() {
   const hasClientId = !!googleClientId();
   const [usage, setUsage] = useState(0);
   const [busy, setBusy] = useState(false);
-  const [demoOpen, setDemoOpen] = useState(false);
   const [isAndroid, setIsAndroid] = useState(false);
   const [srv, setSrv] = useState('');
   const [fb, setFb] = useState('');
@@ -96,15 +94,6 @@ export default function SettingsView() {
     } else {
       toast(lang === 'fa' ? 'ورود گوگل ناموفق بود' : 'Google sign-in failed');
     }
-  };
-
-  const doDemoSignIn = async () => {
-    setBusy(true);
-    setDemoOpen(false);
-    toast(t(lang, 'importingPlaylists'));
-    const res = await signInAndImport(lang);
-    setBusy(false);
-    if (res.ok) toast(`${res.imported} ${t(lang, 'importedN')}`);
   };
 
   const doSync = async () => {
@@ -202,23 +191,38 @@ export default function SettingsView() {
         </div>
       </Section>
 
-      {/* ACCOUNT — Google sign-in + YTMusic playlist sync */}
+      {/* ACCOUNT — Google sign-in + YTMusic playlist sync.
+          HONESTY RULE (user request): no fake demo sign-in. When no real OAuth
+          client is configured, the button is disabled and the truth is shown. */}
       <Section icon={UserRound} title={t(lang, 'account')}>
         {!user ? (
           <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0">
-              <div className="text-[13px] font-semibold">{t(lang, 'signInGoogle')}</div>
+              <div className="text-[13px] font-semibold">
+                {hasClientId ? t(lang, 'signInGoogle') : t(lang, 'signInUnavailable')}
+              </div>
               <div className="mt-0.5 max-w-[420px] text-[11.5px] leading-relaxed text-dim">
-                {t(lang, 'fromYTMusic')} — YouTube Data API (youtube.readonly)
+                {hasClientId
+                  ? `${t(lang, 'fromYTMusic')} — YouTube Data API (youtube.readonly)`
+                  : t(lang, 'signInUnavailableDesc')}
               </div>
             </div>
-            <button
-              onClick={() => (hasClientId ? doRealSignIn() : setDemoOpen(true))}
-              disabled={busy}
-              className="flex shrink-0 items-center gap-2.5 rounded-full bg-white px-5 py-2.5 text-[13px] font-bold text-[#1f1f1f] shadow-md transition-all hover:shadow-lg hover:brightness-[0.98] active:scale-[0.97] disabled:opacity-60"
-            >
-              <GoogleG /> {t(lang, 'signInGoogle')}
-            </button>
+            {hasClientId ? (
+              <button
+                onClick={doRealSignIn}
+                disabled={busy}
+                className="flex shrink-0 items-center gap-2.5 rounded-full bg-white px-5 py-2.5 text-[13px] font-bold text-[#1f1f1f] shadow-md transition-all hover:shadow-lg hover:brightness-[0.98] active:scale-[0.97] disabled:opacity-60"
+              >
+                <GoogleG /> {t(lang, 'signInGoogle')}
+              </button>
+            ) : (
+              <button
+                disabled
+                className="flex shrink-0 cursor-not-allowed items-center gap-2.5 rounded-full border border-line bg-surface px-5 py-2.5 text-[13px] font-bold text-dim opacity-70"
+              >
+                <GoogleG /> {t(lang, 'signInGoogle')}
+              </button>
+            )}
           </div>
         ) : (
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -441,35 +445,9 @@ export default function SettingsView() {
         <div className="space-y-1.5 text-xs text-dim">
           <div>JixOne — {lang === 'fa' ? 'پلیر موزیک متن‌باز با کاتالوگ YouTube Music' : 'Open-source player with YouTube Music catalog'}</div>
           <div>{user ? `${t(lang, 'welcomeUser')}, ${user.name}` : t(lang, 'guestBadge')}</div>
-          <div>{lang === 'fa' ? 'این اپ وابسته به گوگل/یوتیوب نیست — پخش از پلیر رسمی یوتیوب انجام می‌شود.' : 'Not affiliated with Google/YouTube — playback via official player.'}</div>
           {usage > 0 && <div>{t(lang, 'storageUsed')}: {fmtSize(usage, lang)}</div>}
         </div>
       </Section>
-
-      {/* demo sign-in dialog */}
-      <Dialog open={demoOpen} onOpenChange={setDemoOpen}>
-        <DialogContent className="border-line bg-[var(--app-bg-2)] sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2"><GoogleG size={18} /> {t(lang, 'demoTitle')}</DialogTitle>
-          </DialogHeader>
-          <p className="text-[12.5px] leading-relaxed text-dim">{t(lang, 'demoDesc')}</p>
-          <div className="flex justify-end gap-2 pt-1">
-            <button
-              onClick={() => setDemoOpen(false)}
-              className="rounded-full border border-line px-5 py-2.5 text-xs font-semibold text-dim transition-colors hover:bg-surface hover:text-foreground"
-            >
-              {t(lang, 'cancel')}
-            </button>
-            <button
-              onClick={doDemoSignIn}
-              disabled={busy}
-              className="neon-play rounded-full px-5 py-2.5 text-xs font-bold transition-transform active:scale-95 disabled:opacity-60"
-            >
-              {t(lang, 'demoContinue')}
-            </button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

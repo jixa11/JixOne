@@ -24,7 +24,8 @@ export default function RootLayout({
     <html lang="fa" dir="rtl" data-theme="cyber-red" data-glow="mid" suppressHydrationWarning>
       <body className="antialiased">
         {children}
-        <Toaster position="bottom-center" theme="dark" richColors closeButton />
+        {/* notifications: NO close button, auto-fade after ~1s (user request) */}
+        <Toaster position="bottom-center" theme="dark" richColors duration={1200} visibleToasts={1} closeButton={false} />
       </body>
     </html>
   );

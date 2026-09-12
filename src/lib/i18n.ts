@@ -82,6 +82,8 @@ const dict = {
     playFail: 'پخش ممکن نشد — اتصال یا VPN رو چک کن و دوباره تلاش کن',
     noHelperServer: 'نه مسیر مستقیم گوشی جواب داد و نه سرور کمکی — یک سرور کمکی در تنظیمات وارد کن',
     libraryDownloads: 'دانلودهای آفلاین',
+    signInUnavailable: 'ورود با گوگل هنوز واقعی نشده',
+    signInUnavailableDesc: 'برای ورود واقعی، شناسه OAuth گوگل لازم است؛ در این نسخه فعال نیست و هیچ حالت نمایشی جعلی وجود ندارد. همه‌ی داده‌ها به‌صورت محلی روی همین دستگاه ذخیره می‌شوند.',
   },
   en: {
     appName: 'JixOne',
@@ -164,6 +166,8 @@ const dict = {
     playFail: 'Playback failed — check your connection or VPN and try again',
     noHelperServer: 'Neither the direct device path nor the helper server worked — set a helper server in Settings',
     libraryDownloads: 'Offline downloads',
+    signInUnavailable: 'Google sign-in is not real yet',
+    signInUnavailableDesc: 'Real sign-in needs a Google OAuth client ID; it is not enabled in this build and there is deliberately no fake demo mode. All your data stays local on this device.',
   },
 } as const;
 

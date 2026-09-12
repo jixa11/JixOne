@@ -18,4 +18,6 @@ upload/
 *.png
 tsconfig.tsbuildinfo
 worklog.md
+tools/
+android/local.properties
 !docs/**/*.png

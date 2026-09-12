@@ -59,6 +59,13 @@ const dict = {
     noPlaylistsFound: 'پلی‌لیستی در یوتیوب موزیک پیدا نشد',
     importedN: 'پلی‌لیست از یوتیوب موزیک وارد شد', playlistImported: 'پلی‌لیست شما از یوتیوب موزیک',
     welcomeUser: 'خوش آمدی',
+    diagTitle: 'تست اتصال',
+    diagDesc: 'اگر جستجو یا پخش کار نمی‌کند، این تست دقیقاً نشان می‌دهد مشکل کجاست — اینترنت، دسترسی به یوتیوب، یا خود اپ.',
+    diagRun: 'شروع تست', diagRerun: 'تست دوباره',
+    diagNet: 'اتصال اینترنت', diagYt: 'دسترسی به یوتیوب', diagSearch: 'جستجوی واقعی',
+    diagPass: 'برقرار', diagFail: 'ناموفق', diagRunning: 'در حال تست…',
+    diagCopy: 'کپی گزارش', diagCopied: 'گزارش کپی شد',
+    diagModeDevice: 'حالت دستگاه (بدون سرور)', diagModeServer: 'حالت سرور',
   },
   en: {
     appName: 'JixOne',
@@ -118,6 +125,13 @@ const dict = {
     noPlaylistsFound: 'No playlists found on YouTube Music',
     importedN: 'playlists imported from YouTube Music', playlistImported: 'Your playlist from YouTube Music',
     welcomeUser: 'Welcome',
+    diagTitle: 'Connection test',
+    diagDesc: 'If search or playback fails, this test pinpoints exactly where it breaks — internet, YouTube access, or the app itself.',
+    diagRun: 'Start test', diagRerun: 'Run again',
+    diagNet: 'Internet connection', diagYt: 'YouTube access', diagSearch: 'Live search',
+    diagPass: 'OK', diagFail: 'Failed', diagRunning: 'Testing…',
+    diagCopy: 'Copy report', diagCopied: 'Report copied',
+    diagModeDevice: 'Device mode (no server)', diagModeServer: 'Server mode',
   },
 } as const;
 

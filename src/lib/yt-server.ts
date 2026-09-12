@@ -1,5 +1,6 @@
 import 'server-only';
 import { Innertube } from 'youtubei.js';
+import { flattenYTM, RawSong } from '@/lib/ytm-shared';
 
 let ytPromise: Promise<Innertube> | null = null;
 
@@ -10,61 +11,13 @@ async function getYT(): Promise<Innertube> {
   return ytPromise;
 }
 
-export interface RawSong {
-  videoId: string;
-  title: string;
-  artist: string;
-  duration?: string;
-  thumb: string;
-}
-
-// walk nested YT structures and collect song-like items
-function collect(node: any, out: RawSong[], depth = 0) {
-  if (!node || depth > 6 || out.length > 60) return;
-  if (Array.isArray(node)) { node.forEach((n) => collect(n, out, depth + 1)); return; }
-  if (typeof node !== 'object') return;
-  const vid =
-    node.videoId ??
-    node.video_id ??
-    node?.title?.endpoint?.payload?.videoId ??
-    node?.on_tap?.payload?.videoId ??
-    node?.overlay?.music_item_thumbnail_overlay?.content?.music_play_button_renderer?.play_navigation_endpoint?.watchEndpoint?.videoId;
-  const title = node.title?.text ?? node.title?.runs?.[0]?.text;
-  if (vid && typeof vid === 'string' && title && node.type !== 'MusicCardShelfHeader') {
-    const sub: string =
-      node.subtitle?.text ??
-      node.flex_columns?.[1]?.title?.runs?.map((r: any) => r.text).join(' ') ??
-      node.authors?.map((a: any) => a.name).join(', ') ?? '';
-    // artist = second segment of subtitle like "Song • Artist • 3:20" or plain
-    let artist = sub;
-    let dur: string | undefined;
-    if (sub.includes('•')) {
-      const parts = sub.split('•').map((s: string) => s.trim());
-      parts.forEach((p) => { if (/^\d+:\d\d(:\d\d)?$/.test(p)) dur = p; });
-      artist = parts.filter((p) => p !== dur && !/^(song|video|آهنگ|ویدیو)$/i.test(p)).slice(-2).join(', ') || sub;
-    }
-    const t =
-      node.thumbnail?.contents?.[0]?.url ??
-      node.thumbnails?.[0]?.url ??
-      node.thumbnail_renderer?.music_thumbnail_renderer?.data?.thumbnail?.contents?.[0]?.url;
-    if (t) out.push({ videoId: vid, title, artist, duration: dur, thumb: t });
-    return;
-  }
-  for (const k of Object.keys(node)) {
-    if (k === 'menu' || k === 'overlay' && !node?.overlay?.music_item_thumbnail_overlay) continue;
-    const v = node[k];
-    if (v && typeof v === 'object') collect(v, out, depth + 1);
-  }
-}
+export type { RawSong };
 
 export async function searchYTMusic(query: string, filter: 'songs' | 'videos' = 'songs'): Promise<RawSong[]> {
   const yt = await getYT();
   const res: any = await yt.music.search(query, { filter } as any);
-  const out: RawSong[] = [];
-  collect(res.contents ?? res, out);
-  // dedupe
-  const seen = new Set<string>();
-  return out.filter((s) => !seen.has(s.videoId) && seen.add(s.videoId)).slice(0, 40);
+  const out = flattenYTM(res?.contents ?? res, []).slice(0, 40);
+  return out;
 }
 
 export async function getTrackMeta(videoId: string): Promise<RawSong | null> {
@@ -79,6 +32,42 @@ export async function getTrackMeta(videoId: string): Promise<RawSong | null> {
   } catch {
     return null;
   }
+}
+
+const ITAG_PREF: number[][] = [
+  [251, 140, 250, 249],
+  [250, 249, 140, 251],
+  [249, 139, 250, 140, 251],
+];
+
+export interface ServerStream {
+  url: string;
+  itag: number;
+  size?: number;
+  durationSec?: number;
+  title?: string;
+  artist?: string;
+}
+
+/** Server-side stream extraction (browser origins cannot call YouTube directly — CORS). */
+export async function extractStreamServer(videoId: string, qualityIdx = 0): Promise<ServerStream | null> {
+  const yt = await getYT();
+  let info: any;
+  try {
+    info = await yt.getInfo(videoId, { client: 'IOS' });
+  } catch {
+    info = await yt.getInfo(videoId);
+  }
+  const formats: any[] = info?.streaming_data?.adaptive_formats ?? [];
+  const basics = info?.basic_info ?? {};
+  const pref = ITAG_PREF[Math.min(Math.max(qualityIdx, 0), ITAG_PREF.length - 1)];
+  for (const itag of pref) {
+    const f = formats.find((x) => x.itag === itag && x.url);
+    if (f) return { url: f.url, itag, size: f.content_length, durationSec: basics.duration, title: basics.title, artist: basics.author };
+  }
+  const auds = formats.filter((f) => f.has_audio && !f.has_video && f.url).sort((a, b) => (b.bitrate ?? 0) - (a.bitrate ?? 0));
+  if (auds[0]) return { url: auds[0].url, itag: auds[0].itag, size: auds[0].content_length, durationSec: basics.duration, title: basics.title, artist: basics.author };
+  return null;
 }
 
 // simple TTL cache

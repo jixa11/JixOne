@@ -7,13 +7,14 @@ import { t, fmtSize } from '@/lib/i18n';
 import { storageUsage } from '@/engine/downloader';
 import { signInAndImport, resyncPlaylists } from '@/lib/signin';
 import { googleClientId } from '@/lib/google-auth';
+import { runDiagnostics, diagReportText, DiagStep } from '@/engine/diagnostics';
 import { useState, useEffect } from 'react';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import {
   Check, Globe, Radio, Download, Sparkles, ShieldOff, Info,
-  LogOut, RefreshCw, UserRound,
+  LogOut, RefreshCw, UserRound, Activity, X, Loader2, Copy,
 } from 'lucide-react';
 
 function GoogleG({ size = 16 }: { size?: number }) {
@@ -39,6 +40,10 @@ export default function SettingsView() {
   const [demoOpen, setDemoOpen] = useState(false);
   const [isAndroid, setIsAndroid] = useState(false);
   const [srv, setSrv] = useState('');
+  const [diagSteps, setDiagSteps] = useState<DiagStep[] | null>(null);
+  const [diagBusy, setDiagBusy] = useState(false);
+  const [diagVerdict, setDiagVerdict] = useState<{ fa: string; en: string } | null>(null);
+  const [diagMode, setDiagMode] = useState<'device' | 'server' | null>(null);
   useEffect(() => { storageUsage().then((u) => setUsage(u.usage)); }, []);
   useEffect(() => {
     const b = (window as any).AndroidBridge;
@@ -95,9 +100,91 @@ export default function SettingsView() {
     else toast(t(lang, 'noPlaylistsFound'));
   };
 
+  const runDiag = async () => {
+    setDiagBusy(true);
+    setDiagSteps([]);
+    setDiagVerdict(null);
+    setDiagMode(null);
+    const report = await runDiagnostics((steps) => setDiagSteps(steps));
+    setDiagVerdict({ fa: report.verdictFa, en: report.verdictEn });
+    setDiagMode(report.mode);
+    setDiagBusy(false);
+  };
+
+  const copyDiag = async () => {
+    if (!diagSteps) return;
+    const text = diagReportText(diagSteps, diagMode ?? '', diagVerdict ? (lang === 'fa' ? diagVerdict.fa : diagVerdict.en) : '');
+    try {
+      await navigator.clipboard.writeText(text);
+      toast(t(lang, 'diagCopied'));
+    } catch {
+      (window as any).AndroidBridge?.notify?.(t(lang, 'diagCopied'));
+    }
+  };
+
   return (
     <div className="view-in mx-auto max-w-[760px] px-4 pb-10">
       <h1 className="mb-6 text-2xl font-black sm:text-3xl">{t(lang, 'settings')}</h1>
+
+      {/* CONNECTION DIAGNOSTICS — first so users can self-diagnose search/playback issues */}
+      <Section icon={Activity} title={t(lang, 'diagTitle')}>
+        <div className="space-y-3">
+          <div className="text-[11px] leading-relaxed text-dim">{t(lang, 'diagDesc')}</div>
+          {diagSteps && diagSteps.length > 0 && (
+            <div className="space-y-1.5 rounded-xl bg-surface2 p-3">
+              {(['net', 'yt', 'search'] as const).map((id) => {
+                const st = diagSteps.find((x) => x.id === id);
+                const label = t(lang, id === 'net' ? 'diagNet' : id === 'yt' ? 'diagYt' : 'diagSearch');
+                return (
+                  <div key={id} className="flex items-center gap-2.5 text-[12px]">
+                    {!st ? (
+                      <span className="h-[15px] w-[15px] rounded-full border border-line" />
+                    ) : st.state === 'run' ? (
+                      <Loader2 size={15} className="animate-spin text-[var(--accent)]" />
+                    ) : st.state === 'pass' ? (
+                      <Check size={15} className="text-[var(--success)]" />
+                    ) : (
+                      <X size={15} className="text-[var(--danger)]" />
+                    )}
+                    <span className="font-semibold">{label}</span>
+                    {st?.detail && <span dir="ltr" className="ms-auto font-mono text-[10px] text-dim">{st.detail}</span>}
+                    {st && st.state !== 'run' && (
+                      <span className={`shrink-0 text-[10px] font-semibold ${st.state === 'pass' ? 'text-[var(--success)]' : 'text-[var(--danger)]'}`}>
+                        {t(lang, st.state === 'pass' ? 'diagPass' : 'diagFail')}
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+              {diagVerdict && (
+                <div className="border-t border-line pt-2 text-[11.5px] leading-relaxed">
+                  {lang === 'fa' ? diagVerdict.fa : diagVerdict.en}
+                  {diagMode && (
+                    <span className="ms-1 text-[10px] text-dim">
+                      ({t(lang, diagMode === 'device' ? 'diagModeDevice' : 'diagModeServer')})
+                    </span>
+                  )}
+                </div>
+              )}
+              {!diagBusy && diagSteps.length > 0 && (
+                <button
+                  onClick={copyDiag}
+                  className="flex items-center gap-1.5 rounded-full border border-line px-3.5 py-1.5 text-[10.5px] font-semibold text-dim transition-colors hover:bg-surface hover:text-foreground"
+                >
+                  <Copy size={12} /> {t(lang, 'diagCopy')}
+                </button>
+              )}
+            </div>
+          )}
+          <button
+            onClick={runDiag}
+            disabled={diagBusy}
+            className="neon-play flex items-center gap-2 rounded-full px-5 py-2.5 text-[13px] font-bold transition-transform active:scale-95 disabled:opacity-60"
+          >
+            <Activity size={15} /> {diagSteps && diagSteps.length > 0 && !diagBusy ? t(lang, 'diagRerun') : t(lang, 'diagRun')}
+          </button>
+        </div>
+      </Section>
 
       {/* ACCOUNT — Google sign-in + YTMusic playlist sync */}
       <Section icon={UserRound} title={t(lang, 'account')}>

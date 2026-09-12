@@ -273,4 +273,56 @@ class WebBridge(private val context: Context) {
             .edit().remove("base_url").apply()
         JixOneHost.activity?.runOnUiThread { JixOneHost.activity?.recreate() }
     }
+
+    /**
+     * CORS-proof HTTP transport for the web app.
+     * YouTube rejects cross-origin API calls from any non-Google web origin, so the
+     * WebView cannot call the YouTube/InnerTube APIs directly. JS routes requests
+     * through this native bridge instead — plain sockets have no CORS.
+     * Returns a JSON envelope: {status, headers, body} or {error}.
+     */
+    @android.webkit.JavascriptInterface
+    fun nativeFetch(url: String, method: String, headersJson: String, body: String?): String {
+        return try {
+            val conn = URL(url).openConnection() as HttpURLConnection
+            conn.requestMethod = if (method.isBlank()) "GET" else method.uppercase()
+            conn.connectTimeout = 15000
+            conn.readTimeout = 25000
+            conn.instanceFollowRedirects = true
+            try {
+                val h = JSONObject(headersJson)
+                for (key in h.keys()) {
+                    val hop = key.equals("accept-encoding", true) || key.equals("content-length", true) ||
+                        key.equals("host", true) || key.equals("origin", true) || key.equals("referer", true)
+                    if (hop) continue
+                    try { conn.setRequestProperty(key, h.getString(key)) } catch (_: Exception) { }
+                }
+            } catch (_: Exception) { }
+            if (body != null && conn.requestMethod != "GET" && conn.requestMethod != "HEAD") {
+                conn.doOutput = true
+                val bytes = body.toByteArray(Charsets.UTF_8)
+                conn.setFixedLengthStreamingMode(bytes.size)
+                conn.outputStream.use { it.write(bytes) }
+            }
+            val code = conn.responseCode
+            val stream = if (code in 200..399) conn.inputStream else conn.errorStream
+            val text = stream?.bufferedReader(Charsets.UTF_8)?.use { it.readText() } ?: ""
+            val headers = JSONObject()
+            for ((k, v) in conn.headerFields) {
+                if (k == null) continue
+                if (k.equals("content-encoding", true) || k.equals("content-length", true) ||
+                    k.equals("transfer-encoding", true)) continue
+                try { headers.put(k.lowercase(), v.joinToString(", ")) } catch (_: Exception) { }
+            }
+            JSONObject()
+                .put("status", code)
+                .put("headers", headers)
+                .put("body", text)
+                .toString()
+        } catch (e: Exception) {
+            try {
+                JSONObject().put("error", e.message ?: e.javaClass.simpleName).toString()
+            } catch (_: Exception) { "{\"error\":\"network error\"}" }
+        }
+    }
 }

@@ -18,3 +18,4 @@ upload/
 *.png
 tsconfig.tsbuildinfo
 worklog.md
+!docs/**/*.png

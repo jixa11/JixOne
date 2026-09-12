@@ -7,10 +7,20 @@ import { useLibrary } from '@/store/library';
 import { YTController, AudioController, SyncPlayer } from '@/engine/players';
 import { extractStream } from '@/engine/extractor';
 import { getLocalFileURL } from '@/engine/downloader';
+import { t } from '@/lib/i18n';
 import { toast } from 'sonner';
 
 function bridge(): Window['AndroidBridge'] | undefined {
   return typeof window !== 'undefined' ? window.AndroidBridge : undefined;
+}
+
+/** dedupe toasts — the old code re-toasted on every retry (user: «رگباری میاد پشت سر هم») */
+const lastToastAt: Record<string, number> = {};
+function toastOnce(key: string, msg: string) {
+  const now = Date.now();
+  if (now - (lastToastAt[key] ?? 0) < 6000) return;
+  lastToastAt[key] = now;
+  toast(msg);
 }
 
 export default function PlayerHost() {
@@ -32,6 +42,9 @@ export default function PlayerHost() {
 
   const track = queue[index];
 
+  // ---- toast helpers (lang-aware) ----
+  const msg = (key: Parameters<typeof t>[1]) => t(useSettings.getState().lang, key);
+
   // ---- init controllers ----
   useEffect(() => {
     const hooks = {
@@ -43,14 +56,14 @@ export default function PlayerHost() {
       onDuration: (sec: number) => usePlayer.getState().setDuration(sec),
       onPlayState: (b: boolean) => usePlayer.getState().setPlaying(b),
       onEnded: () => usePlayer.getState().next(true),
-      onError: (msg: string) => {
+      onError: (m: string) => {
         usePlayer.getState().setLoading(false);
-        if (msg === 'PLAY_BLOCKED') {
-          // autoplay policy — wait for real user gesture; don't switch engines
+        if (m === 'PLAY_BLOCKED') {
+          // autoplay policy — wait for a real user gesture; don't switch engines
           usePlayer.getState().setPlaying(false);
           return;
         }
-        handleEngineError(msg);
+        handleEngineError(m);
       },
     };
 
@@ -64,28 +77,24 @@ export default function PlayerHost() {
     };
 
     const audioCtl: EngineController = {
-      load: async (t, autoplay) => {
+      load: async (t2, autoplay) => {
         if (!audioRef.current) audioRef.current = new AudioController(hooks);
         activeKind.current = 'audio';
-        const dl = useDownloads.getState().items[t.videoId];
+        const dl = useDownloads.getState().items[t2.videoId];
         if (dl?.status === 'done') {
-          const f = await getLocalFileURL(t.videoId);
+          const f = await getLocalFileURL(t2.videoId);
           if (f) { audioRef.current.load(f.url, autoplay); audioRef.current.setVolume(useSettings.getState().volume); return true; }
         }
-        setControllerLoading(true);
         try {
           abortRef.current?.abort();
           abortRef.current = new AbortController();
-          const s = await extractStream(t.videoId, 'high');
+          const s = await extractStream(t2.videoId, 'high');
+          if (s.durationSec) usePlayer.getState().setDuration(s.durationSec);
           audioRef.current.load(s.url, autoplay);
           audioRef.current.setVolume(useSettings.getState().volume);
-          if (s.durationSec) usePlayer.getState().setDuration(s.durationSec);
           return true;
-        } catch (e: any) {
-          if (e?.name === 'AbortError') return false;
+        } catch {
           return false;
-        } finally {
-          setControllerLoading(false);
         }
       },
       play: () => audioRef.current?.play(),
@@ -95,10 +104,10 @@ export default function PlayerHost() {
       stop: () => audioRef.current?.stop(),
     };
     const ytCtl: EngineController = {
-      load: async (t, autoplay) => {
+      load: async (t2, autoplay) => {
         const c = makeYT();
         activeKind.current = 'yt';
-        return c.load(t.videoId, autoplay);
+        return c.load(t2.videoId, autoplay);
       },
       play: () => playerRef.current?.play(),
       pause: () => playerRef.current?.pause(),
@@ -107,12 +116,11 @@ export default function PlayerHost() {
       stop: () => playerRef.current?.stop(),
     };
 
-    // dispatching controller that routes by current engine kind
     const dispatch: EngineController = {
-      load: async (t, autoplay) => {
+      load: async (t2, autoplay) => {
         const kind = usePlayer.getState().engine;
-        if (kind === 'local' || kind === 'custom') return audioCtl.load(t, autoplay);
-        if (kind === 'yt') return ytCtl.load(t, autoplay);
+        if (kind === 'local' || kind === 'custom') return audioCtl.load(t2, autoplay);
+        if (kind === 'yt') return ytCtl.load(t2, autoplay);
         return false;
       },
       play: () => (activeKind.current === 'yt' ? ytCtl.play() : audioCtl.play()),
@@ -125,111 +133,108 @@ export default function PlayerHost() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const setControllerLoading = (b: boolean) => usePlayer.getState().setLoading(b);
-
-  // ---- engine error handling with fallback ----
-  const handleEngineError = (msg: string) => {
+  // ---- engine error handling (mid-play failures) ----
+  const handleEngineError = (msgRaw: string) => {
     const st = usePlayer.getState();
     const mode = useSettings.getState().playbackMode;
-    if (st.engine === 'custom' && (mode === 'auto' || msg === 'AUDIO_ERROR') && mode !== 'adfree') {
-      toast(t_fa('adfreeFail'));
-      usePlayer.getState().setEngine('yt');
-      usePlayer.getState().setLoading(true);
+    if (st.engine === 'custom' && mode !== 'adfree' && msgRaw === 'AUDIO_ERROR') {
+      // the ad-free stream died mid-play → try the official player once
+      toastOnce('adfreeFail', msg('adfreeFail'));
+      st.setEngine('yt');
+      st.setLoading(true);
     } else if (st.engine === 'custom' && mode === 'adfree') {
-      toast(t_fa('extractFail'));
-      usePlayer.getState().setPlaying(false);
-    } else if (msg === 'AUDIO_ERROR' && st.engine === 'local') {
-      toast(t_fa('extractFail'));
+      toastOnce('extractFail', msg('extractFail'));
+      st.setPlaying(false);
+    } else if (st.engine === 'yt') {
+      toastOnce('officialFail', msg('officialUnavailable'));
+      st.setPlaying(false);
     }
   };
 
-  // ---- engine selection when track/engine changes ----
-  const lastLoadRef = useRef('');
-  const fallbackDoneRef = useRef('');
+  // ---- load orchestration: one custom attempt + one official attempt per track ----
+  const attemptsRef = useRef<{ videoId: string; officialTried: boolean }>({ videoId: '', officialTried: false });
+
   useEffect(() => {
     if (!track) return;
-    const key = `${track.videoId}:${usePlayer.getState().engine}`;
-    if (lastLoadRef.current === key && usePlayer.getState().loading) return; // anti-loop guard
     let cancelled = false;
+
+    if (attemptsRef.current.videoId !== track.videoId) {
+      attemptsRef.current = { videoId: track.videoId, officialTried: false };
+    }
+
+    const stopWith = (key: Parameters<typeof t>[1] | null) => {
+      if (cancelled) return;
+      usePlayer.getState().setLoading(false);
+      usePlayer.getState().setPlaying(false);
+      if (key) toastOnce(key, msg(key));
+    };
+
+    const loadKind = async (kind: 'local' | 'custom' | 'yt'): Promise<boolean> => {
+      const ctl = getController();
+      if (!ctl || cancelled) return false;
+      usePlayer.getState().setEngine(kind);
+      usePlayer.getState().setLoading(true);
+      // route directly to the right controller
+      if (kind === 'yt') {
+        if (!playerRef.current && videoDivRef.current) {
+          ytMountRef.current = document.createElement('div');
+          videoDivRef.current.appendChild(ytMountRef.current);
+          playerRef.current = new YTController(ytMountRef.current, makeHooks());
+        }
+        activeKind.current = 'yt';
+        try { return await playerRef.current!.load(track.videoId, true); }
+        catch { return false; }
+      }
+      if (!audioRef.current) audioRef.current = new AudioController(makeHooks());
+      activeKind.current = 'audio';
+      if (kind === 'local') {
+        const f = await getLocalFileURL(track.videoId);
+        if (f) { audioRef.current.load(f.url, true); audioRef.current.setVolume(useSettings.getState().volume); return true; }
+        return false;
+      }
+      try {
+        abortRef.current?.abort();
+        abortRef.current = new AbortController();
+        const s = await extractStream(track.videoId, 'high');
+        if (cancelled) return false;
+        if (s.durationSec) usePlayer.getState().setDuration(s.durationSec);
+        audioRef.current.load(s.url, true);
+        audioRef.current.setVolume(useSettings.getState().volume);
+        return true;
+      } catch {
+        return false;
+      }
+    };
+
     (async () => {
-      const st = usePlayer.getState();
       const mode = useSettings.getState().playbackMode;
       const dl = useDownloads.getState().items[track.videoId];
 
-      let kind: 'local' | 'custom' | 'yt' = 'yt';
-      if (dl?.status === 'done') kind = 'local';
-      else if (mode === 'official') kind = 'yt';
-      else kind = 'custom'; // auto & adfree both try adfree first; auto falls back on error
+      if (dl?.status === 'done') {
+        if (await loadKind('local')) { usePlayer.getState().setLoading(false); return; }
+      }
 
-      lastLoadRef.current = `${track.videoId}:${kind}`;
-      st.setEngine(kind);
-      st.setLoading(true);
-      const ok = await getControllerSafe(kind, track);
-      if (cancelled) return;
-      if (!ok && kind === 'custom' && mode === 'auto' && fallbackDoneRef.current !== track.videoId) {
-        fallbackDoneRef.current = track.videoId;
-        toast(t_fa('adfreeFail'));
-        lastLoadRef.current = `${track.videoId}:yt`;
-        usePlayer.getState().setEngine('yt');
-        const ok2 = await getControllerSafe('yt', track);
-        if (!ok2 && !cancelled) { usePlayer.getState().setLoading(false); usePlayer.getState().setPlaying(false); }
-      } else if (!ok && !cancelled) {
-        usePlayer.getState().setLoading(false);
-        usePlayer.getState().setPlaying(false);
-        if (kind === 'custom' && useSettings.getState().playbackMode === 'adfree') toast(t_fa('extractFail'));
-      }
-      if (ok) usePlayer.getState().setLoading(false);
-      else if (!cancelled) {
-        usePlayer.getState().setLoading(false);
-        usePlayer.getState().setPlaying(false);
-        if (kind === 'custom' && mode === 'auto' && fallbackDoneRef.current === track.videoId) {
-          // already tried fallback
+      if (mode !== 'official') {
+        if (await loadKind('custom')) { usePlayer.getState().setLoading(false); return; }
+        if (cancelled) return;
+        // ad-free failed → fall back to the official player ONCE
+        if (!attemptsRef.current.officialTried) {
+          attemptsRef.current.officialTried = true;
+          toastOnce('adfreeFail', msg('adfreeFail'));
+          if (await loadKind('yt')) { usePlayer.getState().setLoading(false); return; }
         }
+        stopWith('playFail');
+        return;
       }
+
+      // official-only mode
+      if (await loadKind('yt')) { usePlayer.getState().setLoading(false); return; }
+      stopWith('officialUnavailable');
     })();
+
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [track?.videoId, engine]);
-
-  const getControllerSafe = async (kind: string, t: NonNullable<typeof track>) => {
-    const autoplay = true;
-    const ctl = getController();
-    if (!ctl) return false;
-    // route directly to right controller
-    const st = { ...usePlayer.getState(), engine: kind as any };
-    void st;
-    if (kind === 'yt') {
-      if (!playerRef.current && videoDivRef.current) {
-        ytMountRef.current = document.createElement('div');
-        videoDivRef.current.appendChild(ytMountRef.current);
-        playerRef.current = new YTController(ytMountRef.current, makeHooks());
-      }
-      activeKind.current = 'yt';
-      const r = await playerRef.current!.load(t.videoId, autoplay);
-      if (r) usePlayer.getState().setLoading(false);
-      return r;
-    }
-    // audio path
-    if (!audioRef.current) audioRef.current = new AudioController(makeHooks());
-    activeKind.current = 'audio';
-    const dl = useDownloads.getState().items[t.videoId];
-    if (dl?.status === 'done') {
-      const f = await getLocalFileURL(t.videoId);
-      if (f) { audioRef.current.load(f.url, autoplay); audioRef.current.setVolume(volume); usePlayer.getState().setLoading(false); return true; }
-    }
-    try {
-      abortRef.current?.abort();
-      abortRef.current = new AbortController();
-      const s = await extractStream(t.videoId, 'high');
-      if (s.durationSec) usePlayer.getState().setDuration(s.durationSec);
-      audioRef.current.load(s.url, autoplay);
-      audioRef.current.setVolume(volume);
-      usePlayer.getState().setLoading(false);
-      return true;
-    } catch {
-      return false;
-    }
-  };
+  }, [track?.videoId]);
 
   const hooksRef = useRef({} as ReturnType<typeof makeHooks>);
   function makeHooks() {
@@ -291,6 +296,7 @@ export default function PlayerHost() {
     }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [track?.videoId, engine]);
+
   useEffect(() => {
     window.NativeAction = {
       play: () => usePlayer.getState().explicitPlay(),
@@ -306,8 +312,6 @@ export default function PlayerHost() {
     if (!syncRef.current) {
       syncRef.current = new SyncPlayer((videoId, ok) => {
         if (ok) {
-          const lib = useLibrary.getState();
-          lib.offlinePlays; // touch
           useLibrary.setState((s) => ({ offlinePlays: s.offlinePlays.filter((p) => p.videoId !== videoId) }));
         }
         scheduleNextSync();
@@ -354,13 +358,4 @@ export default function PlayerHost() {
       <div ref={syncMountRef} className="pointer-events-none fixed -left-[3000px] top-0 h-[120px] w-[214px] opacity-0" aria-hidden />
     </>
   );
-}
-
-function t_fa(key: string): string {
-  // tiny helper to avoid circular import with i18n in error paths
-  const map: Record<string, string> = {
-    adfreeFail: 'موتور بدون تبلیغ در دسترس نیست — پلیر رسمی جایگزین شد',
-    extractFail: 'استخراج ناموفق بود — VPN روشن است؟',
-  };
-  return map[key] ?? key;
 }

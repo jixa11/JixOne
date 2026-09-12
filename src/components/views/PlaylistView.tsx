@@ -88,7 +88,7 @@ export default function PlaylistView({ id }: { id: string }) {
               disabled={!tracks.length}
               onClick={() => {
                 if (useSettings.getState().askBeforeBatch) setConfirmDl(true);
-                else { enqueueMany(tracks); toast(t(lang, 'dlStart')); useView.getState().push('downloads'); }
+                else { enqueueMany(tracks); toast(t(lang, 'dlStart')); useView.getState().push('library'); }
               }}
               className="flex items-center gap-2 rounded-full border border-line bg-surface px-5 py-2.5 text-sm hover:bg-surface2 disabled:opacity-40"
             >
@@ -147,7 +147,7 @@ export default function PlaylistView({ id }: { id: string }) {
             <button className="flex-1 rounded-xl border border-line py-3 text-sm text-dim transition-colors hover:bg-surface" onClick={() => setConfirmDl(false)}>{t(lang, 'cancel')}</button>
             <button
               className="neon-play flex-1 rounded-xl py-3 text-sm font-bold transition-transform active:scale-[0.98]"
-              onClick={() => { setConfirmDl(false); enqueueMany(tracks); toast(t(lang, 'dlStart')); useView.getState().push('downloads'); }}
+              onClick={() => { setConfirmDl(false); enqueueMany(tracks); toast(t(lang, 'dlStart')); useView.getState().push('library'); }}
             >
               {t(lang, 'startDownload')}
             </button>

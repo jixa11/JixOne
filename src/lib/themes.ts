@@ -7,6 +7,12 @@ export interface ThemeDef {
 }
 
 export const THEMES: ThemeDef[] = [
+  // ——— Persian themes (inspired by Iranian carpets, tilework & Achaemenid art) ———
+  { id: 'persian-carpet', name: { fa: 'فرش ایرانی', en: 'Persian Carpet' }, swatch: ['#170b0e', '#d34a5e', '#2aa9a2', '#e9a832'] },
+  { id: 'persian-tile', name: { fa: 'کاشی اصفهان', en: 'Isfahan Tile' }, swatch: ['#081226', '#33c5d6', '#4f7fe6', '#d8aa50'] },
+  { id: 'derafsh', name: { fa: 'درفش کاویانی', en: 'Kaviani Banner' }, swatch: ['#1b0a2a', '#e0b24a', '#9a5be0', '#c83250'] },
+  { id: 'cyrus', name: { fa: 'کوروش هخامنشی', en: 'Cyrus the Great' }, swatch: ['#f5eede', '#b08a2e', '#2a5d9f', '#c46240'] },
+  // ——— previous themes ———
   { id: 'cyber-red', name: { fa: 'کریمسون نئون', en: 'Neon Crimson' }, swatch: ['#08070c', '#ff2d55', '#8b5cf6', '#22d3ee'], cyber: true },
   { id: 'cyber-blue', name: { fa: 'نئو توکیو', en: 'Neo Tokyo' }, swatch: ['#04060e', '#22d3ee', '#6366f1', '#d946ef'], cyber: true },
   { id: 'synthwave', name: { fa: 'سینث‌ویو', en: 'Synthwave' }, swatch: ['#0c0416', '#ff2fa0', '#a855f7', '#fb923c'], cyber: true },

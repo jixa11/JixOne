@@ -25,3 +25,4 @@ android/app/src/main/assets/web/
 src/.api_stash/
 out/
 !docs/**/*.png
+tool-results/

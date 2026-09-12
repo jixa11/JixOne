@@ -41,7 +41,7 @@ function RowInner({ track, i, queueContext, onRemove, showIndex = true }: Props)
   const downloadNow = () => {
     enqueueDownload(track.videoId, { title: track.title, artist: track.artist, thumb: track.thumb, durationSec: track.durationSec ?? 210 });
     toast(t(lang, 'addedToDl'));
-    useView.getState().push('downloads');
+    useView.getState().push('library');
   };
 
   return (

@@ -9,7 +9,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { TrackThumb } from '@/components/TrackThumb';
 
-export default function DownloadsView() {
+export default function DownloadsView({ embedded = false }: { embedded?: boolean }) {
   const lang = useSettings((s) => s.lang);
   const items = useDownloads((s) => s.items);
   const remove = useDownloads((s) => s.remove);
@@ -27,15 +27,25 @@ export default function DownloadsView() {
   const removeOne = async (videoId: string) => { await deleteLocalFile(videoId); remove(videoId); };
 
   return (
-    <div className="view-in mx-auto max-w-[900px] px-4 pb-8">
-      <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-2xl font-black sm:text-3xl">{t(lang, 'downloads')}</h1>
-        {list.length > 0 && (
+    <div className={embedded ? '' : 'view-in mx-auto max-w-[900px] px-4 pb-8'}>
+      {!embedded && (
+        <div className="mb-4 flex items-center justify-between">
+          <h1 className="text-2xl font-black sm:text-3xl">{t(lang, 'downloads')}</h1>
+          {list.length > 0 && (
+            <Button variant="ghost" size="sm" className="text-dim hover:text-red-400" onClick={() => { clearAll(); toast(t(lang, 'deleted')); }}>
+              <Trash2 size={14} className="me-1" /> {t(lang, 'clearDownloads')}
+            </Button>
+          )}
+        </div>
+      )}
+      {embedded && list.length > 0 && (
+        <div className="mb-3 flex items-center justify-between">
+          <span />
           <Button variant="ghost" size="sm" className="text-dim hover:text-red-400" onClick={() => { clearAll(); toast(t(lang, 'deleted')); }}>
             <Trash2 size={14} className="me-1" /> {t(lang, 'clearDownloads')}
           </Button>
-        )}
-      </div>
+        </div>
+      )}
 
       <div className="mb-6 flex items-center gap-3 rounded-2xl border border-line bg-surface p-4 text-xs text-dim">
         <HardDrive size={18} className="text-[var(--accent)]" />

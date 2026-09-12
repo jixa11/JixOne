@@ -1,5 +1,5 @@
 'use client';
-import { Heart, Clock3, Plus, ListMusic, Youtube } from 'lucide-react';
+import { Heart, Clock3, Plus, Download, Youtube } from 'lucide-react';
 import { useLibrary } from '@/store/library';
 import { useSettings } from '@/store/settings';
 import { useView } from '@/store/view';
@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { useState } from 'react';
 import { TrackCard } from '@/components/TrackCard';
 import { TrackThumb } from '@/components/TrackThumb';
+import DownloadsView from '@/components/views/DownloadsView';
 
 export default function LibraryView() {
   const lang = useSettings((s) => s.lang);
@@ -35,8 +36,8 @@ export default function LibraryView() {
           <span className="grid h-10 w-10 place-items-center rounded-lg bg-surface2 text-dim"><Clock3 size={17} /></span>
           <span><span className="block text-[13px] font-bold">{t(lang, 'recentPlayed')}</span><span className="text-[11px] text-dim">{num(history.length, lang)}</span></span>
         </button>
-        <button onClick={() => useView.getState().push('downloads')} className="card-hover flex min-h-[56px] items-center gap-3 rounded-2xl bg-surface p-3 text-start">
-          <span className="grid h-10 w-10 place-items-center rounded-lg bg-surface2 text-dim"><ListMusic size={17} /></span>
+        <button onClick={() => document.getElementById('jixone-downloads')?.scrollIntoView({ behavior: 'smooth', block: 'start' })} className="card-hover flex min-h-[56px] items-center gap-3 rounded-2xl bg-surface p-3 text-start">
+          <span className="grid h-10 w-10 place-items-center rounded-lg bg-surface2 text-dim"><Download size={17} /></span>
           <span><span className="block text-[13px] font-bold">{t(lang, 'downloads')}</span></span>
         </button>
       </div>
@@ -64,7 +65,7 @@ export default function LibraryView() {
                     {p.tracks.length < 4 && Array.from({ length: 4 - Math.min(4, p.tracks.length) }).map((_, i) => <div key={i} className="bg-surface2" />)}
                   </div>
                 ) : (
-                  <div className="grid h-full place-items-center text-dim"><ListMusic size={26} /></div>
+                  <div className="grid h-full place-items-center text-dim"><Download size={26} /></div>
                 )}
               </div>
               <div className="flex items-center gap-1.5">
@@ -90,6 +91,11 @@ export default function LibraryView() {
           </div>
         </>
       )}
+
+      {/* offline downloads — merged into Library (per user request) */}
+      <div id="jixone-downloads" className="scroll-mt-20" />
+      <h2 className="mb-3 mt-10 text-lg font-black">{t(lang, 'libraryDownloads')}</h2>
+      <DownloadsView embedded />
 
       <Dialog open={openNew} onOpenChange={setOpenNew}>
         <DialogContent className="border-line bg-[var(--app-bg-2)] sm:max-w-sm">

@@ -1,7 +1,9 @@
 'use client';
 import type { QualityId } from '@/lib/types';
-import { getYTClient, canUseClientEngine } from '@/engine/ytclient';
+import { pickAudioFromInfo, CLIENT_UA, b64urlEncode, type PickedAudio } from '@/lib/streamClients';
+import { STREAM_CLIENTS } from '@/lib/streamClients';
 import { apiFetch } from '@/engine/apiBase';
+import { hasNativeBridge, nativeFetch } from '@/engine/nativeFetch';
 
 export interface ExtractedStream {
   url: string;
@@ -10,7 +12,8 @@ export interface ExtractedStream {
   durationSec?: number;
   title?: string;
   artist?: string;
-  thumb?: string;
+  /** true when the URL streams through our own layer (jixstream intercept or server proxy) */
+  proxied?: boolean;
 }
 
 const PREF: Record<QualityId, number[]> = {
@@ -19,6 +22,9 @@ const PREF: Record<QualityId, number[]> = {
   low: [249, 139, 250, 140, 251],
 };
 
+/** The WebView intercept endpoint baked into MainActivity.kt (same-origin → no CORS) */
+const APPASSETS = 'https://appassets.androidplatform.net';
+
 function withTimeout<T>(p: Promise<T>, ms: number, label = 'timeout'): Promise<T> {
   return Promise.race([
     p,
@@ -26,56 +32,133 @@ function withTimeout<T>(p: Promise<T>, ms: number, label = 'timeout'): Promise<T
   ]);
 }
 
-function pickFromInfo(info: any, quality: QualityId): ExtractedStream | null {
+/** e2e debug mode (?e2e=1) keeps everything client-side with fixtures */
+function isE2E(): boolean {
+  return typeof window !== 'undefined' && window.location.search.includes('e2e=1');
+}
+
+/** Wrap an upstream googlevideo URL so the NATIVE layer fetches it
+ *  (correct client UA + Range passthrough). The resulting URL is same-origin
+ *  for the WebView page → <audio> and fetch() both work, no CORS, no IP-lock. */
+function jixStreamUrl(picked: PickedAudio): string {
+  const params = new URLSearchParams();
+  params.set('u', b64urlEncode(picked.url));
+  params.set('ua', b64urlEncode(picked.ua ?? CLIENT_UA.WEB_REMIX));
+  if (picked.mime) params.set('ct', b64urlEncode(picked.mime));
+  return `${APPASSETS}/jixstream/?${params.toString()}`;
+}
+
+/** Device-side extraction: try each innertube client through the native bridge
+ *  until one yields a playable audio URL. Runs 100% on the phone. */
+async function extractOnDevice(videoId: string, quality: QualityId): Promise<ExtractedStream> {
+  const { Innertube } = await import('youtubei.js/web.bundle');
+  const errors: string[] = [];
+  for (const clientType of STREAM_CLIENTS) {
+    try {
+      const yt = await withTimeout(
+        Innertube.create({ client_type: clientType as any, fetch: nativeFetch as any, retrieve_player: clientType === 'WEB_REMIX' }),
+        12000,
+        `${clientType} boot`
+      );
+      const info: any = await withTimeout(yt.getBasicInfo(videoId), 12000, `${clientType} extract`);
+      const base = pickAudioFromInfo(info, PREF[quality]);
+      if (base) {
+        const picked: PickedAudio = { ...base, ua: CLIENT_UA[clientType] };
+        const wrapped = jixStreamUrl(picked);
+        return {
+          url: wrapped,
+          itag: picked.itag,
+          size: picked.size,
+          durationSec: picked.durationSec,
+          title: picked.title,
+          artist: picked.artist,
+          proxied: true,
+        };
+      }
+      errors.push(`${clientType}:no-url`);
+    } catch (e: any) {
+      errors.push(`${clientType}:${(e?.message ?? 'error').slice(0, 40)}`);
+    }
+  }
+  throw new Error(`EXTRACT_CHAIN_FAILED ${errors.join(' | ')}`);
+}
+
+/** E2E fixture path — mock tube, relative URL, no wrapping. */
+async function extractE2E(videoId: string, quality: QualityId): Promise<ExtractedStream | null> {
+  const { getYTClient } = await import('@/engine/ytclient');
+  const yt = await getYTClient();
+  const info = await yt.getInfo(videoId);
   const formats: any[] = info?.streaming_data?.adaptive_formats ?? [];
-  const basics = info?.basic_info ?? {};
   const pick = (itag: number) => formats.find((f) => f.itag === itag && f.url);
   for (const itag of PREF[quality]) {
     const f = pick(itag);
-    if (f) return { url: f.url, itag, size: f.content_length, durationSec: basics.duration, title: basics.title, artist: basics.author };
+    if (f) return { url: f.url, itag, size: f.content_length, durationSec: info?.basic_info?.duration, title: info?.basic_info?.title, artist: info?.basic_info?.author };
   }
-  // fallback: best available audio-only
-  const auds = formats.filter((f) => f.has_audio && !f.has_video && f.url).sort((a, b) => (b.bitrate ?? 0) - (a.bitrate ?? 0));
-  if (auds[0]) return { url: auds[0].url, itag: auds[0].itag, size: auds[0].content_length, durationSec: basics.duration, title: basics.title, artist: basics.author };
+  const auds = formats.filter((f) => f.has_audio && !f.has_video && f.url);
+  if (auds[0]) return { url: auds[0].url, itag: auds[0].itag, size: auds[0].content_length, durationSec: info?.basic_info?.duration };
   return null;
 }
 
-/** Extract a direct audio stream URL.
- *  - APK: extraction happens on the DEVICE through the native bridge (no CORS, no server);
- *    if that fails (YouTube unreachable), fall back to the helper server route.
- *  - plain web: through our own server route (/api/yt/player) — CORS-free. */
+/**
+ * Resolve a playable/downloadable audio URL for a video.
+ *
+ * APK (native bridge):  device extraction (native sockets, correct client UA)
+ *                       → stream through the /jixstream/ WebView intercept.
+ *                       Falls back to the helper-server proxy when the device
+ *                       path yields nothing (e.g. YouTube blocked without VPN).
+ * Plain browser:        /api/yt/stream proxy (same-origin, server does the
+ *                       extraction + piping).
+ * E2E (?e2e=1):         fixture stream.
+ */
 export async function extractStream(videoId: string, quality: QualityId): Promise<ExtractedStream> {
-  if (canUseClientEngine()) {
+  if (isE2E()) {
+    const m = await extractE2E(videoId, quality);
+    if (m) return m;
+    throw new Error('NO_STREAM');
+  }
+
+  if (hasNativeBridge()) {
+    let deviceError: unknown = null;
     try {
-      const yt = await withTimeout(getYTClient(), 15000, 'client boot timeout');
-      let info: any;
-      try {
-        // iOS client: usually returns streams from residential IPs without poToken
-        info = await withTimeout(yt.getInfo(videoId, { client: 'IOS' }), 15000, 'device extract timeout');
-      } catch {
-        info = await withTimeout(yt.getInfo(videoId), 15000, 'device extract timeout'); // web fallback
+      return await withTimeout(extractOnDevice(videoId, quality), 45000, 'device extract total timeout');
+    } catch (e) {
+      deviceError = e;
+    }
+    // helper-server proxy fallback (absolute URL via bridge; no CORS there)
+    try {
+      const base = (await import('@/engine/apiBase')).getApiBase();
+      if (!base) throw new Error('NO_HELPER_SERVER');
+      const r = await apiFetch(`/api/yt/player?id=${encodeURIComponent(videoId)}&q=${encodeURIComponent(quality)}`, { cache: 'no-store' }, 25000);
+      const d = await r.json();
+      if (d?.ok && d?.url) {
+        return { url: `${base}/api/yt/stream?id=${encodeURIComponent(videoId)}&q=${encodeURIComponent(quality)}`, itag: d.itag ?? 0, size: d.size, durationSec: d.durationSec, title: d.title, artist: d.artist, proxied: true };
       }
-      const picked = pickFromInfo(info, quality);
-      if (picked) return picked;
-    } catch { /* fall through to server */ }
+      throw new Error(d?.error ?? 'SERVER_NO_STREAM');
+    } catch (e) {
+      throw new Error(
+        `NO_STREAM (device: ${deviceError instanceof Error ? deviceError.message.slice(0, 80) : 'failed'} | server: ${e instanceof Error ? e.message.slice(0, 60) : 'failed'})`
+      );
+    }
   }
-  // server-side extraction (browser: relative; APK: helper server via bridge)
-  const r = await apiFetch(`/api/yt/player?id=${encodeURIComponent(videoId)}&q=${encodeURIComponent(quality)}`, { cache: 'no-store' }, 25000);
-  const d = await r.json();
-  if (d?.ok && d?.url) {
-    return { url: d.url, itag: d.itag ?? 0, size: d.size, durationSec: d.durationSec, title: d.title, artist: d.artist };
-  }
-  throw new Error(d?.error ?? 'NO_STREAM');
+
+  // plain browser → same-origin server proxy (streams audio directly)
+  return {
+    url: `/api/yt/stream?id=${encodeURIComponent(videoId)}&q=${encodeURIComponent(quality)}`,
+    itag: 0,
+    proxied: true,
+  };
 }
 
 export async function extractMetaOnly(videoId: string): Promise<{ title?: string; artist?: string; durationSec?: number }> {
-  if (canUseClientEngine()) {
+  if (isE2E()) return {};
+  if (hasNativeBridge()) {
     try {
-      const yt = await getYTClient();
-      const info: any = await withTimeout(yt.getInfo(videoId, { client: 'IOS' }), 15000, 'timeout');
+      const { Innertube } = await import('youtubei.js/web.bundle');
+      const yt = await withTimeout(Innertube.create({ client_type: 'WEB_REMIX' as any, fetch: nativeFetch as any }), 12000, 'boot');
+      const info: any = await withTimeout(yt.getBasicInfo(videoId), 12000, 'meta');
       return { title: info?.basic_info?.title, artist: info?.basic_info?.author, durationSec: info?.basic_info?.duration };
     } catch {
-      /* fall through to server meta */
+      /* fall through */
     }
   }
   try {

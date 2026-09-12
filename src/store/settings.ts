@@ -23,7 +23,7 @@ interface SettingsState {
 export const useSettings = create<SettingsState>()(
   persist(
     (set) => ({
-      theme: 'cyber-red',
+      theme: 'persian-carpet',
       glow: 'mid',
       lang: 'en', // app default language is English; users can switch to fa in Settings
       playbackMode: 'auto',

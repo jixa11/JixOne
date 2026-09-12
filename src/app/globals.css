@@ -209,6 +209,119 @@
   --player-glass: rgba(15, 15, 15, 0.95);
 }
 
+/* ============================================================
+   PERSIAN THEMES — inspired by Iranian carpets, tilework and
+   Achaemenid art: madder-red + lapis + turquoise + saffron gold
+   ============================================================ */
+
+/* فرش ایرانی — دستباف: لاکی، لاجورد، زعفران روی پشم کرم */
+[data-theme="persian-carpet"] {
+  --app-bg: #170b0e;
+  --app-bg-2: #1f0f13;
+  --app-bg-3: #29141a;
+  --mesh-1: rgba(211, 74, 94, 0.17);
+  --mesh-2: rgba(35, 70, 140, 0.14);
+  --mesh-3: rgba(233, 168, 50, 0.08);
+  --surface: rgba(247, 237, 224, 0.05);
+  --surface-2: rgba(247, 237, 224, 0.09);
+  --surface-hover: rgba(247, 237, 224, 0.14);
+  --text: #f7ede0;
+  --text-dim: #b39c90;
+  --accent: #d34a5e;
+  --accent-2: #2aa9a2;
+  --on-accent: #ffffff;
+  --accent-soft: rgba(211, 74, 94, 0.14);
+  --success: #34d399;
+  --warning: #e9a832;
+  --danger: #fb7185;
+  --glow: 0 0 20px rgba(211, 74, 94, 0.45);
+  --glow-soft: 0 0 12px rgba(211, 74, 94, 0.28);
+  --border: rgba(247, 210, 200, 0.13);
+  --grid: rgba(233, 168, 50, 0.04);
+  --player-glass: rgba(31, 15, 19, 0.86);
+}
+
+/* کاشی اصفهان: فیروزه و لاجورد روی کاشی معرق */
+[data-theme="persian-tile"] {
+  --app-bg: #081226;
+  --app-bg-2: #0c1a33;
+  --app-bg-3: #102343;
+  --mesh-1: rgba(51, 197, 214, 0.16);
+  --mesh-2: rgba(79, 127, 230, 0.16);
+  --mesh-3: rgba(216, 170, 80, 0.08);
+  --surface: rgba(236, 245, 255, 0.05);
+  --surface-2: rgba(236, 245, 255, 0.09);
+  --surface-hover: rgba(236, 245, 255, 0.14);
+  --text: #ecf5ff;
+  --text-dim: #8fa6c8;
+  --accent: #33c5d6;
+  --accent-2: #4f7fe6;
+  --on-accent: #04121a;
+  --accent-soft: rgba(51, 197, 214, 0.13);
+  --success: #34d399;
+  --warning: #d8aa50;
+  --danger: #fb7185;
+  --glow: 0 0 22px rgba(51, 197, 214, 0.45);
+  --glow-soft: 0 0 13px rgba(51, 197, 214, 0.28);
+  --border: rgba(140, 200, 235, 0.13);
+  --grid: rgba(79, 127, 230, 0.05);
+  --player-glass: rgba(12, 26, 51, 0.85);
+}
+
+/* درفش کاویانی: بنر ارغوانی با ستاره‌های زرین */
+[data-theme="derafsh"] {
+  --app-bg: #1b0a2a;
+  --app-bg-2: #25103a;
+  --app-bg-3: #301649;
+  --mesh-1: rgba(224, 178, 74, 0.15);
+  --mesh-2: rgba(154, 91, 224, 0.17);
+  --mesh-3: rgba(200, 50, 80, 0.09);
+  --surface: rgba(253, 244, 227, 0.05);
+  --surface-2: rgba(253, 244, 227, 0.09);
+  --surface-hover: rgba(253, 244, 227, 0.14);
+  --text: #fdf4e3;
+  --text-dim: #b3a2c4;
+  --accent: #e0b24a;
+  --accent-2: #9a5be0;
+  --on-accent: #221401;
+  --accent-soft: rgba(224, 178, 74, 0.14);
+  --success: #34d399;
+  --warning: #e0b24a;
+  --danger: #fb7185;
+  --glow: 0 0 22px rgba(224, 178, 74, 0.45);
+  --glow-soft: 0 0 13px rgba(224, 178, 74, 0.3);
+  --border: rgba(230, 200, 150, 0.14);
+  --grid: rgba(154, 91, 224, 0.05);
+  --player-glass: rgba(37, 16, 58, 0.87);
+}
+
+/* کوروش هخامنشی: عاج و طلایی و لاجورد — تخت جمشید در نور روز (روشن) */
+[data-theme="cyrus"] {
+  --app-bg: #f5eede;
+  --app-bg-2: #fbf6ea;
+  --app-bg-3: #ede4cf;
+  --mesh-1: rgba(176, 138, 46, 0.13);
+  --mesh-2: rgba(42, 93, 159, 0.11);
+  --mesh-3: rgba(196, 98, 64, 0.09);
+  --surface: rgba(46, 36, 21, 0.05);
+  --surface-2: rgba(46, 36, 21, 0.085);
+  --surface-hover: rgba(46, 36, 21, 0.13);
+  --text: #2e2415;
+  --text-dim: #7a6c55;
+  --accent: #b08a2e;
+  --accent-2: #2a5d9f;
+  --on-accent: #ffffff;
+  --accent-soft: rgba(176, 138, 46, 0.12);
+  --success: #059669;
+  --warning: #b45309;
+  --danger: #dc2626;
+  --glow: 0 0 14px rgba(176, 138, 46, 0.3);
+  --glow-soft: none;
+  --border: rgba(90, 70, 30, 0.16);
+  --grid: transparent;
+  --player-glass: rgba(251, 246, 234, 0.94);
+}
+
 /* glow intensity multiplier */
 [data-glow="low"] { --glow-mult: 0.45; }
 [data-glow="mid"] { --glow-mult: 1; }

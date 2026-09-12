@@ -1,5 +1,5 @@
 'use client';
-import { Home, Search, Library, Download, Settings as Cog, Plus, Heart, Clock3, X, ArrowRight, ArrowLeft, ListMusic, Check, Youtube } from 'lucide-react';
+import { Search, Compass, Library, Settings as Cog, Plus, Heart, Clock3, X, ArrowRight, ArrowLeft, ListMusic, Check, Youtube } from 'lucide-react';
 import { useView } from '@/store/view';
 import { useLibrary } from '@/store/library';
 import { useSettings } from '@/store/settings';
@@ -62,12 +62,11 @@ export default function Sidebar() {
         </div>
       </div>
 
-      {/* primary nav */}
+      {/* primary nav — Search → Explore → Library (downloads merged inside); no Home */}
       <nav className="space-y-0.5">
-        <NavItem icon={Home} label={t(lang, 'home')} active={view.name === 'home'} onClick={() => push('home')} />
         <NavItem icon={Search} label={t(lang, 'search')} active={view.name === 'search'} onClick={() => push('search')} />
-        <NavItem icon={Library} label={t(lang, 'library')} active={view.name === 'library'} onClick={() => push('library')} />
-        <NavItem icon={Download} label={t(lang, 'downloads')} active={view.name === 'downloads'} onClick={() => push('downloads')} />
+        <NavItem icon={Compass} label={t(lang, 'explore')} active={view.name === 'explore'} onClick={() => push('explore')} />
+        <NavItem icon={Library} label={t(lang, 'library')} active={view.name === 'library' || view.name === 'liked' || view.name === 'history'} onClick={() => push('library')} />
         <NavItem icon={Cog} label={t(lang, 'settings')} active={view.name === 'settings'} onClick={() => push('settings')} />
       </nav>
 
@@ -228,35 +227,34 @@ export default function Sidebar() {
   );
 }
 
-/** mobile bottom nav — fixed LTR order so the layout is IDENTICAL in fa/en,
- *  with Home centered as requested */
+/** mobile bottom nav — fixed LTR order so the layout is IDENTICAL in fa/en.
+ *  Per user request: Search first, then Explore, then Library (downloads are
+ *  merged into Library); no Home page; Settings moved to the top-corner gear. */
 export function MobileNav() {
   const view = useView((s) => s.current);
   const push = useView((s) => s.push);
   const lang = useSettings((s) => s.lang);
   const items = [
     { icon: Search, label: t(lang, 'search'), name: 'search' as const },
+    { icon: Compass, label: t(lang, 'explore'), name: 'explore' as const },
     { icon: Library, label: t(lang, 'library'), name: 'library' as const },
-    { icon: Home, label: t(lang, 'home'), name: 'home' as const },
-    { icon: Download, label: t(lang, 'downloads'), name: 'downloads' as const },
-    { icon: Cog, label: t(lang, 'settings'), name: 'settings' as const },
   ];
   return (
     <nav dir="ltr" className="glass fixed bottom-[76px] z-20 w-full border-t border-line md:hidden" aria-label="mobile nav">
-      <div className="flex items-center justify-around py-1">
+      <div className="flex items-center justify-around py-1.5">
         {items.map((it) => {
-          const active = view.name === it.name;
+          const active = view.name === it.name || (it.name === 'library' && (view.name === 'liked' || view.name === 'history'));
           return (
             <button
               key={it.name}
               onClick={() => push(it.name)}
               className={cn(
-                'relative flex min-w-[56px] flex-col items-center gap-0.5 rounded-xl py-1.5 text-[10px] transition-colors',
+                'relative flex min-w-[88px] flex-col items-center gap-1 rounded-xl py-1.5 text-[10.5px] transition-colors',
                 active ? 'font-bold text-[var(--accent)]' : 'text-dim'
               )}
             >
-              {active && <span className="absolute -top-1 h-[3px] w-5 rounded-full bg-[var(--accent)] shadow-[var(--glow-soft)]" />}
-              <it.icon size={it.name === 'home' ? 22 : 19} strokeWidth={active ? 2.4 : 2} />
+              {active && <span className="absolute -top-1 h-[3px] w-6 rounded-full bg-[var(--accent)] shadow-[var(--glow-soft)]" />}
+              <it.icon size={21} strokeWidth={active ? 2.4 : 2} />
               {it.label}
             </button>
           );
@@ -271,6 +269,7 @@ export function TopBar() {
   const canBack = useView((s) => s.canBack());
   const lang = useSettings((s) => s.lang);
   const push = useView((s) => s.push);
+  const view = useView((s) => s.current);
   return (
     <header className="sticky top-0 z-20 flex items-center gap-2 bg-gradient-to-b from-[var(--app-bg)] via-[var(--app-bg)]/70 to-transparent px-4 py-3">
       <button
@@ -290,6 +289,17 @@ export function TopBar() {
         className="flex items-center gap-2 rounded-full bg-surface px-4 py-2 text-xs text-dim transition-colors hover:bg-surface2 hover:text-foreground sm:hidden"
       >
         <Search size={14} /> {t(lang, 'searchPlaceholder')}
+      </button>
+      {/* settings gear — top corner on mobile (moved out of the bottom nav) */}
+      <button
+        onClick={() => push('settings')}
+        className={cn(
+          'grid h-9 w-9 shrink-0 place-items-center rounded-full transition-all hover:scale-105 active:scale-95 md:hidden',
+          view.name === 'settings' ? 'bg-surface2 text-[var(--accent)]' : 'bg-surface2 text-dim hover:text-foreground'
+        )}
+        aria-label={t(lang, 'settings')}
+      >
+        <Cog size={18} />
       </button>
     </header>
   );

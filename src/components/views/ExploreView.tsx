@@ -7,12 +7,12 @@ import { usePlayer } from '@/store/player';
 import { useSettings } from '@/store/settings';
 import { useLibrary } from '@/store/library';
 import { useView } from '@/store/view';
-import { t, greetKey, num, type DictKey } from '@/lib/i18n';
+import { t, num } from '@/lib/i18n';
 import { homeTracks } from '@/engine/ytclient';
 import { readCache, writeCache, cacheKey } from '@/engine/fastCache';
 import { CURATED_TRACKS, POPULAR_ARTISTS } from '@/lib/catalog';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Play, Shuffle, Sparkles, WifiOff, RefreshCw } from 'lucide-react';
+import { Play, Shuffle, Compass } from 'lucide-react';
 
 const MOODS = [
   { id: 'pop', label: { fa: 'پاپ جهانی', en: 'Global Pop' } },
@@ -25,7 +25,9 @@ const MOODS = [
   { id: 'classic', label: { fa: 'کلاسیک', en: 'Classics' } },
 ];
 
-export default function HomeView() {
+/** Explore — replaces the old Home page (per user request): moods, artists,
+ *  trending grid; downloads live in Library, settings in the top gear. */
+export default function ExploreView() {
   const lang = useSettings((s) => s.lang);
   const liked = useLibrary((s) => s.liked);
   const history = useLibrary((s) => s.history);
@@ -33,23 +35,19 @@ export default function HomeView() {
   const [tracks, setTracks] = useState<Track[] | null>(null);
   const [curated, setCurated] = useState(false);
   const [reloadTick, setReloadTick] = useState(0);
-  // hydration-safe greeting: stable on first render (server+client match),
-  // real time-based value applied only after mount using the device clock
-  const [greet, setGreet] = useState<DictKey>('goodNight');
-
-  useEffect(() => {
-    setGreet(greetKey());
-  }, []);
 
   useEffect(() => {
     let dead = false;
     // instant paint from cache (stale-while-revalidate) — no skeleton on repeat visits
-    const cached = readCache<Track[]>(cacheKey('home', mood));
+    const cached = readCache<Track[]>(cacheKey('explore', mood));
     if (cached && Array.isArray(cached) && cached.length > 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- instant stale-while-revalidate paint
       setTracks(cached);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setCurated(false);
     } else {
-      setTracks(null); // first visit for this mood — show skeleton
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- first visit for this mood — show skeleton
+      setTracks(null);
     }
     // device-side search (primary) → helper-server fallback → curated offline catalog
     homeTracks(mood)
@@ -57,7 +55,7 @@ export default function HomeView() {
         if (dead) return;
         if (t2 && t2.length > 0) {
           setTracks(t2); setCurated(false);
-          writeCache(cacheKey('home', mood), t2);
+          writeCache(cacheKey('explore', mood), t2);
         } else if (!cached?.length) {
           setTracks(CURATED_TRACKS); setCurated(true);
         }
@@ -76,10 +74,10 @@ export default function HomeView() {
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="flex items-center gap-2 text-[26px] font-black leading-tight tracking-tight sm:text-[32px]">
-            {t(lang, greet)}
-            <Sparkles size={22} className="text-[var(--accent)] drop-shadow-[var(--glow-soft)]" />
+            <Compass size={26} className="text-[var(--accent)] drop-shadow-[var(--glow-soft)]" />
+            {t(lang, 'explore')}
           </h1>
-          <p className="mt-1 text-[12.5px] text-dim">{t(lang, 'quickPicks')} · {t(lang, 'trending')}</p>
+          <p className="mt-1 text-[12.5px] text-dim">{t(lang, 'exploreSub')}</p>
         </div>
         {tracks?.length ? (
           <div className="flex gap-2">

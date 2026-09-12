@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # JixOne — full standalone APK build
 # 1) static web export (Next.js)  2) copy into Android assets  3) signed release APK
-# Usage: ./build-apk.sh [version]   (default 1.1.1-beta1)
+# Usage: ./build-apk.sh [version]   (default 1.2.0-beta1)
 # Requirements: node/npm, JDK 17+, Android SDK (ANDROID_HOME or local.properties), Gradle 8.7+
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"
-VERSION="${1:-1.1.1-beta1}"
+VERSION="${1:-1.2.0-beta1}"
 WEB_OUT="$ROOT/web-export"
 ASSETS_WEB="$ROOT/android/app/src/main/assets/web"
 APK_STASH="$ROOT/.apk_stash"

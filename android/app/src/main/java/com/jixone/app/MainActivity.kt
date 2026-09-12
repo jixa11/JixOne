@@ -12,6 +12,8 @@ import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.webkit.WebViewAssetLoader
+import java.net.HttpURLConnection
+import java.net.URL
 
 /**
  * JixOne is standalone: the whole web app ships inside the APK and is served from
@@ -85,11 +87,21 @@ class MainActivity : Activity() {
             request: WebResourceRequest?,
         ): WebResourceResponse? {
             val url = request?.url ?: return null
+            // Native stream proxy: JS hands us a base64url-encoded upstream URL
+            // (googlevideo) and the UA that must accompany it. Fetching happens
+            // in the native layer with the client-matching User-Agent and Range
+            // passthrough — this is what makes ad-free playback and downloads
+            // work (direct WebView→googlevideo fails: CORS + IP/UA checks).
+            if (url.host == "appassets.androidplatform.net" && url.path == "/jixstream/") {
+                return streamProxyResponse(request)
+            }
             return assetLoader.shouldInterceptRequest(url)
         }
 
         override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
             val url = request?.url ?: return false
+            // stream-proxy requests are handled internally regardless of page origin
+            if (url.host == "appassets.androidplatform.net" && url.path == "/jixstream/") return false
             // keep our host inside; open others (youtube pages) in browser
             return if (url.toString().startsWith(baseUrl)) false else true
         }
@@ -101,6 +113,58 @@ class MainActivity : Activity() {
                 null
             )
         }
+    }
+
+    /** b64url (no padding) → String */
+    private fun b64urlDecode(s: String): String {
+        val norm = s.replace('-', '+').replace('_', '/')
+        val padded = norm + "=".repeat((4 - norm.length % 4) % 4)
+        return String(android.util.Base64.decode(padded, android.util.Base64.DEFAULT), Charsets.UTF_8)
+    }
+
+    /** Stream googlevideo through the native layer (UA-matched, Range-aware). */
+    private fun streamProxyResponse(request: WebResourceRequest): WebResourceResponse? {
+        var conn: HttpURLConnection? = null
+        return try {
+            val url = request.url
+            val upstream = b64urlDecode(url.getQueryParameter("u") ?: return plainResponse(400, "missing u"))
+            val ua = url.getQueryParameter("ua")?.let { b64urlDecode(it) }
+                ?: "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36"
+            val mime = url.getQueryParameter("ct")?.let { b64urlDecode(it) }
+
+            val c = URL(upstream).openConnection() as HttpURLConnection
+            conn = c
+            c.connectTimeout = 12000
+            c.readTimeout = 30000
+            c.instanceFollowRedirects = true
+            c.setRequestProperty("User-Agent", ua)
+            c.setRequestProperty("Referer", "https://music.youtube.com/")
+            request.requestHeaders["range"]?.let { c.setRequestProperty("Range", it) }
+
+            val code = c.responseCode
+            if (code !in 200..299) {
+                return plainResponse(code, "upstream $code")
+            }
+
+            val headers = mutableMapOf<String, String>()
+            for ((k, v) in c.headerFields) {
+                if (k == null || v.isEmpty()) continue
+                val key = k.lowercase()
+                if (key == "content-encoding" || key == "transfer-encoding" || key == "connection") continue
+                headers[key] = v.joinToString(", ")
+            }
+            headers["access-control-allow-origin"] = "*"
+            val contentType = mime ?: headers["content-type"] ?: "audio/mp4"
+            WebResourceResponse(contentType, null, code, if (code == 206) "Partial Content" else "OK", headers, c.inputStream)
+        } catch (e: Exception) {
+            try { conn?.disconnect() } catch (_: Exception) {}
+            plainResponse(502, "proxy error")
+        }
+    }
+
+    private fun plainResponse(status: Int, reason: String): WebResourceResponse {
+        val body = reason.toByteArray(Charsets.UTF_8).inputStream()
+        return WebResourceResponse("text/plain", "utf-8", status, reason, mutableMapOf(), body)
     }
 
     override fun onPause() {

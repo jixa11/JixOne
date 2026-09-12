@@ -141,7 +141,7 @@ export default function SearchView() {
         </>
       )}
 
-      {!loading && failed && tracks.length === 0 && (
+      {!loading && failed && (!tracks || tracks.length === 0) && (
         <div className="mt-4 flex flex-col items-center gap-3 text-center">
           <div className="max-w-[360px] rounded-2xl border border-line bg-surface p-4 text-start">
             <div className="mb-1 text-[13px] font-bold">{t(lang, 'searchFailTitle')}</div>

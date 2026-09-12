@@ -18,13 +18,24 @@ declare global {
 }
 
 let apiPromise: Promise<void> | null = null;
+/** Loads the official IFrame API. Rejects when youtube.com is unreachable
+ *  (e.g. blocked network) so callers can fail fast instead of spinning forever. */
 export function loadYTApi(): Promise<void> {
   if (apiPromise) return apiPromise;
-  apiPromise = new Promise<void>((resolve) => {
+  apiPromise = new Promise<void>((resolve, reject) => {
     if (window.YT?.Player) return resolve();
     const prev = window.onYouTubeIframeAPIReady;
     window.onYouTubeIframeAPIReady = () => { prev?.(); resolve(); };
+    const timer = setTimeout(() => {
+      apiPromise = null; // allow a later retry
+      reject(new Error('yt-iframe-api-timeout'));
+    }, 9000);
     const s = document.createElement('script');
+    s.onerror = () => {
+      clearTimeout(timer);
+      apiPromise = null;
+      reject(new Error('yt-iframe-api-load-failed'));
+    };
     s.src = 'https://www.youtube.com/iframe_api';
     document.head.appendChild(s);
   });
@@ -60,7 +71,13 @@ export class YTController {
           onReady: () => resolve(),
           onStateChange: (e: any) => {
             const st = e.data;
-            if (st === 1) { this.hooks.onPlayState(true); this.startPoll(); const d = this.player.getDuration?.() ?? 0; if (d) this.hooks.onDuration(d); }
+            if (st === 1) {
+              this.hooks.onPlayState(true);
+              this.startPoll();
+              const d = this.player.getDuration?.() ?? 0;
+              if (d) this.hooks.onDuration(d);
+              if (this.pendingLoad) { const r = this.pendingLoad.resolve; this.pendingLoad = null; r(true); }
+            }
             else if (st === 2) this.hooks.onPlayState(false);
             else if (st === 0) { this.hooks.onPlayState(false); this.hooks.onEnded(); }
           },
@@ -80,13 +97,23 @@ export class YTController {
     }, 500);
   }
 
+  /** Resolves true ONLY when the player reports it is actually playing.
+   *  (The old 3.5s auto-true timeout lied — it reported success while the
+   *  iframe never started, which left the UI stuck on a spinner.) */
   async load(id: string, autoplay: boolean): Promise<boolean> {
     await this.ensure();
     const ok = await new Promise<boolean>((resolve) => {
-      this.pendingLoad = { id, autoplay, resolve };
+      let settled = false;
+      const done = (v: boolean) => {
+        if (settled) return;
+        settled = true;
+        this.pendingLoad = null;
+        resolve(v);
+      };
+      this.pendingLoad = { id, autoplay, resolve: done };
       this.currentId = id;
-      try { this.player.loadVideoById(id); } catch { resolve(false); }
-      setTimeout(() => { if (this.pendingLoad?.resolve === resolve) { this.pendingLoad = null; resolve(true); } }, 3500);
+      try { this.player.loadVideoById(id); } catch { done(false); }
+      setTimeout(() => done(false), 9000);
     });
     if (ok && !autoplay) setTimeout(() => { try { this.player.pauseVideo(); } catch { /* noop */ } }, 120);
     return ok;

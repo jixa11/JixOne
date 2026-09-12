@@ -276,7 +276,7 @@ export default function PlayerHost() {
           title: track.title,
           artist: track.artist,
           album: 'JixOne',
-          artwork: [{ src: `/api/art?u=${encodeURIComponent(track.thumb)}`, sizes: '512x512', type: 'image/jpeg' }],
+          artwork: [{ src: track.thumb, sizes: '512x512', type: 'image/jpeg' }],
         });
       }
       navigator.mediaSession?.setActionHandler?.('play', () => usePlayer.getState().explicitPlay());
@@ -286,7 +286,7 @@ export default function PlayerHost() {
       navigator.mediaSession?.setActionHandler?.('seekto', (d: any) => { if (d.seekTime != null) usePlayer.getState().seek(d.seekTime); });
     } catch { /* noop */ }
     bridge()?.updateMedia(JSON.stringify({
-      title: track.title, artist: track.artist, artwork: `/api/art?u=${encodeURIComponent(track.thumb)}`,
+      title: track.title, artist: track.artist, artwork: track.thumb,
       duration: usePlayer.getState().duration, videoId: track.videoId,
     }));
     // eslint-disable-next-line react-hooks/exhaustive-deps

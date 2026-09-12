@@ -20,4 +20,8 @@ tsconfig.tsbuildinfo
 worklog.md
 tools/
 android/local.properties
+web-export/
+android/app/src/main/assets/web/
+src/.api_stash/
+out/
 !docs/**/*.png

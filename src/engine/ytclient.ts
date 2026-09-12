@@ -3,7 +3,7 @@ import { flattenYTM, MOOD_QUERIES, RawSong } from '@/lib/ytm-shared';
 
 let clientPromise: Promise<any> | null = null;
 
-/** E2E debug mode (?e2e=1): swap transport, keep all app logic real */
+/** E2E debug mode (?e2e=1): swap transport for local fixtures, keep all app logic real */
 function isE2E(): boolean {
   return typeof window !== 'undefined' && window.location.search.includes('e2e=1');
 }
@@ -12,13 +12,13 @@ function makeMockTube(): any {
   return {
     music: {
       search: async () => {
-        const r = await fetch('/api/mock/yt/search');
-        return r.json();
+        const { mockSearchResponse } = await import('@/engine/e2eFixtures');
+        return mockSearchResponse;
       },
     },
     getInfo: async () => {
-      const r = await fetch('/api/mock/yt/player');
-      return r.json();
+      const { mockPlayerResponse } = await import('@/engine/e2eFixtures');
+      return mockPlayerResponse;
     },
   };
 }

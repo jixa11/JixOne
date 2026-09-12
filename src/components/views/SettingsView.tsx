@@ -37,7 +37,31 @@ export default function SettingsView() {
   const [usage, setUsage] = useState(0);
   const [busy, setBusy] = useState(false);
   const [demoOpen, setDemoOpen] = useState(false);
+  const [isAndroid, setIsAndroid] = useState(false);
+  const [srv, setSrv] = useState('');
   useEffect(() => { storageUsage().then((u) => setUsage(u.usage)); }, []);
+  useEffect(() => {
+    const b = (window as any).AndroidBridge;
+    if (!b) return;
+    setIsAndroid(true);
+    try { setSrv(b.getServerUrl?.() ?? ''); } catch { /* noop */ }
+  }, []);
+
+  const applyServer = () => {
+    const b = (window as any).AndroidBridge;
+    if (!b) return;
+    const u = srv.trim().replace(/\/+$/, '');
+    if (u && !u.startsWith('http')) { toast(t(lang, 'advServerInvalid')); return; }
+    toast(u ? t(lang, 'advServerApplied') : t(lang, 'advServerResetDone'));
+    b.setServerUrl(u);
+  };
+  const resetServer = () => {
+    setSrv('');
+    const b = (window as any).AndroidBridge;
+    if (!b) return;
+    toast(t(lang, 'advServerResetDone'));
+    b.clearServerUrl();
+  };
 
   const doRealSignIn = async () => {
     setBusy(true);
@@ -235,6 +259,41 @@ export default function SettingsView() {
           </div>
         )}
       </Section>
+
+      {/* CUSTOM SERVER (Android advanced) — app is fully standalone by default */}
+      {isAndroid && (
+        <Section icon={Globe} title={t(lang, 'advServer')}>
+          <div className="space-y-2.5">
+            <div className="text-[11px] leading-relaxed text-dim">{t(lang, 'advServerDesc')}</div>
+            <div className="flex gap-2">
+              <div className="min-w-0 flex-1 rounded-2xl border border-line bg-surface2 px-4 py-2.5 transition-all duration-200 focus-within:border-[color-mix(in_srgb,var(--accent)_55%,transparent)]">
+                <input
+                  value={srv}
+                  onChange={(e) => setSrv(e.target.value)}
+                  placeholder={t(lang, 'advServerHint')}
+                  dir="ltr"
+                  className="w-full bg-transparent text-[13px] outline-none placeholder:text-dim"
+                />
+              </div>
+              <button
+                onClick={applyServer}
+                className="neon-play rounded-full px-5 text-xs font-bold transition-transform active:scale-95"
+              >
+                {t(lang, 'advServerApply')}
+              </button>
+            </div>
+            <div className="flex items-center justify-between gap-3">
+              <div className="text-[10.5px] leading-relaxed text-dim">{t(lang, 'advServerWarn')}</div>
+              <button
+                onClick={resetServer}
+                className="shrink-0 rounded-full border border-line px-4 py-2 text-[11px] font-semibold text-dim transition-colors hover:bg-surface hover:text-foreground"
+              >
+                {t(lang, 'advServerReset')}
+              </button>
+            </div>
+          </div>
+        </Section>
+      )}
 
       {/* ABOUT */}
       <Section icon={Info} title={t(lang, 'about')}>

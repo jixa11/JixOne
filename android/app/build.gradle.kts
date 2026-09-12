@@ -11,8 +11,8 @@ android {
         applicationId = "com.jixone.app"
         minSdk = 26
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = 2
+        versionName = "1.1.0"
     }
 
     signingConfigs {
@@ -38,9 +38,14 @@ android {
     kotlinOptions {
         jvmTarget = "17"
     }
+    androidResources {
+        // default pattern ignores "<dir>_*" → would strip the "_next/" asset folder
+        ignoreAssetsPattern = "!.svn:!.git:!.ds_store:!*.scc:!CVS:!thumbs.db:!picasa.ini:!*~"
+    }
 }
 
 dependencies {
     implementation("androidx.core:core-ktx:1.13.1")
     implementation("androidx.media:media:1.7.0")
+    implementation("androidx.webkit:webkit:1.11.0")
 }

@@ -1,9 +1,6 @@
-import { NextResponse } from 'next/server';
+// E2E test fixtures (?e2e=1 debug mode only) — fully client-side, zero server needed.
+// Same shapes as the old /api/mock routes (consumed by flattenYTM + extractor).
 
-export const dynamic = 'force-dynamic';
-
-// E2E test fixture (?e2e=1 debug mode only): canned YTMusic search response.
-// Shape is consumed by flattenYTM (videoId + title + subtitle + thumbnails on one node).
 function thumb(c1: string, c2: string, label: string): string {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="${c1}"/><stop offset="100%" stop-color="${c2}"/></linearGradient></defs><rect width="100" height="100" fill="url(#g)"/><text x="50" y="50" text-anchor="middle" dominant-baseline="central" font-family="sans-serif" font-weight="800" font-size="30" fill="rgba(255,255,255,.95)">${label}</text></svg>`;
   return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
@@ -18,14 +15,44 @@ const SONGS: { id: string; title: string; artist: string; dur: string; c: [strin
   { id: 'np_mock_06', title: 'Clocks', artist: 'Coldplay', dur: '5:07', c: ['#8b5cf6', '#0ea5e9'] },
 ];
 
-export async function GET() {
-  return NextResponse.json({
-    contents: SONGS.map((s, i) => ({
-      videoId: s.id,
-      title: { text: s.title },
-      subtitle: { text: `${s.artist} • ${s.dur}` },
-      thumbnails: [{ url: thumb(s.c[0], s.c[1], s.title.slice(0, 2).toUpperCase()) }],
-      index: i,
-    })),
-  });
-}
+export const mockSearchResponse = {
+  contents: SONGS.map((s, i) => ({
+    videoId: s.id,
+    title: { text: s.title },
+    subtitle: { text: `${s.artist} • ${s.dur}` },
+    thumbnails: [{ url: thumb(s.c[0], s.c[1], s.title.slice(0, 2).toUpperCase()) }],
+    index: i,
+  })),
+};
+
+export const mockPlayerResponse = {
+  basic_info: {
+    title: 'JixOne Test Track',
+    author: 'E2E Artist',
+    duration: 20,
+  },
+  streaming_data: {
+    adaptive_formats: [
+      {
+        itag: 251,
+        url: 'test-audio.mp3', // relative → works at page root (web) and /assets/web/ (APK)
+        mimeType: 'audio/mp4',
+        bitrate: 128000,
+        content_length: 160539,
+        has_audio: true,
+        has_video: false,
+        url_is_encoded: false,
+      },
+      {
+        itag: 140,
+        url: 'test-audio.mp3',
+        mimeType: 'audio/mp4',
+        bitrate: 128000,
+        content_length: 160539,
+        has_audio: true,
+        has_video: false,
+      },
+    ],
+  },
+  playability_status: { status: 'OK' },
+};

@@ -7,78 +7,42 @@ import android.os.Bundle
 import android.view.ViewGroup
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
+import android.webkit.WebResourceResponse
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
-import android.widget.EditText
-import android.widget.LinearLayout
-import android.widget.Button
-import android.widget.TextView
+import androidx.webkit.WebViewAssetLoader
 
+/**
+ * JixOne is standalone: the whole web app ships inside the APK and is served from
+ * app assets over https://appassets.androidplatform.net (a secure origin, so
+ * OPFS offline storage, localStorage and mediaSession all work).
+ *
+ * Optional advanced mode: if a custom server URL is stored in prefs ("base_url"),
+ * the WebView loads that remote JixOne web app instead of the bundled one.
+ */
 class MainActivity : Activity() {
 
     private lateinit var webView: WebView
+
+    companion object {
+        const val EMBEDDED_BASE = "https://appassets.androidplatform.net/"
+        const val EMBEDDED_INDEX = EMBEDDED_BASE + "assets/web/index.html"
+    }
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         val prefs = getSharedPreferences("jixone", MODE_PRIVATE)
-        val saved = prefs.getString("base_url", null)
-
-        if (saved.isNullOrBlank()) {
-            showServerPrompt(prefs) { url -> launchWeb(url, null) }
-            return
-        }
-        launchWeb(saved, savedInstanceState)
-    }
-
-    private fun showServerPrompt(prefs: android.content.SharedPreferences, onGo: (String) -> Unit) {
-        val ctx = this
-        val layout = LinearLayout(ctx).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(64, 96, 64, 32)
-            setBackgroundColor(Color.parseColor("#0a0a0f"))
-        }
-        val title = TextView(ctx).apply {
-            text = "JixOne"
-            setTextColor(Color.parseColor("#ff2d55"))
-            textSize = 30f
-            setPadding(0, 0, 0, 16)
-        }
-        val hint = TextView(ctx).apply {
-            text = "آدرس سرور اپ را وارد کنید:\n(لینکی که در چت برایتان ارسال شده)"
-            setTextColor(Color.parseColor("#9b9ba7"))
-            textSize = 14f
-            setPadding(0, 0, 0, 24)
-        }
-        val input = EditText(ctx).apply {
-            setHint("https://...")
-            setTextColor(Color.WHITE)
-            setSingleLine(true)
-        }
-        val go = Button(ctx).apply {
-            text = "اتصال"
-            setBackgroundColor(Color.parseColor("#ff2d55"))
-            setTextColor(Color.BLACK)
-        }
-        layout.addView(title)
-        layout.addView(hint)
-        layout.addView(input)
-        layout.addView(go)
-        setContentView(layout)
-
-        go.setOnClickListener {
-            val url = input.text.toString().trim().trimEnd('/')
-            if (url.startsWith("http")) {
-                prefs.edit().putString("base_url", url).apply()
-                onGo(url)
-            }
-        }
+        val remote = prefs.getString("base_url", null)?.trim()?.trimEnd('/')
+        launchWeb(remote?.takeIf { it.isNotBlank() }, savedInstanceState)
     }
 
     @SuppressLint("SetJavaScriptEnabled")
-    private fun launchWeb(baseUrl: String, state: Bundle?) {
+    private fun launchWeb(remoteUrl: String?, state: Bundle?) {
+        val baseUrl = remoteUrl ?: EMBEDDED_BASE
+
         webView = WebView(this)
         webView.layoutParams = ViewGroup.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT,
@@ -88,7 +52,10 @@ class MainActivity : Activity() {
         window.statusBarColor = Color.parseColor("#0a0a0f")
 
         WebSettingsCompat(webView.settings)
-        webView.webViewClient = NeoClient(baseUrl)
+        val assetLoader = WebViewAssetLoader.Builder()
+            .addPathHandler("/assets/", WebViewAssetLoader.AssetsPathHandler(this))
+            .build()
+        webView.webViewClient = NeoClient(baseUrl, assetLoader)
         webView.webChromeClient = WebChromeClient()
         webView.addJavascriptInterface(WebBridge(applicationContext), "AndroidBridge")
         webView.setBackgroundColor(Color.parseColor("#0a0a0f"))
@@ -96,7 +63,7 @@ class MainActivity : Activity() {
         if (state != null) {
             webView.restoreState(state)
         } else {
-            webView.loadUrl(baseUrl)
+            webView.loadUrl(remoteUrl ?: EMBEDDED_INDEX)
         }
     }
 
@@ -111,7 +78,18 @@ class MainActivity : Activity() {
         s.cacheMode = WebSettings.LOAD_DEFAULT
     }
 
-    private inner class NeoClient(private val baseUrl: String) : WebViewClient() {
+    private inner class NeoClient(
+        private val baseUrl: String,
+        private val assetLoader: WebViewAssetLoader,
+    ) : WebViewClient() {
+        override fun shouldInterceptRequest(
+            view: WebView?,
+            request: WebResourceRequest?,
+        ): WebResourceResponse? {
+            val url = request?.url ?: return null
+            return assetLoader.shouldInterceptRequest(url)
+        }
+
         override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
             val url = request?.url ?: return false
             // keep our host inside; open others (youtube pages) in browser

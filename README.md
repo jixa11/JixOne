@@ -1,8 +1,8 @@
 # JixOne
 
-> A beautiful, ad-free music player for the YouTube Music catalog — Next.js web app + Android (WebView) app.
+> A beautiful, ad-free music player for the YouTube Music catalog — a fully standalone Android app (web UI bundled inside the APK) plus a Next.js web app.
 >
-> پلیر موزیک زیبا و بدون تبلیغ برای کاتالوگ YouTube Music — نسخه وب (Next.js) + نسخه اندروید.
+> پلیر موزیک زیبا و بدون تبلیغ برای کاتالوگ YouTube Music — اپ اندروید کاملاً مستقل (رابط وب داخل خود APK) + نسخه وب (Next.js).
 
 ---
 
@@ -33,6 +33,7 @@
 - **Persian & English** — automatic RTL/LTR layout flip, Vazirmatn typography, locale-aware digits.
 - **Google sign-in** — see your existing YouTube Music playlists inside the app (YouTube Data API v3). Runs in demo mode when no client ID is configured; guests can use everything else without an account.
 - **Professional animations** — staggered list entrances, player slide-in, panel transitions, theme cross-fade, hover micro-interactions, and full `prefers-reduced-motion` support.
+- **Standalone Android APK** — the whole web UI ships inside the app: install it and it just works, with **no server and no setup** (optional custom-server mode for power users in Settings).
 - **Android extras** — MediaStyle lock-screen notification with play/pause/next/previous and a live seekbar, plus a resizable 4×1 home-screen widget that follows the app's accent color.
 
 ### Tech stack
@@ -73,9 +74,19 @@ Without a client ID the account section offers a demo sign-in so you can still t
 
 ### Android app
 
-1. Open the `android/` folder in Android Studio and run it on a device.
-2. On first launch the app asks for your **server URL** — the address where the web app is hosted (local network or a deployed domain).
-3. Signing is pre-configured in `app/build.gradle.kts` and expects `android/jixone.keystore` (**not committed — keep a private backup**, it is required to sign future updates).
+The Android app is **fully standalone**: the entire web app is bundled inside the APK and served locally over a secure origin (`WebViewAssetLoader`), so search, playback, downloads and OPFS offline storage all run on the device. Install and play — no server URL is ever asked.
+
+Rebuild everything (static web export → embed into assets → signed release APK) with one script:
+
+```bash
+./build-apk.sh
+# result: download/JixOne-v1.1.0.apk
+```
+
+Requirements: Node.js, JDK 17+, Android SDK (platform 34 + build-tools 34), Gradle 8.7+.
+
+- **Advanced:** Settings → *Custom server* lets a power user point the app at their own hosted JixOne web server instead of the bundled UI.
+- Signing is pre-configured in `app/build.gradle.kts` and expects `android/jixone.keystore` (**not committed — keep a private backup**, it is required to sign future updates with the same identity).
 
 ### How playback works
 
@@ -102,6 +113,7 @@ JixOne is a client for publicly available YouTube content and hosts no media its
 - **فارسی و انگلیسی** — چرخش خودکار راست‌به‌چپ/چپ‌به‌راست، فونت وزیرمتن و اعداد هم‌ساز با زبان.
 - **ورود با گوگل** — پلی‌لیست‌های قبلی‌ات در YouTube Music داخل برنامه نمایش داده میشن (YouTube Data API v3). بدون Client ID هم حالت دمو داره؛ مهمان‌ها بدون حساب از بقیه امکانات استفاده می‌کنن.
 - **انیمیشن‌های حرفه‌ای** — ورود پله‌ای لیست‌ها، اسلاید پلیر، ترنزیشن پنل‌ها، کراس‌فید تم، میکرواینترکشن‌های hover و پشتیبانی کامل از `prefers-reduced-motion`.
+- **APK اندروید کاملاً مستقل** — کل رابط وب داخل خود اپ جاسازی شده: نصب کن و استفاده کن، **بدون هیچ سرور و تنظیماتی** (حالت «سرور دلخواه» برای کاربران حرفه‌ای در تنظیمات هست).
 - **امکانات اندروید** — نوتیفیکیشن قفل‌صفحه با دکمه‌های پخش/توقف/بعدی/قبلی و نوار پیشرفت زنده، به‌همراه ویجت ۴×۱ قابل تغییر اندازه که رنگ اکسنت برنامه رو دنبال می‌کنه.
 
 ### اجرای نسخه وب
@@ -132,9 +144,19 @@ NEXT_PUBLIC_GOOGLE_CLIENT_ID=شناسه_تو
 
 ### نسخه اندروید
 
-1. پوشه `android/` رو توی Android Studio باز کن و روی گوشی اجرا بگیر.
-2. دفعه اول که برنامه باز بشه، **آدرس سرور** (همون آدرس سایت) رو ازت می‌پرسه — یا روی شبکه محلی یا دامنه‌ی دیپلوی‌شده.
-3. تنظیمات امضا توی `app/build.gradle.kts` از قبل انجام شده و به فایل `android/jixone.keystore` نیاز داره (**توی ریپو نیست — ازش بکاپ خصوصی نگه دار**، برای امضای آپدیت‌های بعدی الزامیه).
+اپ اندروید **کاملاً مستقله**: کل اپ وب داخل APK جاسازی شده و از یک origin امن (`WebViewAssetLoader`) روی خود گوشی اجرا می‌شه — یعنی جستجو، پخش، دانلود و حافظه آفلاین OPFS همه روی دستگاه کاربرن. نصب کن و پخش کن — هیچ‌وقت آدرس سرور پرسیده نمی‌شه.
+
+بیلد کامل (خروجی استاتیک وب ← جاسازی در assets ← APK امضاشده) با یک اسکریپت:
+
+```bash
+./build-apk.sh
+# خروجی: download/JixOne-v1.1.0.apk
+```
+
+پیش‌نیازها: Node.js، JDK 17+، اندروید SDK (platform 34 + build-tools 34)، Gradle 8.7+.
+
+- **پیشرفته:** تنظیمات ← *سرور اختصاصی* به کاربر حرفه‌ای اجازه می‌ده اپ را به سرور وب شخصی خودش وصل کنه.
+- تنظیمات امضا توی `app/build.gradle.kts` از قبل انجام شده و به `android/jixone.keystore` نیاز داره (**توی ریپو نیست — حتماً بکاپ خصوصی نگه دار**، برای امضای آپدیت‌های بعدی با همون هویت الزامیه).
 
 ### نحوه پخش چطور کار می‌کنه؟
 

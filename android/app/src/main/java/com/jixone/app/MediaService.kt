@@ -252,4 +252,25 @@ class WebBridge(private val context: Context) {
     fun notify(msg: String) {
         android.widget.Toast.makeText(context, msg, android.widget.Toast.LENGTH_SHORT).show()
     }
+
+    /** Advanced mode: current custom server URL ("" = built-in standalone mode) */
+    @android.webkit.JavascriptInterface
+    fun getServerUrl(): String =
+        context.getSharedPreferences("jixone", Context.MODE_PRIVATE)
+            .getString("base_url", "") ?: ""
+
+    @android.webkit.JavascriptInterface
+    fun setServerUrl(url: String) {
+        val u = url.trim().trimEnd('/')
+        context.getSharedPreferences("jixone", Context.MODE_PRIVATE)
+            .edit().putString("base_url", u).apply()
+        JixOneHost.activity?.runOnUiThread { JixOneHost.activity?.recreate() }
+    }
+
+    @android.webkit.JavascriptInterface
+    fun clearServerUrl() {
+        context.getSharedPreferences("jixone", Context.MODE_PRIVATE)
+            .edit().remove("base_url").apply()
+        JixOneHost.activity?.runOnUiThread { JixOneHost.activity?.recreate() }
+    }
 }

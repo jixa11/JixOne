@@ -14,7 +14,7 @@ export interface ThemeDef {
 
 export const THEMES: ThemeDef[] = [
   // ——— Persian themes (Iranian carpets, tilework & Achaemenid art) ———
-  { id: 'persian-carpet', name: { fa: 'فرش ایرانی', en: 'Persian Carpet' }, swatch: ['#170b0e', '#d34a5e', '#2aa9a2', '#e9a832'], thumb: '/themes/thumb-carpet.webp', art: '/themes/carpet-night.webp' },
+  { id: 'persian-carpet', name: { fa: 'فرش ایرانی', en: 'Persian Carpet' }, swatch: ['#081828', '#d9a441', '#c8763a', '#e8d9b0'], thumb: '/themes/thumb-carpet.webp', art: '/themes/carpet-oriental.webp' },
   { id: 'persian-tile', name: { fa: 'کاشی اصفهان', en: 'Isfahan Tile' }, swatch: ['#081226', '#33c5d6', '#4f7fe6', '#d8aa50'], thumb: '/themes/thumb-tile.webp', tile: '/themes/tile-isfahan.webp' },
   { id: 'derafsh', name: { fa: 'درفش کاویانی', en: 'Kaviani Banner' }, swatch: ['#1b0a2a', '#e0b24a', '#9a5be0', '#c83250'], thumb: '/themes/thumb-derafsh.webp', art: '/themes/derafsh-banner.webp' },
   { id: 'cyrus', name: { fa: 'کوروش هخامنشی', en: 'Cyrus the Great' }, swatch: ['#f5eede', '#b08a2e', '#2a5d9f', '#c46240'], thumb: '/themes/thumb-cyrus.webp', art: '/themes/cyrus-portrait.webp' },

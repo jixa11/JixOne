@@ -214,31 +214,33 @@
    Achaemenid art: madder-red + lapis + turquoise + saffron gold
    ============================================================ */
 
-/* فرش ایرانی — دستباف: لاکی، لاجورد، زعفران روی پشم کرم */
+/* فرش ایرانی — گل‌های زرین روی زمینه‌ی لاجوردی؛ پالت از خودِ تصویر گرفته شده
+   (رنگ غالب تصویر: #081828). اکسنت طلایی است تا از تم کاشی — که لاجورد +
+   فیروزه‌ای است — جدا بماند. */
 [data-theme="persian-carpet"] {
-  --app-bg: #170b0e;
-  --app-bg-2: #1f0f13;
-  --app-bg-3: #29141a;
-  --mesh-1: rgba(211, 74, 94, 0.17);
-  --mesh-2: rgba(35, 70, 140, 0.14);
-  --mesh-3: rgba(233, 168, 50, 0.08);
-  --surface: rgba(247, 237, 224, 0.05);
-  --surface-2: rgba(247, 237, 224, 0.09);
-  --surface-hover: rgba(247, 237, 224, 0.14);
-  --text: #f7ede0;
-  --text-dim: #b39c90;
-  --accent: #d34a5e;
-  --accent-2: #2aa9a2;
-  --on-accent: #ffffff;
-  --accent-soft: rgba(211, 74, 94, 0.14);
+  --app-bg: #081828;
+  --app-bg-2: #0c2136;
+  --app-bg-3: #102a44;
+  --mesh-1: rgba(217, 164, 65, 0.15);
+  --mesh-2: rgba(200, 118, 58, 0.12);
+  --mesh-3: rgba(40, 96, 160, 0.12);
+  --surface: rgba(248, 238, 220, 0.055);
+  --surface-2: rgba(248, 238, 220, 0.095);
+  --surface-hover: rgba(248, 238, 220, 0.15);
+  --text: #f8eeda;
+  --text-dim: #b1a290;
+  --accent: #d9a441;
+  --accent-2: #c8763a;
+  --on-accent: #1d1403;
+  --accent-soft: rgba(217, 164, 65, 0.15);
   --success: #34d399;
-  --warning: #e9a832;
+  --warning: #e0a83a;
   --danger: #fb7185;
-  --glow: 0 0 20px rgba(211, 74, 94, 0.45);
-  --glow-soft: 0 0 12px rgba(211, 74, 94, 0.28);
-  --border: rgba(247, 210, 200, 0.13);
+  --glow: 0 0 20px rgba(217, 164, 65, 0.45);
+  --glow-soft: 0 0 12px rgba(217, 164, 65, 0.28);
+  --border: rgba(240, 215, 170, 0.15);
   --grid: rgba(233, 168, 50, 0.04);
-  --player-glass: rgba(31, 15, 19, 0.86);
+  --player-glass: rgba(12, 33, 54, 0.86);
 }
 
 /* کاشی اصفهان: فیروزه و لاجورد روی کاشی معرق */

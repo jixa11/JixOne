@@ -14,7 +14,7 @@ import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import {
   Check, Globe, Radio, Download, Sparkles, ShieldOff, Info,
-  LogOut, RefreshCw, UserRound, Activity, X, Loader2, Copy,
+  LogOut, RefreshCw, UserRound, Activity, X, Loader2, Copy, Smartphone,
 } from 'lucide-react';
 
 function GoogleG({ size = 16 }: { size?: number }) {
@@ -130,6 +130,23 @@ export default function SettingsView() {
   return (
     <div className="view-in mx-auto max-w-[760px] px-4 pb-10">
       <h1 className="mb-6 text-2xl font-black sm:text-3xl">{t(lang, 'settings')}</h1>
+
+      {/* GET THE APP — APK download. Only on web/preview (inside the APK it is pointless). */}
+      {!isAndroid && (
+        <Section icon={Smartphone} title={t(lang, 'apkTitle')}>
+          <div className="space-y-3">
+            <div className="text-[11.5px] leading-relaxed text-dim">{t(lang, 'apkDesc')}</div>
+            <a
+              href="/JixOne-latest.apk"
+              download
+              className="neon-play flex items-center justify-center gap-2 rounded-full px-5 py-3 text-[13px] font-bold transition-transform active:scale-95 sm:inline-flex sm:w-auto"
+            >
+              <Download size={15} /> {t(lang, 'apkBtn')}
+            </a>
+            <div dir="ltr" className="text-[10.5px] font-mono text-dim">JixOne-v1.2.0-beta2 · ~2.9 MB · arm64</div>
+          </div>
+        </Section>
+      )}
 
       {/* CONNECTION DIAGNOSTICS — first so users can self-diagnose search/playback issues */}
       <Section icon={Activity} title={t(lang, 'diagTitle')}>
@@ -444,6 +461,7 @@ export default function SettingsView() {
       <Section icon={Info} title={t(lang, 'about')}>
         <div className="space-y-1.5 text-xs text-dim">
           <div>JixOne — {lang === 'fa' ? 'پلیر موزیک متن‌باز با کاتالوگ YouTube Music' : 'Open-source player with YouTube Music catalog'}</div>
+          <div>{t(lang, 'appVersion')}: v1.2.0-beta2</div>
           <div>{user ? `${t(lang, 'welcomeUser')}, ${user.name}` : t(lang, 'guestBadge')}</div>
           {usage > 0 && <div>{t(lang, 'storageUsed')}: {fmtSize(usage, lang)}</div>}
         </div>

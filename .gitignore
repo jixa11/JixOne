@@ -26,3 +26,13 @@ src/.api_stash/
 out/
 !docs/**/*.png
 tool-results/
+.next/
+dev.log
+worklog.md
+upload/
+db/
+tools/
+android/.gradle/
+android/app/build/
+android/local.properties
+*.log

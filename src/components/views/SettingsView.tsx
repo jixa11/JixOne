@@ -142,7 +142,7 @@ export default function SettingsView() {
             >
               <Download size={15} /> {t(lang, 'apkBtn')}
             </a>
-            <div dir="ltr" className="text-[10.5px] font-mono text-dim">JixOne-v1.2.0-beta3 · ~4.1 MB</div>
+            <div dir="ltr" className="text-[10.5px] font-mono text-dim">JixOne-v1.2.0-beta4 · ~4.1 MB</div>
           </div>
         </Section>
       )}
@@ -447,7 +447,7 @@ export default function SettingsView() {
       <Section icon={Info} title={t(lang, 'about')}>
         <div className="space-y-1.5 text-xs text-dim">
           <div>JixOne — {lang === 'fa' ? 'پلیر موزیک متن‌باز با کاتالوگ YouTube Music' : 'Open-source player with YouTube Music catalog'}</div>
-          <div>{t(lang, 'appVersion')}: v1.2.0-beta3</div>
+          <div>{t(lang, 'appVersion')}: v1.2.0-beta4</div>
           <div>{ytm.signedIn ? `${t(lang, 'welcomeUser')}, ${ytm.name || 'YouTube Music'}` : t(lang, 'guestBadge')}</div>
           {usage > 0 && <div>{t(lang, 'storageUsed')}: {fmtSize(usage, lang)}</div>}
         </div>

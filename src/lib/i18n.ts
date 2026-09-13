@@ -94,7 +94,7 @@ const dict = {
     loginStaleToast: 'نشست یوتیوب منقضی شده — از تنظیمات دوباره وارد شو',
     apkTitle: 'دانلود اپ اندروید (APK)',
     apkDesc: 'آخرین نسخه‌ی آزمایشی جیکس‌وان برای گوشی. دکمه را بزن، فایل را دانلود و باز کن؛ اگر گوشی پرسید، اجازه‌ی «نصب از منابع ناشناس» را بده.',
-    apkBtn: 'دانلود JixOne v1.2.0-beta3',
+    apkBtn: 'دانلود JixOne v1.2.0-beta4',
     appVersion: 'نسخه',
   },
   en: {
@@ -154,7 +154,7 @@ const dict = {
     guestBadge: 'Guest mode — data stored locally',
     apkTitle: 'Get the Android app (APK)',
     apkDesc: 'Latest JixOne beta for your phone. Tap the button, download and open the file; if asked, allow "install from unknown sources".',
-    apkBtn: 'Download JixOne v1.2.0-beta3',
+    apkBtn: 'Download JixOne v1.2.0-beta4',
     appVersion: 'Version',
     serverUrl: 'Server URL (advanced)', videoMode: 'Video mode',
     addedToLiked: 'Added to liked songs', removedFromLiked: 'Removed from liked songs',

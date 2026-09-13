@@ -5,6 +5,7 @@ import { useLibrary } from '@/store/library';
 import { useAuth } from '@/store/auth';
 import { t, fmtSize } from '@/lib/i18n';
 import { storageUsage } from '@/engine/downloader';
+import { assetUrl } from '@/lib/asset';
 import { ytmSession, ytmLogin, ytmLogout, onYTMAuthChange, YTMSession } from '@/lib/ytm-session';
 import { runDiagnostics, diagReportText, DiagStep } from '@/engine/diagnostics';
 import { getApiBase, setApiBase } from '@/engine/apiBase';
@@ -273,12 +274,24 @@ export default function SettingsView() {
               }`}
               style={{ background: th.swatch[0] }}
             >
-              <div className="mb-2 flex gap-1.5">
+              {/* the motif is the whole point of the Persian themes — show it */}
+              {th.thumb && (
+                <span
+                  aria-hidden
+                  className="pointer-events-none absolute inset-0 bg-cover bg-center opacity-45"
+                  style={{
+                    backgroundImage: `url("${assetUrl(th.thumb)}")`,
+                    maskImage: 'linear-gradient(to top, transparent 8%, #000 62%)',
+                    WebkitMaskImage: 'linear-gradient(to top, transparent 8%, #000 62%)',
+                  }}
+                />
+              )}
+              <div className="relative mb-2 flex gap-1.5">
                 <span className="h-4 w-4 rounded-full" style={{ background: th.swatch[1], boxShadow: `0 0 10px ${th.swatch[1]}` }} />
                 <span className="h-4 w-4 rounded-full" style={{ background: th.swatch[2] }} />
                 <span className="h-4 w-4 rounded-full opacity-80" style={{ background: th.swatch[3] }} />
               </div>
-              <div className="text-[11px] font-bold" style={{ color: th.swatch[0] === '#f7f7f9' ? '#111' : '#fff' }}>
+              <div className="relative text-[11px] font-bold" style={{ color: th.swatch[0] === '#f7f7f9' || th.swatch[0] === '#f5eede' ? '#111' : '#fff' }}>
                 {th.name[lang]}
               </div>
               {s.theme === th.id && (

@@ -368,7 +368,10 @@ input:focus-visible, textarea:focus-visible, select:focus-visible { outline: non
 
 button, input { font: inherit; }
 
-/* subtle animated grid overlay (cyber themes) */
+/* subtle animated grid overlay (cyber themes).
+   z-index is negative on purpose: at 0 this fixed layer painted ON TOP of the
+   static content boxes, which is what pushed the pattern through cards and
+   over body text. */
 body::before {
   content: "";
   position: fixed; inset: 0;
@@ -378,47 +381,94 @@ body::before {
   background-size: 42px 42px;
   mask-image: radial-gradient(ellipse 90% 70% at 50% 0%, black 0%, transparent 75%);
   pointer-events: none;
-  z-index: 0;
+  z-index: -1;
 }
 
 /* ============================================================
-   PERSIAN PATTERN OVERLAYS — authentic motifs, not just colors.
-   Each Iranian theme carries a real repeating pattern drawn as an
-   inline SVG tile (data URI), tinted ONLY with that theme's own
-   palette at low alpha so text stays readable (harmony rule).
+   PERSIAN THEME ARTWORK
 
-   1) persian-carpet → Herati lattice: diamond grid + central
-      rosette + boteh (paisley) leaves — the classic Persian rug field
-   2) persian-tile   → girih «star-and-cross» (لچک و ترنج / ستاره
-      هشت‌پر و چلیپا) — Isfahan mosque tilework tessellation
-   3) derafsh        → the Kaviani banner: field of four-pointed
-      golden stars and diamond studs on royal purple
-   4) cyrus          → Persepolis: Achaemenid lotus-palmette band,
-      12-petal rosettes and a cuneiform dash row
+   Two layers, both BEHIND the content (negative z-index):
+
+   ::before  a seamless tile, repeated — only where the source art
+             actually tiles (the Isfahan tilework photograph does).
+   ::after   a single piece of artwork anchored to one corner and
+             dissolved with a gradient mask, so it never runs under
+             the text column. Used for the pieces that are pictures
+             rather than repeats: the carpet field, the Derafsh
+             Kaviani banner, and the portrait of Cyrus.
+
+   Opacity is deliberately low. These are grounds, not illustrations —
+   body text has to stay at full contrast on top of them.
    ============================================================ */
 
-[data-theme="persian-carpet"] body::before {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140' viewBox='0 0 140 140'%3E%3Cg fill='none' stroke='%23e9a832' stroke-opacity='0.14' stroke-width='1'%3E%3Cpath d='M70 6 L134 70 L70 134 L6 70 Z'/%3E%3Cpath d='M70 26 L114 70 L70 114 L26 70 Z' stroke-opacity='0.5'/%3E%3Cpath d='M0 0 L14 14 M140 0 L126 14 M0 140 L14 126 M140 140 L126 126'/%3E%3C/g%3E%3Cg fill='none' stroke='%23e9a832' stroke-opacity='0.24' stroke-width='1.3'%3E%3Ccircle cx='70' cy='70' r='11'/%3E%3Cpath d='M70 50 q6 11 0 20 q-6 -9 0 -20 Z'/%3E%3Cpath d='M90 70 q-11 6 -20 0 q9 -6 20 0 Z'/%3E%3Cpath d='M70 90 q-6 -11 0 -20 q6 9 0 20 Z'/%3E%3Cpath d='M50 70 q11 -6 20 0 q-9 6 -20 0 Z'/%3E%3C/g%3E%3Cg fill='%23d34a5e' fill-opacity='0.15'%3E%3Ccircle cx='70' cy='70' r='4.5'/%3E%3C/g%3E%3Cg fill='none' stroke='%232aa9a2' stroke-opacity='0.17' stroke-width='1.1'%3E%3Cpath d='M36 34 q12 -8 19 3 q-13 9 -19 -3 Z'/%3E%3Cpath d='M104 34 q-12 -8 -19 3 q13 9 19 -3 Z'/%3E%3Cpath d='M36 106 q12 8 19 -3 q-13 -9 -19 3 Z'/%3E%3Cpath d='M104 106 q-12 8 -19 -3 q13 -9 19 3 Z'/%3E%3C/g%3E%3Cg fill='%23e9a832' fill-opacity='0.22'%3E%3Ccircle cx='70' cy='6' r='1.6'/%3E%3Ccircle cx='70' cy='134' r='1.6'/%3E%3Ccircle cx='6' cy='70' r='1.6'/%3E%3Ccircle cx='134' cy='70' r='1.6'/%3E%3Ccircle cx='38' cy='38' r='1.1'/%3E%3Ccircle cx='102' cy='38' r='1.1'/%3E%3Ccircle cx='38' cy='102' r='1.1'/%3E%3Ccircle cx='102' cy='102' r='1.1'/%3E%3C/g%3E%3C/svg%3E");
-  background-size: 140px 140px;
-  mask-image: none;
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  background-repeat: no-repeat;
+  background-position: left bottom;
+  background-size: auto 78vh;
+  opacity: 0;
+  transition: opacity .45s ease;
+  /* Two fades intersected: sideways so the art clears the text column, and
+     upward so its top edge dissolves instead of ending in a hard horizontal cut. */
+  --art-fade: to right;
+  mask-image:
+    linear-gradient(var(--art-fade), #000 0%, rgba(0, 0, 0, .5) 32%, transparent 60%),
+    linear-gradient(to top, #000 40%, transparent 94%);
+  -webkit-mask-image:
+    linear-gradient(var(--art-fade), #000 0%, rgba(0, 0, 0, .5) 32%, transparent 60%),
+    linear-gradient(to top, #000 40%, transparent 94%);
+  mask-composite: intersect;
+  -webkit-mask-composite: source-in;
+}
+/* in LTR the nav sits on the left, so the art moves to the other side */
+html[dir="ltr"] body::after { background-position: right bottom; --art-fade: to left; }
+
+/* — فرش ایرانی: madder-and-gold carpet field — */
+[data-theme="persian-carpet"] body::after {
+  background-image: var(--theme-art, none);
+  background-size: auto 92vh;
+  opacity: .14;
 }
 
+/* — کاشی اصفهان: the one source that tiles seamlessly — */
 [data-theme="persian-tile"] body::before {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'%3E%3Cg fill='none' stroke='%2333c5d6' stroke-opacity='0.20' stroke-width='1.2'%3E%3Crect x='38' y='38' width='44' height='44'/%3E%3Crect x='38' y='38' width='44' height='44' transform='rotate(45 60 60)'/%3E%3Ccircle cx='60' cy='60' r='7' stroke-opacity='0.4'/%3E%3C/g%3E%3Cg fill='none' stroke='%234f7fe6' stroke-opacity='0.20' stroke-width='1.1'%3E%3Cpath d='M0 22 L22 0 M98 120 L120 98 M120 22 L98 0 M22 120 L0 98'/%3E%3Cpath d='M14 8 L8 14 M106 112 L112 106 M112 14 L106 8 M8 106 L14 112'/%3E%3C/g%3E%3Cg fill='none' stroke='%23d8aa50' stroke-opacity='0.22' stroke-width='1'%3E%3Cpath d='M60 8 L66 14 L60 20 L54 14 Z'/%3E%3Cpath d='M60 100 L66 106 L60 112 L54 106 Z'/%3E%3Cpath d='M8 60 L14 54 L20 60 L14 66 Z'/%3E%3Cpath d='M100 60 L106 54 L112 60 L106 66 Z'/%3E%3C/g%3E%3Cg fill='%2333c5d6' fill-opacity='0.13'%3E%3Ccircle cx='60' cy='60' r='3'/%3E%3C/g%3E%3Cg fill='none' stroke='%2333c5d6' stroke-opacity='0.11' stroke-width='0.8'%3E%3Ccircle cx='0' cy='0' r='16'/%3E%3Ccircle cx='120' cy='0' r='16'/%3E%3Ccircle cx='0' cy='120' r='16'/%3E%3Ccircle cx='120' cy='120' r='16'/%3E%3C/g%3E%3C/svg%3E");
-  background-size: 120px 120px;
+  background-image: var(--theme-tile, none);
+  background-size: 224px 224px;
+  background-repeat: repeat;
+  opacity: .13;
   mask-image: none;
+  -webkit-mask-image: none;
 }
 
-[data-theme="derafsh"] body::before {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'%3E%3Cg fill='none' stroke='%23e0b24a' stroke-opacity='0.26' stroke-width='1.4'%3E%3Cpath d='M60 26 L69 51 L94 60 L69 69 L60 94 L51 69 L26 60 L51 51 Z'/%3E%3C/g%3E%3Cg fill='%23e0b24a' fill-opacity='0.14'%3E%3Cpath d='M60 40 L65 55 L80 60 L65 65 L60 80 L55 65 L40 60 L55 55 Z'/%3E%3C/g%3E%3Cg fill='none' stroke='%23e0b24a' stroke-opacity='0.20' stroke-width='1'%3E%3Cpath d='M0 0 L14 14 M120 0 L106 14 M0 120 L14 106 M120 120 L106 106'/%3E%3Cpath d='M10 0 L0 10 M110 120 L120 110 M110 0 L120 10 M10 120 L0 110'/%3E%3C/g%3E%3Cg fill='none' stroke='%23c83250' stroke-opacity='0.16' stroke-width='1'%3E%3Cpath d='M60 6 L64 12 L60 18 L56 12 Z'/%3E%3Cpath d='M60 102 L64 108 L60 114 L56 108 Z'/%3E%3Cpath d='M6 60 L12 56 L18 60 L12 64 Z'/%3E%3Cpath d='M102 60 L108 56 L114 60 L108 64 Z'/%3E%3C/g%3E%3Cg fill='%239a5be0' fill-opacity='0.16'%3E%3Ccircle cx='60' cy='60' r='2.4'/%3E%3C/g%3E%3Cg fill='%23e0b24a' fill-opacity='0.2'%3E%3Ccircle cx='30' cy='30' r='1.2'/%3E%3Ccircle cx='90' cy='30' r='1.2'/%3E%3Ccircle cx='30' cy='90' r='1.2'/%3E%3Ccircle cx='90' cy='90' r='1.2'/%3E%3C/g%3E%3C/svg%3E");
-  background-size: 120px 120px;
-  mask-image: none;
+/* — درفش کاویانی: the banner itself — */
+[data-theme="derafsh"] body::after {
+  background-image: var(--theme-art, none);
+  background-size: auto 74vh;
+  opacity: .17;
 }
 
-[data-theme="cyrus"] body::before {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='120' viewBox='0 0 160 120'%3E%3Cg fill='none' stroke='%23b08a2e' stroke-opacity='0.22' stroke-width='1.2'%3E%3Cpath d='M40 54 q6 -18 0 -30 q-6 12 0 30 Z'/%3E%3Cpath d='M40 54 q-12 -6 -16 -18 q12 2 16 8'/%3E%3Cpath d='M40 54 q12 -6 16 -18 q-12 2 -16 8'/%3E%3Cpath d='M40 58 L40 70'/%3E%3Cpath d='M120 54 q6 -18 0 -30 q-6 12 0 30 Z'/%3E%3Cpath d='M120 54 q-12 -6 -16 -18 q12 2 16 8'/%3E%3Cpath d='M120 54 q12 -6 16 -18 q-12 2 -16 8'/%3E%3Cpath d='M120 58 L120 70'/%3E%3C/g%3E%3Cg fill='none' stroke='%232a5d9f' stroke-opacity='0.2' stroke-width='1.1'%3E%3Ccircle cx='80' cy='48' r='7'/%3E%3Ccircle cx='80' cy='48' r='2'/%3E%3Cpath d='M80 36 v-8 M80 60 v8 M68 48 h-8 M92 48 h8 M71 39 l-6 -6 M89 39 l6 -6 M71 57 l-6 6 M89 57 l6 6'/%3E%3C/g%3E%3Cg fill='none' stroke='%23b08a2e' stroke-opacity='0.28' stroke-width='1.4' stroke-linecap='round'%3E%3Cpath d='M28 96 h14 M50 96 h14 M72 96 h14 M94 96 h14 M116 96 h14'/%3E%3C/g%3E%3Cg fill='none' stroke='%23c46240' stroke-opacity='0.16' stroke-width='1'%3E%3Cpath d='M0 20 h22 M46 20 h22 M92 20 h22 M138 20 h22' stroke-opacity='0.5'/%3E%3Cpath d='M0 108 h22 M46 108 h22 M92 108 h22 M138 108 h22' stroke-opacity='0.5'/%3E%3C/g%3E%3Cg fill='%232a5d9f' fill-opacity='0.14'%3E%3Ccircle cx='80' cy='48' r='3.2'/%3E%3C/g%3E%3C/svg%3E");
-  background-size: 160px 120px;
-  mask-image: none;
+/* — کوروش: the portrait. Lower opacity than the dark themes because this
+     theme is light and dark artwork reads far heavier on a pale ground. — */
+[data-theme="cyrus"] body::after {
+  background-image: var(--theme-art, none);
+  background-size: auto 86vh;
+  opacity: .13;
+}
+
+/* Phones: the artwork would swamp a 390px screen, and a 224px tile repeated
+   across it reads as noise rather than pattern. */
+@media (max-width: 768px) {
+  [data-theme="persian-tile"] body::before { background-size: 150px 150px; opacity: .10; }
+  body::after { background-size: auto 52vh !important; opacity: .09 !important; }
+}
+
+/* Someone who asked for less motion did not ask for a busier page either. */
+@media (prefers-reduced-motion: reduce) {
+  body::after { transition: none; }
 }
 
 /* scrollbars */

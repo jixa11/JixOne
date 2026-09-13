@@ -48,7 +48,9 @@ export default function Sidebar() {
   const [name, setName] = useState('');
 
   return (
-    <aside className="fixed inset-y-0 start-0 z-30 hidden w-[248px] flex-col border-e border-line bg-[var(--app-bg-2)]/70 p-3 backdrop-blur-xl md:flex">
+    // pb clears the 76px player bar, which is fixed at the same z-index and was
+    // painting over the account button at the bottom of this column
+    <aside className="fixed inset-y-0 start-0 z-30 hidden w-[248px] flex-col border-e border-line bg-[var(--app-bg-2)]/70 p-3 pb-[88px] backdrop-blur-xl md:flex">
       {/* brand */}
       <div className="mb-4 flex items-center gap-3 px-1.5 pb-1 pt-2.5">
         <div className="neon-play grid h-10 w-10 shrink-0 place-items-center rounded-2xl shadow-[var(--glow)]">
@@ -281,12 +283,16 @@ export function TopBar() {
         {lang === 'fa' ? <ArrowRight size={17} /> : <ArrowLeft size={17} />}
       </button>
       <div className="flex-1" />
-      <button
-        onClick={() => push('search')}
-        className="flex items-center gap-2 rounded-full bg-surface px-4 py-2 text-xs text-dim transition-colors hover:bg-surface2 hover:text-foreground sm:hidden"
-      >
-        <Search size={14} /> {t(lang, 'searchPlaceholder')}
-      </button>
+      {/* shortcut into search — hidden on the search view itself, which already
+          renders the real input right below this bar */}
+      {view.name !== 'search' && (
+        <button
+          onClick={() => push('search')}
+          className="flex items-center gap-2 rounded-full bg-surface px-4 py-2 text-xs text-dim transition-colors hover:bg-surface2 hover:text-foreground sm:hidden"
+        >
+          <Search size={14} /> {t(lang, 'searchPlaceholder')}
+        </button>
+      )}
       {/* settings gear — top corner on mobile (moved out of the bottom nav) */}
       <button
         onClick={() => push('settings')}

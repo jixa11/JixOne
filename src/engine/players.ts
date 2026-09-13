@@ -10,6 +10,9 @@ declare global {
       updateMedia: (json: string) => void;
       setPlaying: (b: boolean) => void;
       notify: (msg: string) => void;
+      ytmLogin?: () => void;
+      ytmLogout?: () => void;
+      ytmAccount?: () => string;
     };
     NativeAction?: {
       play?: () => void; pause?: () => void; next?: () => void; prev?: () => void; seek?: (sec: number) => void;

@@ -1,26 +1,12 @@
 import { NextRequest } from 'next/server';
-import { extractStreamServer } from '@/lib/yt-server';
+import { getStream } from '@/lib/yt-server';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 const Q_INDEX: Record<string, number> = { high: 0, mid: 1, low: 2 };
 
-// simple TTL cache for extraction metadata
-const cache = new Map<string, { at: number; data: Awaited<ReturnType<typeof extractStreamServer>> }>();
-async function getMeta(id: string, q: number, fresh: boolean) {
-  const key = `${id}:${q}`;
-  const hit = cache.get(key);
-  if (!fresh && hit && Date.now() - hit.at < 30 * 60_000) return hit.data;
-  const data = await extractStreamServer(id, q);
-  if (data) {
-    cache.set(key, { at: Date.now(), data });
-    if (cache.size > 300) cache.delete(cache.keys().next().value as string);
-  } else {
-    cache.delete(key);
-  }
-  return data;
-}
+type Meta = NonNullable<Awaited<ReturnType<typeof getStream>>['stream']>;
 
 /**
  * GET /api/yt/stream?id=<videoId>&q=high|mid|low
@@ -37,13 +23,14 @@ export async function GET(req: NextRequest) {
   const fresh = searchParams.get('fresh') === '1';
   if (!id) return json({ ok: false, error: 'missing id' }, 400);
 
-  let meta: Awaited<ReturnType<typeof extractStreamServer>> = null;
+  let meta: Meta | null = null;
   try {
-    meta = await getMeta(id, q, fresh);
+    const out = await getStream(id, q, fresh);
+    if (!out.stream) return json({ ok: false, error: out.code, code: out.code, attempts: out.attempts }, 502);
+    meta = out.stream;
   } catch (e: any) {
     return json({ ok: false, error: String(e?.message ?? 'extract failed') }, 502);
   }
-  if (!meta?.url) return json({ ok: false, error: 'NO_STREAM' }, 502);
 
   try {
     const baseHeaders: Record<string, string> = {
@@ -58,7 +45,7 @@ export async function GET(req: NextRequest) {
 
     // expired/locked URL → re-extract once and retry
     if (upstream.status === 403 || upstream.status === 410) {
-      const retry = await getMeta(id, q, true);
+      const retry = (await getStream(id, q, true)).stream;
       if (retry?.url) {
         const r2 = await fetch(retry.url, {
           headers: { 'user-agent': retry.ua ?? baseHeaders['user-agent'], referer: baseHeaders.referer, ...(range ? { range } : {}) },

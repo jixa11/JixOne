@@ -1,162 +1,245 @@
 package com.jixone.app
 
+import android.content.Context
 import org.json.JSONArray
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
 
 /**
- * Metrolist-style YouTube Music stream extraction, 100% native.
+ * YouTube Music stream extraction, 100% native (Metrolist/InnerTune lineage).
  *
- * Why this exists: the previous device path used youtubei.js inside the
- * WebView. It returned URLs whose bytes then 403'd (po-token/IP-gated
- * formats) — the user saw «no stream», 403 downloads and endless fallback
- * toasts. Metrolist (InnerTune lineage) works because it does the opposite:
- * ONE raw innertube POST per client from the DEVICE's own IP with the exact
- * client context — no session bootstrap, no deciphering — and it only uses
- * clients whose URLs are directly playable.
+ * One raw innertube player POST per client from the device's own IP, then a
+ * byte-range probe so only URLs that really stream reach the player.
  *
- * This module replicates that exactly, plus one extra safety Metrolist
- * doesn't have: a byte-range PROBE. Every candidate googlevideo URL is
- * verified (Range 0-1KB, client UA) BEFORE being handed to the player, so a
- * locked/expired URL can never reach <audio> or the downloader again.
+ * Two things decide whether this works at all:
+ *
+ *  1. `visitorData` — an anonymous session id every real client sends. Without
+ *     it YouTube treats each call as a brand-new stranger and gates harder.
+ *  2. The signed-in cookie (see [YTMAuth]). Anonymous player calls now answer
+ *     LOGIN_REQUIRED / "Sign in to confirm you're not a bot" for most tracks;
+ *     an authenticated session lifts that gate. This is the single biggest
+ *     reason extraction fails when signed out.
+ *
+ * The client list is deliberately short: IOS and ANDROID answer HTTP 400
+ * ("Precondition check failed") and TVHTML5_SIMPLY_EMBEDDED_PLAYER answers
+ * "no longer supported", so carrying them only added latency to every failure.
  */
 object InnertubeClient {
 
     private class Cl(
-        val name: String,     // innertube clientName
-        val num: String,      // X-YouTube-Client-Name
+        val name: String,
+        val num: String,
         val version: String,
-        val key: String,      // innertube API key for this client
-        val ua: String,       // UA that MUST accompany player + googlevideo fetches
-        val clientExtra: String, // extra fields for context.client (raw JSON fragment)
-        val thirdParty: Boolean   // TVHTML5 embed needs context.thirdParty.embedUrl
+        val ua: String,
+        val clientExtra: String,
+        val host: String,
+        val thirdParty: Boolean = false,
     )
 
+    /** Ordered by how reliably each returns DIRECT (un-ciphered) audio URLs. */
     private val CLIENTS = listOf(
-        // 1) iOS — usually returns direct, un-locked URLs without any po token
-        Cl("IOS", "5", "19.45.4", "AIzaSyB-63vPrdThhKuerbB2N_l7Kwwcxj6yUAc",
-            "com.google.ios.youtube/19.45.4 (iPhone16,2; U; CPU iOS 18_1_0 like Mac OS X;)",
-            "\"deviceMake\":\"Apple\",\"deviceModel\":\"iPhone16,2\",\"osName\":\"iPhone\",\"osVersion\":\"18.1.0.22B83\",\"hl\":\"en\",\"gl\":\"US\",\"utcOffsetMinutes\":0",
-            false),
-        // 2) Android VR — historically po-token-free app client
-        Cl("ANDROID_VR", "28", "1.60.19", "AIzaSyA8eiZmM1FaDVjRy-df2KTyQ_vz_yYM39w",
-            "com.google.android.apps.youtube.vr.oculus/1.60.19 (Linux; U; Android 12; eureka-user Build/SQ3A.220605.009.A1) gzip",
-            "\"deviceMake\":\"Oculus\",\"deviceModel\":\"Quest 3\",\"osName\":\"Android\",\"osVersion\":\"12\",\"hl\":\"en\",\"gl\":\"US\"",
-            false),
-        // 3) YouTube Music Android (what Metrolist/InnerTune uses)
-        Cl("ANDROID_MUSIC", "21", "6.42.52", "AIzaSyAOghZGza2MQSZk_y_zf42tjvXcg9rAT6g",
+        // Android VR: the one app client that still hands out direct URLs with
+        // no po-token. Primary path, signed in or out.
+        Cl("ANDROID_VR", "28", "1.62.27",
+            "com.google.android.apps.youtube.vr.oculus/1.62.27 (Linux; U; Android 12; eureka-user Build/SQ3A.220605.009.A1) gzip",
+            "\"deviceMake\":\"Oculus\",\"deviceModel\":\"Quest 3\",\"osName\":\"Android\",\"osVersion\":\"12\",\"androidSdkVersion\":32,\"hl\":\"en\",\"gl\":\"US\"",
+            "https://www.youtube.com"),
+        // YouTube Music app client — gated when anonymous, excellent once the
+        // account cookie is attached (it is the client Metrolist leans on).
+        Cl("ANDROID_MUSIC", "21", "6.42.52",
             "com.google.android.apps.youtube.music/6.42.52 (Linux; U; Android 13) gzip",
             "\"osName\":\"Android\",\"osVersion\":\"13\",\"androidSdkVersion\":33,\"hl\":\"en\",\"gl\":\"US\"",
-            false),
-        // 4) mainline Android app — another app-client shot before embed fallbacks
-        Cl("ANDROID", "3", "19.44.38", "AIzaSyA8eiZmM1FaDVjRy-df2KTyQ_vz_yYM39w",
-            "com.google.android.youtube/19.44.38 (Linux; U; Android 13) gzip",
-            "\"osName\":\"Android\",\"osVersion\":\"13\",\"androidSdkVersion\":33,\"hl\":\"en\",\"gl\":\"US\"",
-            false),
-        // 5) Embedded TV — bypasses some login/bot gates
-        Cl("TVHTML5_SIMPLY_EMBEDDED_PLAYER", "85", "2.0", "AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8",
-            "Mozilla/5.0 (ChromiumStylePlatform) Cobalt/Unset",
+            "https://music.youtube.com"),
+        // TV client — ungated for some catalogues the app clients refuse.
+        Cl("TVHTML5", "7", "7.20250101.10.00",
+            "Mozilla/5.0 (PlayStation; PlayStation 4/12.00) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Safari/605.1.15",
             "\"hl\":\"en\",\"gl\":\"US\"",
-            true),
+            "https://www.youtube.com"),
+        // Authenticated web client, last resort: many of its formats are
+        // signature-ciphered and get skipped, but some tracks only come back here.
+        Cl("WEB_REMIX", "67", "1.20250101.01.00",
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+            "\"hl\":\"en\",\"gl\":\"US\"",
+            "https://music.youtube.com"),
     )
 
-    // yt-dlp convention: app clients (IOS/ANDROID/VR/TV) use www.youtube.com,
-    // the music client uses music.youtube.com — both serve /youtubei/v1/player
-    private const val ENDPOINT_WWW = "https://www.youtube.com/youtubei/v1/player?prettyPrint=false"
-    private const val ENDPOINT_MUSIC = "https://music.youtube.com/youtubei/v1/player?prettyPrint=false"
-    private const val CONNECT_TIMEOUT = 7000
-    private const val READ_TIMEOUT = 9000
+    private const val CONNECT_TIMEOUT = 8000
+    private const val READ_TIMEOUT = 12000
 
-    /** itag preference per requested quality (opus webm preferred, m4a fallback) */
     private fun itagPref(q: String): IntArray = when (q) {
         "low" -> intArrayOf(249, 139, 250, 140, 251)
         "mid" -> intArrayOf(250, 249, 140, 139, 251)
         else -> intArrayOf(251, 140, 250, 249)
     }
 
-    /** Entry point (called on a background thread from the bridge).
-     *  Returns a JSON envelope string for JS. */
-    fun player(videoId: String, quality: String): String {
+    // ————————————————————————— visitorData —————————————————————————
+
+    @Volatile private var cachedVisitor: String? = null
+
+    /** Anonymous session id, fetched once per process from YouTube's own bootstrap. */
+    private fun visitorData(): String? {
+        cachedVisitor?.let { return it }
+        synchronized(this) {
+            cachedVisitor?.let { return it }
+            val body = httpGet(
+                "https://www.youtube.com/sw.js_data",
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+            ) ?: return null
+            val json = body.removePrefix(")]}'").trim()
+            val found = try { findVisitor(JSONArray(json)) } catch (_: Exception) { null }
+            cachedVisitor = found
+            return found
+        }
+    }
+
+    /** visitorData is a protobuf blob rendered base64url — always starts "Cg". */
+    private fun findVisitor(node: Any?, depth: Int = 0): String? {
+        if (depth > 12) return null
+        when (node) {
+            is String -> if (node.length in 20..200 && node.startsWith("Cg")) return node
+            is JSONArray -> for (i in 0 until node.length()) findVisitor(node.opt(i), depth + 1)?.let { return it }
+            is JSONObject -> for (k in node.keys()) findVisitor(node.opt(k), depth + 1)?.let { return it }
+        }
+        return null
+    }
+
+    // ————————————————————————— player —————————————————————————
+
+    /**
+     * Resolve one playable audio URL. Returns a JSON envelope for the web layer:
+     * `{ok:true, url, ua, itag, …}` or `{ok:false, error, code, attempts}` where
+     * `code` is LOGIN_REQUIRED / NETWORK / FAILED so the UI can say something useful.
+     */
+    fun player(ctx: Context, videoId: String, quality: String): String {
         val attempts = StringBuilder()
         val prefs = itagPref(quality)
+        val auth = YTMAuth.authHeaders(ctx)
+        val visitor = visitorData()
+        var sawLoginRequired = false
+        var sawNetwork = false
+
         for (cl in CLIENTS) {
             try {
                 val t0 = System.currentTimeMillis()
-                val body = playerBody(cl, videoId)
-                val endpoint = if (cl.name == "ANDROID_MUSIC") ENDPOINT_MUSIC else ENDPOINT_WWW
-                val res = httpPost(endpoint + "&key=" + cl.key, cl, body)
-                if (res == null) { attempts.append(cl.name).append(":no-response; "); continue }
-
-                val o = JSONObject(res)
-                val playability = o.optJSONObject("playabilityStatus")
-                val status = playability?.optString("status", "") ?: ""
-                if (status != "OK") {
-                    attempts.append(cl.name).append(":").append(if (status.isBlank()) "empty-status" else status).append("; ")
+                val res = httpPost(cl, videoId, visitor, auth)
+                if (res.body == null) {
+                    sawNetwork = true
+                    attempts.append(cl.name).append(":http").append(res.code).append("; ")
                     continue
                 }
 
-                val details = o.optJSONObject("videoDetails")
+                val o = JSONObject(res.body)
+                val status = o.optJSONObject("playabilityStatus")?.optString("status", "") ?: ""
+                if (status != "OK") {
+                    if (status == "LOGIN_REQUIRED") sawLoginRequired = true
+                    attempts.append(cl.name).append(":").append(status.ifBlank { "empty-status" }).append("; ")
+                    continue
+                }
+
                 val formats = o.optJSONObject("streamingData")?.optJSONArray("adaptiveFormats")
                 if (formats == null || formats.length() == 0) {
                     attempts.append(cl.name).append(":no-formats; ")
                     continue
                 }
-
                 val picked = pickAudio(formats, prefs)
                 if (picked == null) {
                     attempts.append(cl.name).append(":no-direct-audio; ")
                     continue
                 }
 
-                // ——— PROBE: verify the URL actually streams before trusting it ———
                 val probe = probeUrl(picked.getString("url"), cl.ua)
-                if (probe.first != 200 && probe.first != 206) {
-                    attempts.append(cl.name).append(":probe").append(probe.first).append("; ")
+                if (probe != 200 && probe != 206) {
+                    attempts.append(cl.name).append(":probe").append(probe).append("; ")
                     continue
                 }
 
-                val mimeFull = picked.optString("mimeType", "audio/mp4")
-                val mime = mimeFull.substringBefore(';').trim()
+                val details = o.optJSONObject("videoDetails")
                 return JSONObject()
                     .put("ok", true)
                     .put("url", picked.getString("url"))
                     .put("ua", cl.ua)
                     .put("itag", picked.optInt("itag", 0))
                     .put("size", picked.optLong("contentLength", 0))
-                    .put("mime", mime)
+                    .put("mime", picked.optString("mimeType", "audio/mp4").substringBefore(';').trim())
                     .put("duration", details?.optLong("lengthSeconds", 0) ?: 0)
                     .put("title", details?.optString("title", "") ?: "")
                     .put("author", details?.optString("author", "") ?: "")
                     .put("client", cl.name)
+                    .put("authed", auth.isNotEmpty())
                     .put("ms", System.currentTimeMillis() - t0)
                     .toString()
             } catch (e: Exception) {
                 attempts.append(cl.name).append(":").append(e.message?.take(40) ?: "error").append("; ")
             }
         }
+
+        val code = when {
+            sawLoginRequired && auth.isEmpty() -> "LOGIN_REQUIRED"
+            sawLoginRequired -> "LOGIN_STALE"
+            sawNetwork -> "NETWORK"
+            else -> "FAILED"
+        }
         return JSONObject()
             .put("ok", false)
-            .put("error", "ALL_CLIENTS_FAILED")
+            .put("code", code)
+            .put("error", code)
+            .put("authed", auth.isNotEmpty())
             .put("attempts", attempts.toString())
             .toString()
     }
 
-    private fun playerBody(cl: Cl, videoId: String): String {
-        val sb = StringBuilder()
-        sb.append("{\"context\":{\"client\":{\"clientName\":\"").append(cl.name)
-        sb.append("\",\"clientVersion\":\"").append(cl.version).append("\",")
-        sb.append(cl.clientExtra)
-        sb.append("}")
-        sb.append(",\"request\":{\"internalExperimentFlags\":[],\"useSsl\":true}")
-        if (cl.thirdParty) sb.append(",\"thirdParty\":{\"embedUrl\":\"https://www.youtube.com/\"}")
-        sb.append("},\"videoId\":\"").append(videoId).append("\"")
-        sb.append(",\"contentCheckOk\":true,\"racyCheckOk\":true")
-        sb.append("}")
-        return sb.toString()
+    /** Display name of the signed-in account, or null. */
+    fun accountName(ctx: Context): String? {
+        val auth = YTMAuth.authHeaders(ctx).ifEmpty { return null }
+        val cl = CLIENTS.first { it.name == "WEB_REMIX" }
+        val body = "{\"context\":{\"client\":{\"clientName\":\"${cl.name}\",\"clientVersion\":\"${cl.version}\"," +
+            "${cl.clientExtra}${visitorData()?.let { ",\"visitorData\":\"$it\"" } ?: ""}}}}"
+        val res = request("${cl.host}/youtubei/v1/account/account_menu?prettyPrint=false", cl, body, auth)
+        val json = res.body ?: return null
+        return try { findAccountName(JSONObject(json)) } catch (_: Exception) { null }
     }
 
-    private fun httpPost(url: String, cl: Cl, body: String): String? {
+    private fun findAccountName(node: Any?, depth: Int = 0): String? {
+        if (depth > 10) return null
+        when (node) {
+            is JSONObject -> {
+                node.optJSONObject("accountName")?.let { n ->
+                    val t = n.optString("simpleText", "").ifBlank {
+                        n.optJSONArray("runs")?.optJSONObject(0)?.optString("text", "") ?: ""
+                    }
+                    if (t.isNotBlank()) return t
+                }
+                for (k in node.keys()) findAccountName(node.opt(k), depth + 1)?.let { return it }
+            }
+            is JSONArray -> for (i in 0 until node.length()) findAccountName(node.opt(i), depth + 1)?.let { return it }
+        }
+        return null
+    }
+
+    // ————————————————————————— transport —————————————————————————
+
+    private class Res(val code: Int, val body: String?)
+
+    private fun httpPost(cl: Cl, videoId: String, visitor: String?, auth: Map<String, String>): Res {
+        val client = StringBuilder()
+            .append("\"clientName\":\"").append(cl.name)
+            .append("\",\"clientVersion\":\"").append(cl.version).append("\",")
+            .append(cl.clientExtra)
+        if (visitor != null) client.append(",\"visitorData\":\"").append(visitor).append("\"")
+
+        val body = StringBuilder()
+            .append("{\"context\":{\"client\":{").append(client).append("}")
+            .append(",\"request\":{\"internalExperimentFlags\":[],\"useSsl\":true}")
+            .append(",\"user\":{\"lockedSafetyMode\":false}")
+        if (cl.thirdParty) body.append(",\"thirdParty\":{\"embedUrl\":\"https://www.youtube.com/\"}")
+        body.append("},\"videoId\":\"").append(videoId).append("\"")
+            .append(",\"contentCheckOk\":true,\"racyCheckOk\":true}")
+
+        return request("${cl.host}/youtubei/v1/player?prettyPrint=false", cl, body.toString(), auth, visitor)
+    }
+
+    private fun request(url: String, cl: Cl, body: String, auth: Map<String, String>, visitor: String? = null): Res {
         var c: HttpURLConnection? = null
         return try {
             val conn = URL(url).openConnection() as HttpURLConnection
@@ -170,12 +253,35 @@ object InnertubeClient {
             conn.setRequestProperty("User-Agent", cl.ua)
             conn.setRequestProperty("X-YouTube-Client-Name", cl.num)
             conn.setRequestProperty("X-YouTube-Client-Version", cl.version)
-            conn.setRequestProperty("X-Goog-Api-Format-Version", "2")
+            visitor?.let { conn.setRequestProperty("X-Goog-Visitor-Id", it) }
+            for ((k, v) in auth) conn.setRequestProperty(k, v)
+
             val bytes = body.toByteArray(Charsets.UTF_8)
             conn.setFixedLengthStreamingMode(bytes.size)
             conn.outputStream.use { it.write(bytes) }
             val code = conn.responseCode
-            if (code !in 200..299) { conn.errorStream?.close(); return null }
+            if (code !in 200..299) {
+                try { conn.errorStream?.close() } catch (_: Exception) {}
+                Res(code, null)
+            } else {
+                Res(code, conn.inputStream.bufferedReader(Charsets.UTF_8).use { it.readText() })
+            }
+        } catch (_: Exception) {
+            Res(0, null)
+        } finally {
+            try { c?.disconnect() } catch (_: Exception) {}
+        }
+    }
+
+    private fun httpGet(url: String, ua: String): String? {
+        var c: HttpURLConnection? = null
+        return try {
+            val conn = URL(url).openConnection() as HttpURLConnection
+            c = conn
+            conn.connectTimeout = CONNECT_TIMEOUT
+            conn.readTimeout = READ_TIMEOUT
+            conn.setRequestProperty("User-Agent", ua)
+            if (conn.responseCode !in 200..299) return null
             conn.inputStream.bufferedReader(Charsets.UTF_8).use { it.readText() }
         } catch (_: Exception) {
             null
@@ -184,14 +290,13 @@ object InnertubeClient {
         }
     }
 
-    /** best audio-only format with a DIRECT url (signatureCipher ones are skipped) */
+    /** best audio-only format with a DIRECT url (signature-ciphered ones are skipped) */
     private fun pickAudio(formats: JSONArray, prefs: IntArray): JSONObject? {
         val direct = ArrayList<JSONObject>()
         for (i in 0 until formats.length()) {
             val f = formats.optJSONObject(i) ?: continue
-            val mime = f.optString("mimeType", "")
-            if (mime.isBlank() || !mime.startsWith("audio")) continue
-            if (f.optString("url").isBlank()) continue // ciphered → not usable natively
+            if (!f.optString("mimeType", "").startsWith("audio")) continue
+            if (f.optString("url").isBlank()) continue
             direct.add(f)
         }
         if (direct.isEmpty()) return null
@@ -201,13 +306,12 @@ object InnertubeClient {
         return direct.firstOrNull()
     }
 
-    /** byte-range probe — the 403-killer: only URLs that really stream pass */
-    private fun probeUrl(url: String, ua: String): Pair<Int, String> {
+    /** byte-range probe — only URLs that really stream pass */
+    private fun probeUrl(url: String, ua: String): Int {
         var c: HttpURLConnection? = null
         return try {
             val conn = URL(url).openConnection() as HttpURLConnection
             c = conn
-            conn.requestMethod = "GET"
             conn.connectTimeout = CONNECT_TIMEOUT
             conn.readTimeout = READ_TIMEOUT
             conn.instanceFollowRedirects = true
@@ -217,14 +321,12 @@ object InnertubeClient {
             val code = conn.responseCode
             if (code !in 200..299) {
                 try { conn.errorStream?.close() } catch (_: Exception) {}
-                return Pair(code, "")
+                return code
             }
-            val ct = conn.getHeaderField("Content-Type") ?: ""
-            // read a tiny chunk then close — proves bytes actually flow
             try { conn.inputStream.use { it.read(ByteArray(256)) } } catch (_: Exception) {}
-            Pair(code, ct)
-        } catch (e: Exception) {
-            Pair(0, e.message?.take(40) ?: "error")
+            code
+        } catch (_: Exception) {
+            0
         } finally {
             try { c?.disconnect() } catch (_: Exception) {}
         }

@@ -5,13 +5,20 @@ import { useSettings } from '@/store/settings';
 import { useDownloads } from '@/store/downloads';
 import { useLibrary } from '@/store/library';
 import { YTController, AudioController, SyncPlayer } from '@/engine/players';
-import { extractStream } from '@/engine/extractor';
+import { extractStream, extractCodeOf } from '@/engine/extractor';
 import { getLocalFileURL } from '@/engine/downloader';
 import { t } from '@/lib/i18n';
 import { toast } from 'sonner';
 
 function bridge(): Window['AndroidBridge'] | undefined {
   return typeof window !== 'undefined' ? window.AndroidBridge : undefined;
+}
+
+/** YouTube's bot gate is the one failure the user can actually fix — name it. */
+function signInHint(code: ReturnType<typeof extractCodeOf>): 'needLogin' | 'loginStaleToast' | null {
+  if (code === 'LOGIN_REQUIRED') return 'needLogin';
+  if (code === 'LOGIN_STALE') return 'loginStaleToast';
+  return null;
 }
 
 /** dedupe toasts — the old code re-toasted on every retry (user: «رگباری میاد پشت سر هم») */
@@ -161,6 +168,8 @@ export default function PlayerHost() {
     if (attemptsRef.current.videoId !== track.videoId) {
       attemptsRef.current = { videoId: track.videoId, officialTried: false };
     }
+    // set by the custom-engine attempt so the failure message can name the cause
+    let lastCode: ReturnType<typeof extractCodeOf> = null;
 
     const stopWith = (key: Parameters<typeof t>[1] | null) => {
       if (cancelled) return;
@@ -201,7 +210,8 @@ export default function PlayerHost() {
         audioRef.current.load(s.url, true);
         audioRef.current.setVolume(useSettings.getState().volume);
         return true;
-      } catch {
+      } catch (e) {
+        lastCode = extractCodeOf(e);
         return false;
       }
     };
@@ -223,7 +233,7 @@ export default function PlayerHost() {
           toastOnce('adfreeFail', msg('adfreeFail'));
           if (await loadKind('yt')) { usePlayer.getState().setLoading(false); return; }
         }
-        stopWith('playFail');
+        stopWith(signInHint(lastCode) ?? 'playFail');
         return;
       }
 

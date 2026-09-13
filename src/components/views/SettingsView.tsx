@@ -5,8 +5,7 @@ import { useLibrary } from '@/store/library';
 import { useAuth } from '@/store/auth';
 import { t, fmtSize } from '@/lib/i18n';
 import { storageUsage } from '@/engine/downloader';
-import { signInAndImport, resyncPlaylists } from '@/lib/signin';
-import { googleClientId } from '@/lib/google-auth';
+import { ytmSession, ytmLogin, ytmLogout, onYTMAuthChange, YTMSession } from '@/lib/ytm-session';
 import { runDiagnostics, diagReportText, DiagStep } from '@/engine/diagnostics';
 import { getApiBase, setApiBase } from '@/engine/apiBase';
 import { useState, useEffect } from 'react';
@@ -32,9 +31,9 @@ export default function SettingsView() {
   const s = useSettings();
   const lang = s.lang;
   const offlinePlaysCount = useLibrary((st) => st.offlinePlays).length;
-  const user = useAuth((st) => st.user);
+  const setUser = useAuth((st) => st.setUser);
   const signOut = useAuth((st) => st.signOut);
-  const hasClientId = !!googleClientId();
+  const [ytm, setYtm] = useState<YTMSession>({ available: false, signedIn: false, name: '' });
   const [usage, setUsage] = useState(0);
   const [busy, setBusy] = useState(false);
   const [isAndroid, setIsAndroid] = useState(false);
@@ -52,6 +51,19 @@ export default function SettingsView() {
     setIsAndroid(true);
     try { setSrv(b.getServerUrl?.() ?? ''); } catch { /* noop */ }
   }, []);
+
+  // YTM session: read on mount and again whenever native reports a change
+  // (sign-in happens in a separate activity, so this page never unmounts).
+  useEffect(() => {
+    const sync = () => {
+      const s2 = ytmSession();
+      setYtm(s2);
+      if (s2.signedIn) setUser({ name: s2.name || 'YouTube Music', email: '' });
+      else setUser(null);
+    };
+    sync();
+    return onYTMAuthChange(sync);
+  }, [setUser]);
 
   const applyFb = () => {
     const u = fb.trim().replace(/\/+$/, '');
@@ -82,27 +94,13 @@ export default function SettingsView() {
     b.clearServerUrl();
   };
 
-  const doRealSignIn = async () => {
-    setBusy(true);
-    toast(t(lang, 'importingPlaylists'));
-    const res = await signInAndImport(lang);
-    setBusy(false);
-    if (res.ok) {
-      toast(`${res.imported} ${t(lang, 'importedN')}`);
-    } else if (res.reason === 'no-playlists') {
-      toast(t(lang, 'noPlaylistsFound'));
-    } else {
-      toast(lang === 'fa' ? 'ورود گوگل ناموفق بود' : 'Google sign-in failed');
-    }
-  };
+  const doYTMLogin = () => ytmLogin();
 
-  const doSync = async () => {
-    setBusy(true);
-    toast(t(lang, 'importingPlaylists'));
-    const res = await resyncPlaylists(lang);
-    setBusy(false);
-    if (res.ok) toast(`${res.imported} ${t(lang, 'importedN')}`);
-    else toast(t(lang, 'noPlaylistsFound'));
+  const doYTMLogout = () => {
+    ytmLogout();
+    signOut();
+    setYtm(ytmSession());
+    toast(lang === 'fa' ? 'از حساب خارج شدی' : 'Signed out');
   };
 
   const runDiag = async () => {
@@ -208,82 +206,57 @@ export default function SettingsView() {
         </div>
       </Section>
 
-      {/* ACCOUNT — Google sign-in + YTMusic playlist sync.
-          HONESTY RULE (user request): no fake demo sign-in. When no real OAuth
-          client is configured, the button is disabled and the truth is shown. */}
+      {/* ACCOUNT — YouTube Music session (cookie auth, Metrolist-style).
+          This is what lifts YouTube's "Sign in to confirm you're not a bot"
+          gate, so playback and downloads depend on it far more than on any
+          playlist feature. The cookie is captured and held natively. */}
       <Section icon={UserRound} title={t(lang, 'account')}>
-        {!user ? (
+        {!ytm.available ? (
+          <div className="min-w-0">
+            <div className="text-[13px] font-semibold">{t(lang, 'signInAppOnly')}</div>
+            <div className="mt-0.5 max-w-[460px] text-[11.5px] leading-relaxed text-dim">
+              {t(lang, 'signInAppOnlyDesc')}
+            </div>
+          </div>
+        ) : !ytm.signedIn ? (
           <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0">
-              <div className="text-[13px] font-semibold">
-                {hasClientId ? t(lang, 'signInGoogle') : t(lang, 'signInUnavailable')}
-              </div>
-              <div className="mt-0.5 max-w-[420px] text-[11.5px] leading-relaxed text-dim">
-                {hasClientId
-                  ? `${t(lang, 'fromYTMusic')} — YouTube Data API (youtube.readonly)`
-                  : t(lang, 'signInUnavailableDesc')}
+              <div className="text-[13px] font-semibold">{t(lang, 'signInYTM')}</div>
+              <div className="mt-0.5 max-w-[460px] text-[11.5px] leading-relaxed text-dim">
+                {t(lang, 'signInYTMDesc')}
               </div>
             </div>
-            {hasClientId ? (
-              <button
-                onClick={doRealSignIn}
-                disabled={busy}
-                className="flex shrink-0 items-center gap-2.5 rounded-full bg-white px-5 py-2.5 text-[13px] font-bold text-[#1f1f1f] shadow-md transition-all hover:shadow-lg hover:brightness-[0.98] active:scale-[0.97] disabled:opacity-60"
-              >
-                <GoogleG /> {t(lang, 'signInGoogle')}
-              </button>
-            ) : (
-              <button
-                disabled
-                className="flex shrink-0 cursor-not-allowed items-center gap-2.5 rounded-full border border-line bg-surface px-5 py-2.5 text-[13px] font-bold text-dim opacity-70"
-              >
-                <GoogleG /> {t(lang, 'signInGoogle')}
-              </button>
-            )}
+            <button
+              onClick={doYTMLogin}
+              className="flex shrink-0 items-center gap-2.5 rounded-full bg-white px-5 py-2.5 text-[13px] font-bold text-[#1f1f1f] shadow-md transition-all hover:shadow-lg hover:brightness-[0.98] active:scale-[0.97]"
+            >
+              <GoogleG /> {t(lang, 'signInYTM')}
+            </button>
           </div>
         ) : (
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <div className="flex min-w-0 items-center gap-3">
-              {user.picture ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={user.picture} alt="" className="h-11 w-11 shrink-0 rounded-full object-cover" />
-              ) : (
-                <span
-                  className="grid h-11 w-11 shrink-0 place-items-center rounded-full text-base font-black text-white"
-                  style={{ background: 'linear-gradient(135deg, var(--accent), var(--accent-2))' }}
-                >
-                  {user.name.slice(0, 1).toUpperCase()}
-                </span>
-              )}
+            <div className="flex min-w-0 flex-1 items-center gap-3">
+              <span
+                className="grid h-11 w-11 shrink-0 place-items-center rounded-full text-base font-black text-white"
+                style={{ background: 'linear-gradient(135deg, var(--accent), var(--accent-2))' }}
+              >
+                {(ytm.name || 'Y').slice(0, 1).toUpperCase()}
+              </span>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2 text-[13.5px] font-bold">
-                  <span className="truncate">{user.name}</span>
-                  <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${user.demo ? 'bg-[var(--warning)]' : 'bg-[var(--success)]'}`} />
-                  <span className="shrink-0 text-[10.5px] font-semibold text-dim">{user.demo ? t(lang, 'demoTitle') : t(lang, 'connected')}</span>
+                  <span className="truncate">{ytm.name || t(lang, 'signedInYTM')}</span>
+                  <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--success)]" />
+                  <span className="shrink-0 text-[10.5px] font-semibold text-dim">{t(lang, 'connected')}</span>
                 </div>
-                {user.email && <div className="truncate text-[11px] text-dim">{user.email}</div>}
+                <div className="truncate text-[11px] text-dim">{t(lang, 'signedInYTM')}</div>
               </div>
             </div>
-            <div className="flex shrink-0 gap-2 max-sm:w-full">
-              <button
-                onClick={doSync}
-                disabled={busy}
-                className="flex flex-1 items-center justify-center gap-1.5 rounded-full border border-line bg-surface px-4 py-2 text-[11.5px] font-semibold transition-colors hover:bg-surface2 disabled:opacity-60 sm:flex-none"
-              >
-                <RefreshCw size={13} className={busy ? 'animate-spin' : ''} /> {t(lang, 'syncPlaylists')}
-              </button>
-              <button
-                onClick={() => { signOut(); toast(lang === 'fa' ? 'از حساب خارج شدی' : 'Signed out'); }}
-                className="flex flex-1 items-center justify-center gap-1.5 rounded-full border border-line bg-surface px-4 py-2 text-[11.5px] font-semibold text-[var(--danger)] transition-colors hover:bg-surface2 sm:flex-none"
-              >
-                <LogOut size={13} /> {t(lang, 'signOut')}
-              </button>
-            </div>
-          </div>
-        )}
-        {user?.demo && (
-          <div className="mt-3 rounded-xl bg-surface2 p-3 text-[11px] leading-relaxed text-dim">
-            {t(lang, 'demoDesc')}
+            <button
+              onClick={doYTMLogout}
+              className="flex shrink-0 items-center justify-center gap-1.5 rounded-full border border-line bg-surface px-4 py-2 text-[11.5px] font-semibold text-[var(--danger)] transition-colors hover:bg-surface2 max-sm:w-full"
+            >
+              <LogOut size={13} /> {t(lang, 'signOut')}
+            </button>
           </div>
         )}
       </Section>
@@ -462,7 +435,7 @@ export default function SettingsView() {
         <div className="space-y-1.5 text-xs text-dim">
           <div>JixOne — {lang === 'fa' ? 'پلیر موزیک متن‌باز با کاتالوگ YouTube Music' : 'Open-source player with YouTube Music catalog'}</div>
           <div>{t(lang, 'appVersion')}: v1.2.0-beta2</div>
-          <div>{user ? `${t(lang, 'welcomeUser')}, ${user.name}` : t(lang, 'guestBadge')}</div>
+          <div>{ytm.signedIn ? `${t(lang, 'welcomeUser')}, ${ytm.name || 'YouTube Music'}` : t(lang, 'guestBadge')}</div>
           {usage > 0 && <div>{t(lang, 'storageUsed')}: {fmtSize(usage, lang)}</div>}
         </div>
       </Section>

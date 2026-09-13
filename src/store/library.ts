@@ -8,7 +8,6 @@ interface LibraryState {
   liked: Track[];
   history: Track[];
   offlinePlays: { videoId: string; at: number }[]; // for play-sync feature
-  importYTMusic: (lists: { name: string; ytId?: string; tracks: Track[] }[]) => number;
   createPlaylist: (name: string) => string;
   deletePlaylist: (id: string) => void;
   renamePlaylist: (id: string, name: string) => void;
@@ -30,24 +29,6 @@ export const useLibrary = create<LibraryState>()(
       liked: [],
       history: [],
       offlinePlays: [],
-      importYTMusic: (lists) => {
-        if (!lists.length) return 0;
-        set((s) => {
-          const kept = s.playlists.filter(
-            (p) => !(p.source === 'ytmusic' && lists.some((l) => l.ytId && p.ytId === l.ytId))
-          );
-          const imported: Playlist[] = lists.map((l) => ({
-            id: uid(),
-            name: l.name,
-            createdAt: Date.now(),
-            tracks: l.tracks,
-            source: 'ytmusic',
-            ytId: l.ytId,
-          }));
-          return { playlists: [...imported, ...kept] };
-        });
-        return lists.length;
-      },
       createPlaylist: (name) => {
         const id = uid();
         set((s) => ({ playlists: [{ id, name, createdAt: Date.now(), tracks: [] }, ...s.playlists] }));

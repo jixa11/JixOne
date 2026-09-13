@@ -6,7 +6,6 @@ export interface AuthUser {
   name: string;
   email: string;
   picture?: string;
-  demo?: boolean; // true when signed in without real OAuth (no client id configured)
 }
 
 interface AuthState {

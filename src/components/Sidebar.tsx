@@ -57,7 +57,7 @@ export default function Sidebar() {
         <div className="min-w-0">
           <div className="text-[17px] font-black leading-tight tracking-tight">{t(lang, 'appName')}</div>
           <div className="truncate text-[10.5px] leading-snug text-dim">
-            {user ? user.name : `${t(lang, 'guest')} · ${t(lang, 'signInGoogle')}`}
+            {user ? user.name : `${t(lang, 'guest')} · ${t(lang, 'signInYTM')}`}
           </div>
         </div>
       </div>
@@ -166,18 +166,15 @@ export default function Sidebar() {
             </span>
             <span className="min-w-0 flex-1">
               <span className="block truncate text-[12px] font-bold leading-tight">{user.name}</span>
-              <span className="block truncate text-[10px] text-dim">
-                {user.demo ? t(lang, 'demoTitle') : t(lang, 'connected')}
-              </span>
+              <span className="block truncate text-[10px] text-dim">{t(lang, 'connected')}</span>
             </span>
-            {user.demo && <span className="h-2 w-2 shrink-0 rounded-full bg-[var(--warning)]" title={t(lang, 'demoTitle')} />}
           </>
         ) : (
           <>
             <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-surface2 text-dim">
               <Plus size={14} />
             </span>
-            <span className="min-w-0 flex-1 truncate text-[12px] font-semibold text-dim">{t(lang, 'signInGoogle')}</span>
+            <span className="min-w-0 flex-1 truncate text-[12px] font-semibold text-dim">{t(lang, 'signInYTM')}</span>
           </>
         )}
       </button>

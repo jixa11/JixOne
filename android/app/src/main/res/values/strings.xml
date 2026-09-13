@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">JixOne</string>
+    <string name="login_title">Sign in to YouTube Music</string>
+    <string name="login_cancel">Cancel</string>
 </resources>

@@ -408,65 +408,76 @@ body::after {
   z-index: -2;
   pointer-events: none;
   background-repeat: no-repeat;
-  background-position: left bottom;
-  background-size: auto 78vh;
+  background-position: center;
+  background-size: cover;
+  background-image: var(--theme-art, none);
   opacity: 0;
   transition: opacity .45s ease;
-  /* Two fades intersected: sideways so the art clears the text column, and
-     upward so its top edge dissolves instead of ending in a hard horizontal cut. */
-  --art-fade: to right;
-  mask-image:
-    linear-gradient(var(--art-fade), #000 0%, rgba(0, 0, 0, .5) 32%, transparent 60%),
-    linear-gradient(to top, #000 40%, transparent 94%);
-  -webkit-mask-image:
-    linear-gradient(var(--art-fade), #000 0%, rgba(0, 0, 0, .5) 32%, transparent 60%),
-    linear-gradient(to top, #000 40%, transparent 94%);
-  mask-composite: intersect;
-  -webkit-mask-composite: source-in;
-}
-/* in LTR the nav sits on the left, so the art moves to the other side */
-html[dir="ltr"] body::after { background-position: right bottom; --art-fade: to left; }
-
-/* — فرش ایرانی: madder-and-gold carpet field — */
-[data-theme="persian-carpet"] body::after {
-  background-image: var(--theme-art, none);
-  background-size: auto 92vh;
-  opacity: .14;
 }
 
-/* — کاشی اصفهان: the one source that tiles seamlessly — */
+/* Scrim. The artwork covers the whole viewport, so readability comes from a
+   veil of the theme's own background colour laid OVER it (::before sits one
+   level above ::after) rather than from cropping the picture into a corner.
+   Heaviest at the top and bottom edges, where the search bar and player bar
+   sit; lightest through the middle, so the artwork still reads. */
+[data-theme="persian-carpet"] body::before,
+[data-theme="derafsh"] body::before,
+[data-theme="cyrus"] body::before,
 [data-theme="persian-tile"] body::before {
-  background-image: var(--theme-tile, none);
-  background-size: 224px 224px;
+  background-image: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--app-bg) 88%, transparent) 0%,
+    color-mix(in srgb, var(--app-bg) 46%, transparent) 22%,
+    color-mix(in srgb, var(--app-bg) 40%, transparent) 68%,
+    color-mix(in srgb, var(--app-bg) 90%, transparent) 100%
+  );
+  background-size: auto;
   background-repeat: repeat;
-  opacity: .13;
   mask-image: none;
   -webkit-mask-image: none;
 }
 
-/* — درفش کاویانی: the banner itself — */
-[data-theme="derafsh"] body::after {
-  background-image: var(--theme-art, none);
-  background-size: auto 74vh;
-  opacity: .17;
+/* — فرش ایرانی — */
+[data-theme="persian-carpet"] body::after { opacity: .30; }
+
+/* — کاشی اصفهان: the one source that tiles seamlessly, so it repeats
+     at its own scale instead of being stretched to cover — */
+[data-theme="persian-tile"] body::after {
+  background-image: var(--theme-tile, none);
+  background-repeat: repeat;
+  background-size: 300px 300px;
+  opacity: .34;
 }
 
-/* — کوروش: the portrait. Lower opacity than the dark themes because this
-     theme is light and dark artwork reads far heavier on a pale ground. — */
+/* — درفش کاویانی — */
+[data-theme="derafsh"] body::after { opacity: .32; }
+
+/* — کوروش: a portrait rather than a pattern. Anchored so the face stays in
+     frame when a wide screen crops it, and kept fainter because this theme is
+     light and dark artwork reads far heavier on a pale ground. — */
 [data-theme="cyrus"] body::after {
-  background-image: var(--theme-art, none);
-  background-size: auto 86vh;
-  opacity: .13;
+  background-position: 28% 16%;
+  opacity: .20;
 }
+html[dir="ltr"] [data-theme="cyrus"] body::after { background-position: 72% 16%; }
 
-/* Phones: the artwork would swamp a 390px screen, and a 224px tile repeated
-   across it reads as noise rather than pattern. */
+/* Phones: a full-bleed photo behind a 390px column needs a heavier veil. */
 @media (max-width: 768px) {
-  [data-theme="persian-tile"] body::before { background-size: 150px 150px; opacity: .10; }
-  body::after { background-size: auto 52vh !important; opacity: .09 !important; }
+  [data-theme="persian-tile"] body::after { background-size: 190px 190px; }
+  [data-theme="persian-carpet"] body::before,
+  [data-theme="derafsh"] body::before,
+  [data-theme="cyrus"] body::before,
+  [data-theme="persian-tile"] body::before {
+    background-image: linear-gradient(
+      to bottom,
+      color-mix(in srgb, var(--app-bg) 90%, transparent) 0%,
+      color-mix(in srgb, var(--app-bg) 62%, transparent) 20%,
+      color-mix(in srgb, var(--app-bg) 58%, transparent) 70%,
+      color-mix(in srgb, var(--app-bg) 92%, transparent) 100%
+    );
+  }
 }
 
-/* Someone who asked for less motion did not ask for a busier page either. */
 @media (prefers-reduced-motion: reduce) {
   body::after { transition: none; }
 }

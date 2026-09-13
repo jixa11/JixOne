@@ -50,7 +50,7 @@ export default function Sidebar() {
   return (
     // pb clears the 76px player bar, which is fixed at the same z-index and was
     // painting over the account button at the bottom of this column
-    <aside className="fixed inset-y-0 start-0 z-30 hidden w-[248px] flex-col border-e border-line bg-[var(--app-bg-2)]/70 p-3 pb-[88px] backdrop-blur-xl md:flex">
+    <aside className="fixed inset-y-0 start-0 z-30 hidden w-[248px] flex-col border-e border-line bg-[var(--app-bg-2)]/55 p-3 pb-[88px] backdrop-blur-xl md:flex">
       {/* brand */}
       <div className="mb-4 flex items-center gap-3 px-1.5 pb-1 pt-2.5">
         <div className="neon-play grid h-10 w-10 shrink-0 place-items-center rounded-2xl shadow-[var(--glow)]">

@@ -230,6 +230,13 @@ class MediaService : Service() {
     }
 }
 
+/** The only hosts the account cookie may be sent to — innertube endpoints.
+ *  googlevideo is deliberately excluded: media URLs carry their own auth. */
+private fun isYouTubeHost(host: String?): Boolean {
+    val h = host?.lowercase() ?: return false
+    return h == "youtube.com" || h.endsWith(".youtube.com") || h == "youtubei.googleapis.com"
+}
+
 /** JS bridge attached to the WebView — forwards media state to MediaService */
 class WebBridge(private val context: Context) {
     @android.webkit.JavascriptInterface
@@ -274,6 +281,32 @@ class WebBridge(private val context: Context) {
         JixOneHost.activity?.runOnUiThread { JixOneHost.activity?.recreate() }
     }
 
+    /** Open the YouTube Music sign-in screen (cookie session — see YTMAuth). */
+    @android.webkit.JavascriptInterface
+    fun ytmLogin() {
+        val act = JixOneHost.activity ?: return
+        act.runOnUiThread {
+            act.startActivity(Intent(act, LoginActivity::class.java))
+        }
+    }
+
+    @android.webkit.JavascriptInterface
+    fun ytmLogout() {
+        YTMAuth.clear(context)
+        try {
+            android.webkit.CookieManager.getInstance().removeAllCookies(null)
+            android.webkit.CookieManager.getInstance().flush()
+        } catch (_: Exception) { }
+    }
+
+    /** `{signedIn, name}` for the settings screen */
+    @android.webkit.JavascriptInterface
+    fun ytmAccount(): String =
+        JSONObject()
+            .put("signedIn", YTMAuth.isLoggedIn(context))
+            .put("name", YTMAuth.account(context))
+            .toString()
+
     /**
      * CORS-proof HTTP transport for the web app.
      * YouTube rejects cross-origin API calls from any non-Google web origin, so the
@@ -315,7 +348,7 @@ class WebBridge(private val context: Context) {
     fun innertubePlayer2(id: String, videoId: String, quality: String) {
         Thread {
             val result = try {
-                InnertubeClient.player(videoId, quality)
+                InnertubeClient.player(context, videoId, quality)
             } catch (e: Exception) {
                 try {
                     org.json.JSONObject()
@@ -350,6 +383,14 @@ class WebBridge(private val context: Context) {
                     try { conn.setRequestProperty(key, h.getString(key)) } catch (_: Exception) { }
                 }
             } catch (_: Exception) { }
+            // Signed-in session for YouTube's own APIs — without it innertube
+            // bot-gates search and playback the same way it does the player call.
+            // Matched on the HOST, never on the raw string: the helper-server URL
+            // is user-supplied, and a substring match would hand the account
+            // cookie to any address that merely contains "youtube.com".
+            if (isYouTubeHost(conn.url.host)) {
+                for ((k, v) in YTMAuth.authHeaders(context)) conn.setRequestProperty(k, v)
+            }
             if (body != null && conn.requestMethod != "GET" && conn.requestMethod != "HEAD") {
                 conn.doOutput = true
                 val bytes = body.toByteArray(Charsets.UTF_8)

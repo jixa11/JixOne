@@ -16,6 +16,20 @@ export interface ExtractedStream {
   proxied?: boolean;
 }
 
+/** Why extraction failed, so the UI can say something the user can act on. */
+export type ExtractCode = 'LOGIN_REQUIRED' | 'LOGIN_STALE' | 'NETWORK' | 'FAILED';
+
+export class ExtractError extends Error {
+  constructor(readonly code: ExtractCode, detail?: string) {
+    super(detail ? `${code}: ${detail}` : code);
+    this.name = 'ExtractError';
+  }
+}
+
+export function extractCodeOf(e: unknown): ExtractCode | null {
+  return e instanceof ExtractError ? e.code : null;
+}
+
 const PREF: Record<QualityId, number[]> = {
   high: [251, 140, 250, 249],
   mid: [250, 249, 140, 251],
@@ -94,6 +108,10 @@ async function extractNative(videoId: string, quality: QualityId): Promise<Extra
   let data: any;
   try { data = JSON.parse(raw); } catch { throw new Error('native envelope malformed'); }
   if (!data?.ok || !data?.url) {
+    const code = data?.code;
+    if (code === 'LOGIN_REQUIRED' || code === 'LOGIN_STALE' || code === 'NETWORK') {
+      throw new ExtractError(code, String(data?.attempts ?? '').slice(0, 120));
+    }
     throw new Error(`NATIVE ${data?.error ?? 'failed'} ${data?.attempts ?? ''}`.slice(0, 160));
   }
   const picked: PickedAudio = {
@@ -125,6 +143,9 @@ async function extractOnDevice(videoId: string, quality: QualityId): Promise<Ext
     const native = await extractNative(videoId, quality);
     if (native) return native;
   } catch (nativeErr) {
+    // A sign-in gate is not something the JS chain can get past — it shares the
+    // device's session — so report it straight away instead of stalling on retries.
+    if (nativeErr instanceof ExtractError) throw nativeErr;
     // — 2) youtubei.js chain via native bridge (legacy second chance)
     const errors: string[] = [`native:${(nativeErr as Error)?.message?.slice(0, 60) ?? 'failed'}`];
     try {
@@ -237,16 +258,35 @@ export async function extractStream(videoId: string, quality: QualityId): Promis
       }
       throw new Error(d?.error ?? 'SERVER_NO_STREAM');
     } catch (e) {
+      // the device is the primary path — its verdict is the one worth reporting
+      if (deviceError instanceof ExtractError) throw deviceError;
       throw new Error(
         `NO_STREAM (device: ${deviceError instanceof Error ? deviceError.message.slice(0, 80) : 'failed'} | server: ${e instanceof Error ? e.message.slice(0, 60) : 'failed'})`
       );
     }
   }
 
-  // plain browser → same-origin server proxy (streams audio directly)
+  // Plain browser → same-origin server proxy. Ask for the metadata first: it
+  // shares the server's extraction cache with the proxy (so this costs no extra
+  // extraction) and it is the only way to learn WHY a track will not play —
+  // otherwise the failure only surfaces as an opaque <audio> error.
+  const qs = `id=${encodeURIComponent(videoId)}&q=${encodeURIComponent(quality)}`;
+  const r = await fetch(`/api/yt/player?${qs}`, { cache: 'no-store' });
+  const d = await r.json().catch(() => null);
+  if (!d?.ok) {
+    const code = d?.code;
+    throw new ExtractError(
+      code === 'LOGIN_REQUIRED' || code === 'LOGIN_STALE' || code === 'NETWORK' ? code : 'FAILED',
+      String(d?.attempts ?? '').slice(0, 120)
+    );
+  }
   return {
-    url: `/api/yt/stream?id=${encodeURIComponent(videoId)}&q=${encodeURIComponent(quality)}`,
-    itag: 0,
+    url: `/api/yt/stream?${qs}`,
+    itag: d.itag ?? 0,
+    size: d.size,
+    durationSec: d.durationSec,
+    title: d.title,
+    artist: d.artist,
     proxied: true,
   };
 }

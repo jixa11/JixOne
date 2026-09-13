@@ -75,11 +75,3 @@ export const POPULAR_ARTISTS: ArtistDef[] = [
   { name: 'Queen', query: 'Queen', hue: ['#f59e0b', '#7c3aed'] },
   { name: 'Adele', query: 'Adele', hue: ['#8b5cf6', '#be123c'] },
 ];
-
-/** demo "YouTube Music library" for the sign-in flow when OAuth client id is not configured */
-export const DEMO_YT_PLAYLISTS: { name: string; ids: string[] }[] = [
-  { name: 'Liked music', ids: ['4NRXx6U8ABQ', 'JGwWNGJdvx8', 'dvgZkm1xWPE', 'DyDfgMOUjCI', 'YQHsXMglC9A', 'fJ9rUzIMcZQ'] },
-  { name: 'Chill Mix', ids: ['60ItHLz5WEA', 'V1Pl8CzNzCw', 'TUVcZfQe-Kw', 'hT_nvWreIhg', 'nYh-n7EOtMA'] },
-  { name: 'Workout', ids: ['7wtfhZwyrcc', 'fKopy74weus', '9bZkp7q19f0', 'RgKAFK5djSk'] },
-  { name: 'Road trip 2026', ids: ['FTQbiNvZqaY', '09R8_2nJtjg', 'lWA2pjMjpBs', 'oygrmJFKYZY', '2Vv-BfVoq4g', 'YykjpeuMNEk', '34Na4j8AVgA'] },
-];

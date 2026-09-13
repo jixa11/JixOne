@@ -64,6 +64,13 @@ function pushSong(out: RawSong[], song: RawSong) {
   if (!out.some((s) => s.videoId === song.videoId)) out.push(song);
 }
 
+/** YouTube tags every search row with an `item_type`. Podcasts and talk shows
+ *  come back as `non_music_track`, and artist/playlist/album rows are not
+ *  playable tracks at all — without this the song list fills up with
+ *  interviews and channel entries. Unknown types are kept so a future response
+ *  shape (or an E2E fixture that omits the field) still parses. */
+const NON_SONG_ITEMS = new Set(['non_music_track', 'artist', 'playlist', 'album', 'episode', 'podcast', 'profile']);
+
 export function flattenYTM(node: any, out: RawSong[], depth = 0): RawSong[] {
   if (!node || depth > 9 || out.length > 60) return out;
   if (Array.isArray(node)) {
@@ -74,6 +81,9 @@ export function flattenYTM(node: any, out: RawSong[], depth = 0): RawSong[] {
 
   // ── 1) MusicResponsiveListItem — real YTM search rows (youtubei.js v18) ──
   if (node.type === 'MusicResponsiveListItem' || (Array.isArray(node.flex_columns) && node.flex_columns.length)) {
+    // return without descending: the generic walker below would otherwise
+    // scrape the very row this rejects
+    if (typeof node.item_type === 'string' && NON_SONG_ITEMS.has(node.item_type)) return out;
     const vid =
       vidAny(node.playlist_item_data?.videoId) ??
       vid11(node.id) ??

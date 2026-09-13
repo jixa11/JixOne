@@ -30,6 +30,8 @@ interface PlayerState {
   repeat: RepeatMode;
   videoMode: 'hidden' | 'mini' | 'theater';
   queueOpen: boolean;
+  /** full-screen now-playing sheet; opened from the player bar, not the nav */
+  npOpen: boolean;
   lastContext?: { kind: 'playlist' | 'search' | 'home' | 'liked' | 'queue'; id?: string };
 
   current: () => Track | undefined;
@@ -52,6 +54,7 @@ interface PlayerState {
   setVideoMode: (m: PlayerState['videoMode']) => void;
   cycleVideo: () => void;
   toggleQueue: () => void;
+  setNpOpen: (b: boolean) => void;
   toggleShuffle: () => void;
   cycleRepeat: () => void;
   stopAll: () => void;
@@ -69,6 +72,7 @@ export const usePlayer = create<PlayerState>((set, get) => ({
   repeat: 'off',
   videoMode: 'hidden',
   queueOpen: false,
+  npOpen: false,
 
   current: () => {
     const { queue, index } = get();
@@ -128,6 +132,7 @@ export const usePlayer = create<PlayerState>((set, get) => ({
   cycleVideo: () =>
     set((s) => ({ videoMode: s.videoMode === 'hidden' ? 'mini' : s.videoMode === 'mini' ? 'theater' : 'hidden' })),
   toggleQueue: () => set((s) => ({ queueOpen: !s.queueOpen })),
+  setNpOpen: (b) => set({ npOpen: b }),
   toggleShuffle: () => set((s) => ({ shuffle: !s.shuffle })),
   cycleRepeat: () =>
     set((s) => ({ repeat: s.repeat === 'off' ? 'all' : s.repeat === 'all' ? 'one' : 'off' })),

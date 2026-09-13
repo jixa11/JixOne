@@ -1,7 +1,7 @@
 'use client';
 import { useDownloads } from '@/store/downloads';
 import { useSettings } from '@/store/settings';
-import { extractStream } from '@/engine/extractor';
+import { extractStream, extractCodeOf } from '@/engine/extractor';
 import { downloadToOPFS } from '@/engine/downloader';
 
 let started = false;
@@ -61,7 +61,8 @@ async function processOne(videoId: string) {
     });
     useDownloads.getState().update(videoId, { status: 'done', progress: 1, sizeBytes: size });
   } catch (e: any) {
-    const msg = e?.message === 'NO_STREAM' ? 'no stream' : String(e?.message ?? e);
+    const code = extractCodeOf(e);
+    const msg = code ?? (e?.message === 'NO_STREAM' ? 'no stream' : String(e?.message ?? e));
     useDownloads.getState().update(videoId, { status: 'error', error: msg });
   }
 }

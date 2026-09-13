@@ -2,4 +2,7 @@
 <resources>
     <color name="bg">#0a0a0f</color>
     <color name="accent">#ff2d55</color>
+    <!-- the logo carries its own dark disc, so the adaptive background just
+         continues it past the launcher's mask -->
+    <color name="icon_bg">#0b0509</color>
 </resources>

@@ -43,6 +43,22 @@ class MediaService : Service() {
         const val EXTRA_MEDIA = "media_json"
         const val EXTRA_PLAYING = "playing"
 
+        @Volatile private var running: MediaService? = null
+
+        /**
+         * Position ticks arrive several times a second while playing. Routing
+         * them through [cmd] meant calling startForegroundService at that rate,
+         * which burns battery and, from the background on Android 12+, can be
+         * refused outright. The live service is updated directly instead; when
+         * none is running there is no notification to update anyway.
+         */
+        fun updatePosition(seconds: Long) {
+            running?.let {
+                it.position = seconds
+                it.pushState()
+            }
+        }
+
         fun cmd(context: Context, mediaJson: String? = null, playing: Boolean? = null) {
             val i = Intent(context, MediaService::class.java)
             if (mediaJson != null) i.putExtra(EXTRA_MEDIA, mediaJson)
@@ -60,6 +76,7 @@ class MediaService : Service() {
 
     override fun onCreate() {
         super.onCreate()
+        running = this
         createChannel()
         mediaSession = MediaSessionCompat(this, "JixOneSession").apply {
             setCallback(object : MediaSessionCompat.Callback() {
@@ -224,6 +241,7 @@ class MediaService : Service() {
     }
 
     override fun onDestroy() {
+        running = null
         mediaSession?.release()
         mediaSession = null
         super.onDestroy()
@@ -245,6 +263,12 @@ class WebBridge(private val context: Context) {
             val o = JSONObject(json)
             if (o.has("themeAccent")) {
                 WidgetProvider.saveAccent(context, o.getString("themeAccent"))
+            }
+            // a bare position tick: update the running session in place instead
+            // of starting the service again several times a second
+            if (o.has("pos") && !o.has("title")) {
+                MediaService.updatePosition(o.optLong("pos", 0))
+                return
             }
         } catch (_: Exception) { }
         MediaService.cmd(context, mediaJson = json)

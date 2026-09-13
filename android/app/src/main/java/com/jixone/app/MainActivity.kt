@@ -36,9 +36,24 @@ class MainActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        requestNotificationPermission()
+
         val prefs = getSharedPreferences("jixone", MODE_PRIVATE)
         val remote = prefs.getString("base_url", null)?.trim()?.trimEnd('/')
         launchWeb(remote?.takeIf { it.isNotBlank() })
+    }
+
+    /**
+     * From Android 13 POST_NOTIFICATIONS is a runtime permission. It was
+     * declared in the manifest but never asked for, so the media notification
+     * and its lock-screen controls silently never appeared on any recent phone
+     * — the foreground service still ran, but nothing was shown.
+     */
+    private fun requestNotificationPermission() {
+        if (android.os.Build.VERSION.SDK_INT < 33) return
+        val granted = checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) ==
+            android.content.pm.PackageManager.PERMISSION_GRANTED
+        if (!granted) requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 1001)
     }
 
     @SuppressLint("SetJavaScriptEnabled")

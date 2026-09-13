@@ -4,7 +4,7 @@
 >
 > پلیر موزیک زیبا و بدون تبلیغ برای کاتالوگ YouTube Music — اپ اندروید کاملاً مستقل (رابط وب داخل خود APK) + نسخه وب (Next.js).
 
-**Current build: v1.2.0** · [download the APK](public/JixOne-v1.2.0.apk)
+**Current build: v1.3.0** · [download the APK](public/JixOne-v1.3.0.apk)
 
 ---
 
@@ -96,7 +96,7 @@ Rebuild everything (static web export → embed into assets → signed release A
 
 ```bash
 ./build-apk.sh
-# result: download/JixOne-v1.2.0.apk
+# result: download/JixOne-v1.3.0.apk
 ```
 
 Requirements: Node.js, JDK 17+, Android SDK (platform 34 + build-tools 34), Gradle 8.7+.
@@ -186,7 +186,7 @@ npm run build && npm start
 
 ```bash
 ./build-apk.sh
-# خروجی: download/JixOne-v1.2.0.apk
+# خروجی: download/JixOne-v1.3.0.apk
 ```
 
 پیش‌نیازها: Node.js، JDK 17+، اندروید SDK (platform 34 + build-tools 34)، Gradle 8.7+.

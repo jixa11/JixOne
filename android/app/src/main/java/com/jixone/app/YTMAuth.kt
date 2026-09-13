@@ -11,6 +11,11 @@ import java.security.MessageDigest
  * extraction used to fail for most tracks. A signed-in session lifts that
  * gate, so every innertube request carries the account's cookie plus the
  * SAPISIDHASH authorization Google's own web clients send.
+ *
+ * A session is more than the cookie: `visitorData`, `dataSyncId` and the
+ * account index all come from the signed-in music.youtube.com page and have to
+ * travel together. A visitorData minted elsewhere does not belong to the
+ * account and innertube treats the call as anonymous again.
  */
 object YTMAuth {
 
@@ -19,25 +24,51 @@ object YTMAuth {
     private const val PREFS = "jixone"
     private const val KEY_COOKIE = "ytm_cookie"
     private const val KEY_ACCOUNT = "ytm_account"
+    private const val KEY_VISITOR = "ytm_visitor_data"
+    private const val KEY_DATASYNC = "ytm_data_sync_id"
+    private const val KEY_AUTHUSER = "ytm_auth_user"
 
     private fun prefs(ctx: Context) = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
     fun cookie(ctx: Context): String? =
         prefs(ctx).getString(KEY_COOKIE, null)?.takeIf { it.isNotBlank() }
 
+    fun visitorData(ctx: Context): String? =
+        prefs(ctx).getString(KEY_VISITOR, null)?.takeIf { it.isNotBlank() }
+
+    fun dataSyncId(ctx: Context): String? =
+        prefs(ctx).getString(KEY_DATASYNC, null)?.takeIf { it.isNotBlank() }
+
+    fun authUser(ctx: Context): String = prefs(ctx).getString(KEY_AUTHUSER, "0") ?: "0"
+
     fun isLoggedIn(ctx: Context): Boolean = sapisid(cookie(ctx)) != null
 
     fun account(ctx: Context): String = prefs(ctx).getString(KEY_ACCOUNT, "") ?: ""
 
-    fun save(ctx: Context, rawCookie: String, accountName: String? = null) {
-        val editor = prefs(ctx).edit()
-        editor.putString(KEY_COOKIE, rawCookie.trim())
-        if (accountName != null) editor.putString(KEY_ACCOUNT, accountName)
-        editor.apply()
+    fun save(
+        ctx: Context,
+        rawCookie: String,
+        visitorData: String? = null,
+        dataSyncId: String? = null,
+        authUser: String? = null,
+    ) {
+        val e = prefs(ctx).edit()
+        e.putString(KEY_COOKIE, rawCookie.trim())
+        if (visitorData != null) e.putString(KEY_VISITOR, visitorData)
+        if (dataSyncId != null) e.putString(KEY_DATASYNC, dataSyncId)
+        if (authUser != null) e.putString(KEY_AUTHUSER, authUser)
+        e.apply()
+    }
+
+    fun saveAccountName(ctx: Context, name: String) {
+        prefs(ctx).edit().putString(KEY_ACCOUNT, name).apply()
     }
 
     fun clear(ctx: Context) {
-        prefs(ctx).edit().remove(KEY_COOKIE).remove(KEY_ACCOUNT).apply()
+        prefs(ctx).edit()
+            .remove(KEY_COOKIE).remove(KEY_ACCOUNT)
+            .remove(KEY_VISITOR).remove(KEY_DATASYNC).remove(KEY_AUTHUSER)
+            .apply()
     }
 
     /** true when the cookie string carries a usable session id */
@@ -53,7 +84,7 @@ object YTMAuth {
         return mapOf(
             "Cookie" to raw,
             "Authorization" to sapisidHash(sapisid, ORIGIN),
-            "X-Goog-AuthUser" to "0",
+            "X-Goog-AuthUser" to authUser(ctx),
             "Origin" to ORIGIN,
             "X-Origin" to ORIGIN,
         )

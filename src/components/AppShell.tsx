@@ -14,6 +14,7 @@ import SettingsView from '@/components/views/SettingsView';
 import { LikedView, HistoryView } from '@/components/views/CollectionViews';
 import { useView } from '@/store/view';
 import { startDownloadRunner } from '@/engine/downloadsRunner';
+import { registerNativeBack } from '@/lib/native-back';
 import { usePlayer } from '@/store/player';
 import { useLibrary } from '@/store/library';
 import { useDownloads } from '@/store/downloads';
@@ -24,6 +25,7 @@ export default function AppShell() {
 
   useEffect(() => {
     startDownloadRunner();
+    registerNativeBack();
     // E2E debug handle (?e2e=1)
     if (typeof window !== 'undefined' && window.location.search.includes('e2e=1')) {
       (window as any).__np = { player: usePlayer, library: useLibrary, downloads: useDownloads, settings: useSettings };

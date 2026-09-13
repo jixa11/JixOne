@@ -77,8 +77,15 @@ object InnertubeClient {
 
     @Volatile private var cachedVisitor: String? = null
 
-    /** Anonymous session id, fetched once per process from YouTube's own bootstrap. */
-    private fun visitorData(): String? {
+    /**
+     * Session id sent with every innertube call. When signed in this must be
+     * the visitorData captured from the account's own music.youtube.com page —
+     * one minted from the anonymous bootstrap does not belong to the account
+     * and innertube falls back to treating the call as logged out. The
+     * bootstrap fetch is only the signed-out path.
+     */
+    private fun visitorData(ctx: Context? = null): String? {
+        ctx?.let { YTMAuth.visitorData(it) }?.let { return it }
         cachedVisitor?.let { return it }
         synchronized(this) {
             cachedVisitor?.let { return it }
@@ -116,14 +123,15 @@ object InnertubeClient {
         val attempts = StringBuilder()
         val prefs = itagPref(quality)
         val auth = YTMAuth.authHeaders(ctx)
-        val visitor = visitorData()
+        val visitor = visitorData(ctx)
+        val pageId = YTMAuth.dataSyncId(ctx)
         var sawLoginRequired = false
         var sawNetwork = false
 
         for (cl in CLIENTS) {
             try {
                 val t0 = System.currentTimeMillis()
-                val res = httpPost(cl, videoId, visitor, auth)
+                val res = httpPost(cl, videoId, visitor, auth, pageId)
                 if (res.body == null) {
                     sawNetwork = true
                     attempts.append(cl.name).append(":http").append(res.code).append("; ")
@@ -194,9 +202,13 @@ object InnertubeClient {
     fun accountName(ctx: Context): String? {
         val auth = YTMAuth.authHeaders(ctx).ifEmpty { return null }
         val cl = CLIENTS.first { it.name == "WEB_REMIX" }
+        val visitor = visitorData(ctx)
         val body = "{\"context\":{\"client\":{\"clientName\":\"${cl.name}\",\"clientVersion\":\"${cl.version}\"," +
-            "${cl.clientExtra}${visitorData()?.let { ",\"visitorData\":\"$it\"" } ?: ""}}}}"
-        val res = request("${cl.host}/youtubei/v1/account/account_menu?prettyPrint=false", cl, body, auth)
+            "${cl.clientExtra}${visitor?.let { ",\"visitorData\":\"$it\"" } ?: ""}}}}"
+        val res = request(
+            "${cl.host}/youtubei/v1/account/account_menu?prettyPrint=false", cl, body, auth, visitor,
+            pageId = YTMAuth.dataSyncId(ctx),
+        )
         val json = res.body ?: return null
         return try { findAccountName(JSONObject(json)) } catch (_: Exception) { null }
     }
@@ -222,7 +234,7 @@ object InnertubeClient {
 
     private class Res(val code: Int, val body: String?)
 
-    private fun httpPost(cl: Cl, videoId: String, visitor: String?, auth: Map<String, String>): Res {
+    private fun httpPost(cl: Cl, videoId: String, visitor: String?, auth: Map<String, String>, pageId: String?): Res {
         val client = StringBuilder()
             .append("\"clientName\":\"").append(cl.name)
             .append("\",\"clientVersion\":\"").append(cl.version).append("\",")
@@ -237,10 +249,17 @@ object InnertubeClient {
         body.append("},\"videoId\":\"").append(videoId).append("\"")
             .append(",\"contentCheckOk\":true,\"racyCheckOk\":true}")
 
-        return request("${cl.host}/youtubei/v1/player?prettyPrint=false", cl, body.toString(), auth, visitor)
+        return request("${cl.host}/youtubei/v1/player?prettyPrint=false", cl, body.toString(), auth, visitor, pageId)
     }
 
-    private fun request(url: String, cl: Cl, body: String, auth: Map<String, String>, visitor: String? = null): Res {
+    private fun request(
+        url: String,
+        cl: Cl,
+        body: String,
+        auth: Map<String, String>,
+        visitor: String? = null,
+        pageId: String? = null,
+    ): Res {
         var c: HttpURLConnection? = null
         return try {
             val conn = URL(url).openConnection() as HttpURLConnection
@@ -255,6 +274,8 @@ object InnertubeClient {
             conn.setRequestProperty("X-YouTube-Client-Name", cl.num)
             conn.setRequestProperty("X-YouTube-Client-Version", cl.version)
             visitor?.let { conn.setRequestProperty("X-Goog-Visitor-Id", it) }
+            // identifies which channel of the account the call speaks for
+            pageId?.takeIf { it.isNotBlank() }?.let { conn.setRequestProperty("X-Goog-PageId", it) }
             for ((k, v) in auth) conn.setRequestProperty(k, v)
 
             val bytes = body.toByteArray(Charsets.UTF_8)

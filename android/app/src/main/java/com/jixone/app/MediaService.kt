@@ -31,6 +31,7 @@ class MediaService : Service() {
     private var artwork: Bitmap? = null
     private var accent = -1
     private var gotMedia = false
+    private var wakeLock: android.os.PowerManager.WakeLock? = null
 
     companion object {
         const val CHANNEL = "jixone_media"
@@ -58,6 +59,10 @@ class MediaService : Service() {
                 it.pushState()
             }
         }
+
+        /** True while a track is actually playing, so the Activity knows not to
+         *  suspend the WebView that owns the <audio> element. */
+        fun isPlaying(): Boolean = running?.playing == true
 
         fun cmd(context: Context, mediaJson: String? = null, playing: Boolean? = null) {
             val i = Intent(context, MediaService::class.java)
@@ -114,6 +119,7 @@ class MediaService : Service() {
             if (it.hasExtra(EXTRA_MEDIA)) handleMediaJson(it.getStringExtra(EXTRA_MEDIA) ?: "")
             if (it.hasExtra(EXTRA_PLAYING)) {
                 playing = it.getBooleanExtra(EXTRA_PLAYING, playing)
+                holdWakeLock(playing)
                 pushState()
                 refreshNotification()
             }
@@ -240,8 +246,30 @@ class MediaService : Service() {
         } catch (_: Exception) { }
     }
 
+    /**
+     * Keeps the CPU up while a track plays. Without it the device can doze
+     * with the screen off and stall the WebView's audio element mid-track.
+     */
+    private fun holdWakeLock(hold: Boolean) {
+        try {
+            if (hold) {
+                if (wakeLock == null) {
+                    val pm = getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
+                    wakeLock = pm.newWakeLock(
+                        android.os.PowerManager.PARTIAL_WAKE_LOCK,
+                        "JixOne::playback"
+                    ).apply { setReferenceCounted(false) }
+                }
+                if (wakeLock?.isHeld != true) wakeLock?.acquire(3 * 60 * 60 * 1000L)
+            } else if (wakeLock?.isHeld == true) {
+                wakeLock?.release()
+            }
+        } catch (_: Exception) { }
+    }
+
     override fun onDestroy() {
         running = null
+        holdWakeLock(false)
         mediaSession?.release()
         mediaSession = null
         super.onDestroy()
@@ -321,6 +349,35 @@ class WebBridge(private val context: Context) {
             android.webkit.CookieManager.getInstance().removeAllCookies(null)
             android.webkit.CookieManager.getInstance().flush()
         } catch (_: Exception) { }
+    }
+
+    /**
+     * Sign in from a cookie pasted by hand.
+     *
+     * Google refuses its login pages inside an embedded browser on some
+     * devices and accounts ("this browser or app may not be secure"), and no
+     * amount of WebView tuning gets past it. The escape hatch — the one
+     * InnerTune and Metrolist also offer — is to sign in on a desktop browser
+     * and copy the request's Cookie header across. Returns a JSON envelope so
+     * the UI can explain what was wrong with a bad paste.
+     */
+    @android.webkit.JavascriptInterface
+    fun ytmSetCookie(raw: String): String {
+        val cookie = raw.trim().removePrefix("Cookie:").trim()
+        if (cookie.isBlank()) {
+            return JSONObject().put("ok", false).put("code", "EMPTY").toString()
+        }
+        if (!YTMAuth.looksLikeSession(cookie)) {
+            // no SAPISID (or its 1P/3P variants) means this is not a signed-in jar
+            return JSONObject().put("ok", false).put("code", "NO_SAPISID").toString()
+        }
+        YTMAuth.save(context, cookie)
+        Thread {
+            val name = InnertubeClient.accountName(context)
+            if (!name.isNullOrBlank()) YTMAuth.saveAccountName(context, name)
+            JixOneHost.activity?.evalJs("window.__ytmAuthChanged && window.__ytmAuthChanged()")
+        }.start()
+        return JSONObject().put("ok", true).toString()
     }
 
     /** `{signedIn, name}` for the settings screen */

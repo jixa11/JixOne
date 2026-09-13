@@ -13,17 +13,16 @@ interface ViewState {
   setSearchSeed: (s: string) => void;
 }
 
-/** Nav order per user request: Search first, then Explore; Library (with
- *  downloads merged in) after that. Home page removed; Settings lives in the
- *  top-corner gear. */
+/** Explore is the landing view. Search and Library follow it; Settings lives
+ *  in the top-corner gear. */
 export const useView = create<ViewState>((set, get) => ({
   stack: [],
-  current: { name: 'search' },
+  current: { name: 'explore' },
   push: (name, id) => set((s) => ({ stack: [...s.stack, s.current].slice(-25), current: { name, id } })),
   back: () =>
     set((s) => {
       const stack = [...s.stack];
-      const prev = stack.pop() ?? { name: 'search' as ViewName };
+      const prev = stack.pop() ?? { name: 'explore' as ViewName };
       return { stack, current: prev };
     }),
   canBack: () => get().stack.length > 0,

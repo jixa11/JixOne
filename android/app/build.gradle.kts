@@ -11,23 +11,37 @@ android {
         applicationId = "com.jixone.app"
         minSdk = 26
         targetSdk = 34
-        versionCode = 9
-        versionName = "1.2.0"
+        versionCode = 10
+        versionName = "1.3.0"
     }
 
+    // The release key is deliberately NOT in the repo — a committed signing key
+    // lets anyone build an APK that Android accepts as a JixOne update. Create
+    // one once and keep it (see docs/SIGNING.md); every build then installs
+    // over the last without an uninstall. Without it the build still works and
+    // falls back to the debug key, but each such build has a different
+    // signature and has to replace the previous install.
+    val releaseKeystore = file("../jixone.keystore")
+
     signingConfigs {
-        create("release") {
-            storeFile = file("../jixone.keystore")
-            storePassword = "jixone2026"
-            keyAlias = "jixone"
-            keyPassword = "jixone2026"
+        if (releaseKeystore.exists()) {
+            create("release") {
+                storeFile = releaseKeystore
+                storePassword = providers.gradleProperty("jixoneStorePassword").orNull
+                    ?: System.getenv("JIXONE_STORE_PASSWORD")
+                keyAlias = providers.gradleProperty("jixoneKeyAlias").orNull
+                    ?: System.getenv("JIXONE_KEY_ALIAS") ?: "jixone"
+                keyPassword = providers.gradleProperty("jixoneKeyPassword").orNull
+                    ?: System.getenv("JIXONE_KEY_PASSWORD")
+            }
         }
     }
 
     buildTypes {
         release {
             isMinifyEnabled = false
-            signingConfig = signingConfigs.getByName("release")
+            signingConfig = signingConfigs.findByName("release")
+                ?: signingConfigs.getByName("debug")
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))
         }
     }

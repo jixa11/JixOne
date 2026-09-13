@@ -6,7 +6,7 @@ import { useAuth } from '@/store/auth';
 import { t, fmtSize } from '@/lib/i18n';
 import { storageUsage } from '@/engine/downloader';
 import { assetUrl } from '@/lib/asset';
-import { ytmSession, ytmLogin, ytmLogout, onYTMAuthChange, YTMSession } from '@/lib/ytm-session';
+import { ytmSession, ytmLogin, ytmLogout, onYTMAuthChange, YTMSession, ytmCanPasteCookie, ytmSetCookie } from '@/lib/ytm-session';
 import { runDiagnostics, diagReportText, DiagStep } from '@/engine/diagnostics';
 import { getApiBase, setApiBase } from '@/engine/apiBase';
 import { useState, useEffect } from 'react';
@@ -35,6 +35,8 @@ export default function SettingsView() {
   const setUser = useAuth((st) => st.setUser);
   const signOut = useAuth((st) => st.signOut);
   const [ytm, setYtm] = useState<YTMSession>({ available: false, signedIn: false, name: '' });
+  const [canPaste, setCanPaste] = useState(false);
+  const [cookiePaste, setCookiePaste] = useState('');
   const [usage, setUsage] = useState(0);
   const [busy, setBusy] = useState(false);
   const [isAndroid, setIsAndroid] = useState(false);
@@ -63,6 +65,7 @@ export default function SettingsView() {
       else setUser(null);
     };
     sync();
+    setCanPaste(ytmCanPasteCookie());
     return onYTMAuthChange(sync);
   }, [setUser]);
 
@@ -96,6 +99,17 @@ export default function SettingsView() {
   };
 
   const doYTMLogin = () => ytmLogin();
+
+  const saveCookie = () => {
+    const r = ytmSetCookie(cookiePaste);
+    if (r.ok) {
+      setCookiePaste('');
+      setYtm(ytmSession());
+      toast(t(lang, 'pasteCookieOk'));
+      return;
+    }
+    toast(t(lang, r.code === 'NO_SAPISID' ? 'pasteCookieNoSapisid' : 'pasteCookieEmpty'));
+  };
 
   const doYTMLogout = () => {
     ytmLogout();
@@ -142,7 +156,7 @@ export default function SettingsView() {
             >
               <Download size={15} /> {t(lang, 'apkBtn')}
             </a>
-            <div dir="ltr" className="text-[10.5px] font-mono text-dim">JixOne-v1.2.0 · ~4.1 MB</div>
+            <div dir="ltr" className="text-[10.5px] font-mono text-dim">JixOne-v1.3.0 · ~5.3 MB</div>
           </div>
         </Section>
       )}
@@ -257,6 +271,35 @@ export default function SettingsView() {
               className="flex shrink-0 items-center justify-center gap-1.5 rounded-full border border-line bg-surface px-4 py-2 text-[11.5px] font-semibold text-[var(--danger)] transition-colors hover:bg-surface2 max-sm:w-full"
             >
               <LogOut size={13} /> {t(lang, 'signOut')}
+            </button>
+          </div>
+        )}
+
+        {/* Google refuses its login pages inside an embedded browser on some
+            devices ("this browser or app may not be secure") and nothing on
+            our side can talk it round. Pasting the cookie from a desktop
+            browser always works — InnerTune and Metrolist offer the same
+            escape hatch. */}
+        {canPaste && !ytm.signedIn && (
+          <div className="mt-4 border-t border-line pt-4">
+            <div className="text-[12.5px] font-semibold">{t(lang, 'pasteCookieTitle')}</div>
+            <div className="mt-1 max-w-[560px] text-[11.5px] leading-relaxed text-dim">
+              {t(lang, 'pasteCookieDesc')}
+            </div>
+            <textarea
+              value={cookiePaste}
+              onChange={(e) => setCookiePaste(e.target.value)}
+              placeholder={t(lang, 'pasteCookiePlaceholder')}
+              rows={3}
+              dir="ltr"
+              className="mt-3 w-full resize-y rounded-xl border border-line bg-surface px-3 py-2.5 text-[11px] leading-relaxed outline-none focus:border-[var(--accent)]"
+            />
+            <button
+              onClick={saveCookie}
+              disabled={!cookiePaste.trim()}
+              className="mt-2.5 rounded-full bg-[var(--accent)] px-5 py-2 text-[12px] font-bold text-white transition-transform active:scale-[0.97] disabled:opacity-40"
+            >
+              {t(lang, 'pasteCookieSave')}
             </button>
           </div>
         )}

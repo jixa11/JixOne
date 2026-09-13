@@ -182,9 +182,15 @@ class MainActivity : Activity() {
         return WebResourceResponse("text/plain", "utf-8", status, reason, mutableMapOf(), body)
     }
 
+    /**
+     * WebView.onPause() suspends the whole DOM, the <audio> element included,
+     * so backgrounding the app or locking the screen killed playback outright.
+     * Only suspend when nothing is playing; while a track runs, the media
+     * foreground service is what keeps the process alive.
+     */
     override fun onPause() {
         super.onPause()
-        if (::webView.isInitialized) webView.onPause()
+        if (::webView.isInitialized && !MediaService.isPlaying()) webView.onPause()
     }
 
     override fun onResume() {
@@ -202,9 +208,22 @@ class MainActivity : Activity() {
         super.onDestroy()
     }
 
+    /**
+     * The app is a single page with its own navigation stack, so canGoBack()
+     * was always false and every back press dropped straight to
+     * moveTaskToBack — i.e. back closed the app instead of going back a
+     * screen. Ask the page first; it closes the queue, then the now-playing
+     * sheet, then pops its view stack, and answers false only when there is
+     * genuinely nothing left to leave.
+     */
     override fun onBackPressed() {
-        if (::webView.isInitialized && webView.canGoBack()) webView.goBack()
-        else moveTaskToBack(true)
+        if (!::webView.isInitialized) {
+            moveTaskToBack(true)
+            return
+        }
+        webView.evaluateJavascript("(window.__jixBack && window.__jixBack()) === true") { result ->
+            if (result?.trim() != "true") moveTaskToBack(true)
+        }
     }
 
 

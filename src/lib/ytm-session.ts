@@ -38,6 +38,28 @@ export function ytmLogout(): void {
   bridge()?.ytmLogout?.();
 }
 
+/** true when the build accepts a hand-pasted cookie */
+export function ytmCanPasteCookie(): boolean {
+  return typeof bridge()?.ytmSetCookie === 'function';
+}
+
+export type PasteResult = { ok: true } | { ok: false; code: 'EMPTY' | 'NO_SAPISID' | 'UNSUPPORTED' };
+
+/**
+ * Sign in from a Cookie header copied out of a desktop browser. The escape
+ * hatch for accounts where Google refuses the in-app sign-in screen.
+ */
+export function ytmSetCookie(raw: string): PasteResult {
+  const b = bridge();
+  if (typeof b?.ytmSetCookie !== 'function') return { ok: false, code: 'UNSUPPORTED' };
+  try {
+    const d = JSON.parse(b.ytmSetCookie(raw));
+    return d?.ok ? { ok: true } : { ok: false, code: d?.code ?? 'EMPTY' };
+  } catch {
+    return { ok: false, code: 'EMPTY' };
+  }
+}
+
 /** Native fires `window.__ytmAuthChanged` once sign-in finishes. */
 export function onYTMAuthChange(cb: () => void): () => void {
   if (typeof window === 'undefined') return () => {};

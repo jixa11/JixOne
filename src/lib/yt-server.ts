@@ -107,10 +107,11 @@ function getVisitorData(): Promise<string | null> {
   return visitorPromise;
 }
 
-/** visitorData is a protobuf blob rendered base64url — always starts "Cg". */
+/** visitorData is a base64url protobuf blob that starts "Cg"; it runs to ~500
+ *  characters, so the upper bound has to be generous. */
 function findVisitor(node: unknown, depth = 0): string | null {
   if (depth > 12) return null;
-  if (typeof node === 'string') return node.length >= 20 && node.length <= 200 && node.startsWith('Cg') ? node : null;
+  if (typeof node === 'string') return node.length >= 20 && node.length <= 2048 && node.startsWith('Cg') ? node : null;
   if (Array.isArray(node)) {
     for (const n of node) {
       const hit = findVisitor(n, depth + 1);

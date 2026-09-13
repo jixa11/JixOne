@@ -93,11 +93,12 @@ object InnertubeClient {
         }
     }
 
-    /** visitorData is a protobuf blob rendered base64url — always starts "Cg". */
+    /** visitorData is a base64url protobuf blob that starts "Cg"; it runs to
+     *  ~500 characters, so the upper bound has to be generous. */
     private fun findVisitor(node: Any?, depth: Int = 0): String? {
         if (depth > 12) return null
         when (node) {
-            is String -> if (node.length in 20..200 && node.startsWith("Cg")) return node
+            is String -> if (node.length in 20..2048 && node.startsWith("Cg")) return node
             is JSONArray -> for (i in 0 until node.length()) findVisitor(node.opt(i), depth + 1)?.let { return it }
             is JSONObject -> for (k in node.keys()) findVisitor(node.opt(k), depth + 1)?.let { return it }
         }

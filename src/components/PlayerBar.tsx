@@ -60,14 +60,19 @@ export default function PlayerBar() {
       </div>
 
       <div className="flex h-[72px] items-center gap-2 px-3 sm:gap-4 sm:px-4">
-        {/* track info */}
+        {/* track info — the tap target that raises the now-playing sheet */}
         <div className="flex min-w-0 items-center gap-3 md:w-[26%]">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <TrackThumb track={track} rounded="rounded-lg" className="h-11 w-11 shadow-md" />
-          <div className="min-w-0 flex-1">
-            <div className="truncate text-[13px] font-semibold">{track.title}</div>
-            <div className="truncate text-[11px] text-dim">{track.artist}</div>
-          </div>
+          <button
+            onClick={() => p.setNpOpen(true)}
+            className="flex min-w-0 flex-1 items-center gap-3 rounded-xl text-start transition-transform active:scale-[0.98]"
+            aria-label={t(lang, 'nowPlaying')}
+          >
+            <TrackThumb track={track} rounded="rounded-lg" className="h-11 w-11 shrink-0 shadow-md" />
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-[13px] font-semibold">{track.title}</span>
+              <span className="block truncate text-[11px] text-dim">{track.artist}</span>
+            </span>
+          </button>
           <Button
             variant="ghost" size="icon"
             className="hidden h-9 w-9 sm:grid sm:place-items-center"

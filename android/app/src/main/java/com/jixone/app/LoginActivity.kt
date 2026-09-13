@@ -12,6 +12,8 @@ import android.webkit.WebViewClient
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.TextView
+import androidx.webkit.WebSettingsCompat
+import androidx.webkit.WebViewFeature
 
 /**
  * YouTube Music sign-in.
@@ -82,20 +84,32 @@ class LoginActivity : Activity() {
             displayZoomControls = false
         }
 
+        // Android WebView tags every request with `X-Requested-With: <package>`.
+        // Google reads that header to spot an embedded browser and answers the
+        // login flow with "this browser or app may not be secure" — a desktop
+        // user agent alone is not enough to get past it. An empty allow-list
+        // means the header is sent to no origin at all.
+        if (WebViewFeature.isFeatureSupported(WebViewFeature.REQUESTED_WITH_HEADER_ALLOW_LIST)) {
+            WebSettingsCompat.setRequestedWithHeaderOriginAllowList(webView.settings, emptySet())
+        }
+
         webView.webViewClient = object : WebViewClient() {
             override fun onPageFinished(view: WebView?, url: String?) {
-                if (url != null && url.startsWith("https://music.youtube.com")) captureCookie()
+                // The flow can land on either host depending on which account
+                // chooser Google routes through, so check on every page.
+                captureCookie()
             }
         }
         webView.loadUrl(LOGIN_URL)
     }
 
-    /** Pull the session cookie once the flow reaches music.youtube.com. */
+    /** Pull the session cookie as soon as one carrying SAPISID exists. */
     private fun captureCookie() {
         if (saved) return
         val cm = CookieManager.getInstance()
-        val raw = cm.getCookie(YTMAuth.ORIGIN) ?: return
-        if (!YTMAuth.looksLikeSession(raw)) return
+        val raw = listOf(YTMAuth.ORIGIN, "https://www.youtube.com")
+            .mapNotNull { cm.getCookie(it) }
+            .firstOrNull { YTMAuth.looksLikeSession(it) } ?: return
         saved = true
         cm.flush()
         YTMAuth.save(applicationContext, raw)

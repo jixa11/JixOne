@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import Sidebar, { MobileNav, TopBar } from '@/components/Sidebar';
 import PlayerBar from '@/components/PlayerBar';
 import QueuePanel from '@/components/QueuePanel';
+import NowPlaying from '@/components/NowPlaying';
 import PlayerHost from '@/components/PlayerHost';
 import ThemeApplier from '@/components/ThemeApplier';
 import ExploreView from '@/components/views/ExploreView';
@@ -53,6 +54,7 @@ export default function AppShell() {
       <QueuePanel />
       <MobileNav />
       <PlayerBar />
+      <NowPlaying />
     </div>
   );
 }

@@ -638,3 +638,51 @@ input[type="range"].slider::-webkit-slider-thumb {
 @layer base {
   * { border-color: var(--border); }
 }
+
+/* ============================================================
+   NOW PLAYING SHEET
+   Slides up over the app from the player bar. Transform-only so
+   it animates on the compositor; a phone has to hold 60fps here.
+   ============================================================ */
+.np-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(180deg, var(--app-bg-2) 0%, var(--app-bg) 100%);
+  transform: translateY(100%);
+  visibility: hidden;
+  transition: transform .38s cubic-bezier(.32, .72, 0, 1), visibility 0s .38s;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+}
+.np-sheet.np-open {
+  transform: translateY(0);
+  visibility: visible;
+  transition: transform .42s cubic-bezier(.32, .72, 0, 1), visibility 0s;
+}
+
+/* the cover art, blown up and blurred, as the sheet's ground */
+.np-bg {
+  position: absolute;
+  inset: -12%;
+  background-size: cover;
+  background-position: center;
+  filter: blur(56px) saturate(1.5);
+  opacity: .32;
+  pointer-events: none;
+}
+
+.np-art {
+  animation: npArtIn .5s cubic-bezier(.22, 1, .36, 1) both;
+}
+@keyframes npArtIn {
+  from { opacity: 0; transform: scale(.9) translateY(14px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .np-sheet, .np-sheet.np-open { transition: none; }
+  .np-art { animation: none; }
+}

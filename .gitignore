@@ -36,3 +36,17 @@ android/.gradle/
 android/app/build/
 android/local.properties
 *.log
+
+# native/ — the Metrolist fork
+native/.gradle/
+native/build/
+native/app/build/
+native/innertube/build/
+native/local.properties
+native/app/keystore/
+
+# the blanket *.png rule above would swallow every app resource
+!native/**/*.png
+!android/app/src/main/res/**/*.png
+!src/app/*.png
+!public/**/*.png

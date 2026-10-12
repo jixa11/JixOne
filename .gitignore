@@ -51,3 +51,6 @@ native/app/keystore/
 !android/app/src/main/res/**/*.png
 !src/app/*.png
 !public/**/*.png
+
+# runtime YouTube Music session pasted via Settings (web helper server)
+.data/

@@ -6,7 +6,7 @@ import { useAuth } from '@/store/auth';
 import { t, fmtSize } from '@/lib/i18n';
 import { storageUsage } from '@/engine/downloader';
 import { assetUrl } from '@/lib/asset';
-import { ytmSession, ytmLogin, ytmLogout, onYTMAuthChange, YTMSession, ytmCanPasteCookie, ytmSetCookie } from '@/lib/ytm-session';
+import { ytmSession, ytmSessionWeb, ytmLogin, ytmLogout, onYTMAuthChange, YTMSession, ytmCanPasteCookie, ytmSetCookie, hasNativeAuth } from '@/lib/ytm-session';
 import { runDiagnostics, diagReportText, DiagStep } from '@/engine/diagnostics';
 import { getApiBase, setApiBase } from '@/engine/apiBase';
 import { APP_VERSION, APK_SIZE_LABEL } from '@/lib/appInfo';
@@ -59,14 +59,25 @@ export default function SettingsView() {
   // YTM session: read on mount and again whenever native reports a change
   // (sign-in happens in a separate activity, so this page never unmounts).
   useEffect(() => {
+    let alive = true;
     const sync = () => {
-      const s2 = ytmSession();
-      setYtm(s2);
-      if (s2.signedIn) setUser({ name: s2.name || 'YouTube Music', email: '' });
-      else setUser(null);
+      if (hasNativeAuth()) {
+        const s2 = ytmSession();
+        setYtm(s2);
+        if (s2.signedIn) setUser({ name: s2.name || 'YouTube Music', email: '' });
+        else setUser(null);
+        return;
+      }
+      // web: ask the helper server (no bridge)
+      ytmSessionWeb().then((s2) => {
+        if (!alive) return;
+        setYtm(s2);
+        if (s2.signedIn) setUser({ name: s2.name || 'YouTube Music', email: '' });
+        else setUser(null);
+      });
     };
     sync();
-    return onYTMAuthChange(sync);
+    return () => { alive = false; onYTMAuthChange(sync); };
   }, [setUser]);
 
   const applyFb = () => {
@@ -98,17 +109,27 @@ export default function SettingsView() {
     b.clearServerUrl();
   };
 
-  const doYTMLogin = () => ytmLogin();
+  const doYTMLogin = () => {
+    if (hasNativeAuth()) ytmLogin();
+    // web: scroll to the paste-cookie escape hatch (Google refuses its login
+    // page outside a real browser, so the cookie paste IS the web sign-in)
+    else document.getElementById('ytm-cookie-paste')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  };
 
-  const saveCookie = () => {
-    const r = ytmSetCookie(cookiePaste);
-    if (r.ok) {
-      setCookiePaste('');
-      setYtm(ytmSession());
-      toast(t(lang, 'pasteCookieOk'));
-      return;
+  const saveCookie = async () => {
+    setBusy(true);
+    try {
+      const r = await ytmSetCookie(cookiePaste);
+      if (r.ok) {
+        setCookiePaste('');
+        setYtm(ytmSession());
+        toast(t(lang, 'pasteCookieOk'));
+      } else {
+        toast(t(lang, r.code === 'NO_SAPISID' ? 'pasteCookieNoSapisid' : r.code === 'SERVER_REJECTED' ? 'pasteCookieRejected' : 'pasteCookieEmpty'));
+      }
+    } finally {
+      setBusy(false);
     }
-    toast(t(lang, r.code === 'NO_SAPISID' ? 'pasteCookieNoSapisid' : 'pasteCookieEmpty'));
   };
 
   const doYTMLogout = () => {
@@ -117,7 +138,6 @@ export default function SettingsView() {
     setYtm(ytmSession());
     toast(lang === 'fa' ? 'از حساب خارج شدی' : 'Signed out');
   };
-
   const runDiag = async () => {
     setDiagBusy(true);
     setDiagSteps([]);
@@ -304,9 +324,10 @@ export default function SettingsView() {
             devices ("this browser or app may not be secure") and nothing on
             our side can talk it round. Pasting the cookie from a desktop
             browser always works — InnerTune and Metrolist offer the same
-            escape hatch. */}
+            escape hatch. On the plain web this is THE sign-in method: the
+            helper server stores the session and uses it for extraction. */}
         {canPaste && !ytm.signedIn && (
-          <div className="mt-4 border-t border-line pt-4">
+          <div id="ytm-cookie-paste" className="mt-4 border-t border-line pt-4">
             <div className="text-[12.5px] font-semibold">{t(lang, 'pasteCookieTitle')}</div>
             <div className="mt-1 max-w-[560px] text-[11.5px] leading-relaxed text-dim">
               {t(lang, 'pasteCookieDesc')}
@@ -321,10 +342,10 @@ export default function SettingsView() {
             />
             <button
               onClick={saveCookie}
-              disabled={!cookiePaste.trim()}
+              disabled={!cookiePaste.trim() || busy}
               className="mt-2.5 rounded-full bg-[var(--accent)] px-5 py-2 text-[12px] font-bold text-white transition-transform active:scale-[0.97] disabled:opacity-40"
             >
-              {t(lang, 'pasteCookieSave')}
+              {busy ? '…' : t(lang, 'pasteCookieSave')}
             </button>
           </div>
         )}

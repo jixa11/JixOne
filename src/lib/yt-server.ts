@@ -197,7 +197,13 @@ export async function extractStreamServer(videoId: string, qualityIdx = 0): Prom
   let sawLoginRequired = false;
   let sawNetwork = false;
 
-  for (const cl of RAW_CLIENTS) {
+  // A signed-in session works best on the music hosts (WEB_REMIX answers with
+  // the account's own formats); anonymous extraction prefers app clients.
+  const chain = ytmSignedIn()
+    ? [RAW_CLIENTS.find((c) => c.name === 'WEB_REMIX')!, ...RAW_CLIENTS.filter((c) => c.name !== 'WEB_REMIX')]
+    : RAW_CLIENTS;
+
+  for (const cl of chain) {
     try {
       const o: any = await rawPlayerRequest(cl, videoId);
       const status = o?.playabilityStatus?.status;

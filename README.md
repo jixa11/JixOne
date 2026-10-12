@@ -61,13 +61,16 @@ No stream URL means no playback and no download, so signing in is not a nice-to-
 
 **In the Android app:** Settings → Account → *Sign in to YouTube Music*. A WebView carries you through the normal Google login, and the session cookie is read from the CookieManager and stored on the device. Nothing is sent anywhere else — every innertube request simply carries that cookie plus the `SAPISIDHASH` authorization header Google's own clients send.
 
-**On the web build:** browsers cannot read Google's cookies from another origin, so the server is configured instead. Put a cookie string copied from a signed-in `music.youtube.com` session into `YTM_COOKIE`:
+**On the web build:** browsers cannot read Google's cookies from another origin, so the session lives on the server. Two ways to set it:
+
+1. **In the app (v1.5.0+):** Settings → Account → *Sign in with a cookie*. Sign in to `music.youtube.com` in desktop Chrome, open DevTools (F12) → Network → click any request → copy the whole `Cookie` request header, and paste it into the app. The server validates the session against YouTube, stores it under `.data/` (gitignored), and immediately uses it for extraction — showing your account name in Settings.
+2. **Via environment variable** (for self-hosters): put the same cookie string into `YTM_COOKIE`:
 
 ```
 YTM_COOKIE="SID=…; SAPISID=…; HSID=…"
 ```
 
-Without it the web build still runs; it just hits the same gate on most tracks.
+Without a session the web build still runs; it just hits the same gate on most tracks (the app then falls back to the official YouTube embed player for playable videos).
 
 ### How playback works
 
@@ -152,13 +155,16 @@ playabilityStatus: LOGIN_REQUIRED — «Sign in to confirm you're not a bot»
 
 **در اپ اندروید:** تنظیمات ← حساب کاربری ← *ورود به یوتیوب موزیک*. یک WebView تو را از مسیر عادی ورود گوگل عبور می‌دهد و کوکی نشست از CookieManager خوانده و روی همان دستگاه ذخیره می‌شود. هیچ چیزی جای دیگری فرستاده نمی‌شود — هر درخواست innertube فقط همان کوکی را به‌همراه هدر `SAPISIDHASH` که کلاینت‌های خود گوگل می‌فرستند حمل می‌کند.
 
-**در نسخه وب:** مرورگر نمی‌تواند کوکی گوگل را از origin دیگری بخواند، پس به‌جایش سرور پیکربندی می‌شود. رشته‌ی کوکی را از یک نشست لاگین‌شده‌ی `music.youtube.com` کپی کن و در `YTM_COOKIE` بگذار:
+**در نسخه وب:** مرورگر نمی‌تواند کوکی گوگل را از origin دیگری بخواند، پس نشست روی سرور نگه داشته می‌شود. دو راه:
+
+1. **داخل خود اپ (نسخه 1.5.0 به بعد):** تنظیمات ← حساب کاربری ← *ورود با کوکی*. در کروم دسکتاپ وارد `music.youtube.com` شو، DevTools (کلید F12) ← تب Network ← روی یکی از درخواست‌ها کلیک کن ← کل مقدار هدر `Cookie` را کپی کن و همین‌جا بچسبان. سرور نشست را با یوتیوب اعتبارسنجی می‌کند، در مسیر `.data/` (داخل .gitignore) ذخیره می‌کند و بلافاصله برای استخراج به کار می‌برد — اسم حسابت هم در تنظیمات دیده می‌شود.
+2. **با متغیر محیطی** (برای کسانی که خودشان هاست می‌کنند): همان رشته‌ی کوکی را در `YTM_COOKIE` بگذار:
 
 ```
 YTM_COOKIE="SID=…; SAPISID=…; HSID=…"
 ```
 
-بدون آن هم نسخه وب اجرا می‌شود؛ فقط روی بیشتر آهنگ‌ها به همان محدودیت می‌خورد.
+بدون نشست هم نسخه وب اجرا می‌شود؛ فقط روی بیشتر آهنگ‌ها به همان محدودیت می‌خورد (آن‌وقت اپ برای ویدیوهای قابل پخش به پلیر رسمی یوتیوب برمی‌گردد).
 
 ### نحوه پخش چطور کار می‌کند؟
 

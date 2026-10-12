@@ -9,6 +9,7 @@ interface LibraryState {
   history: Track[];
   offlinePlays: { videoId: string; at: number }[]; // for play-sync feature
   createPlaylist: (name: string) => string;
+  copyPlaylist: (id: string, name: string) => string | null;
   deletePlaylist: (id: string) => void;
   renamePlaylist: (id: string, name: string) => void;
   addToPlaylist: (id: string, t: Track) => void;
@@ -35,6 +36,16 @@ export const useLibrary = create<LibraryState>()(
         return id;
       },
       deletePlaylist: (id) => set((s) => ({ playlists: s.playlists.filter((p) => p.id !== id) })),
+      copyPlaylist: (id, name) => {
+        const src = get().playlists.find((p) => p.id === id);
+        if (!src) return null;
+        const nid = uid();
+        // a fresh copy: same tracks, but autoDownload stays off — duplicating
+        // a behavioral setting silently re-downloading into the copy would
+        // surprise the user
+        set((s) => ({ playlists: [{ id: nid, name, createdAt: Date.now(), tracks: [...src.tracks] }, ...s.playlists] }));
+        return nid;
+      },
       renamePlaylist: (id, name) =>
         set((s) => ({ playlists: s.playlists.map((p) => (p.id === id ? { ...p, name } : p)) })),
       addToPlaylist: (id, t) =>

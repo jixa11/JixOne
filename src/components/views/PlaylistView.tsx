@@ -10,7 +10,7 @@ import { Track } from '@/lib/types';
 import { t, num, fmtSize } from '@/lib/i18n';
 import { estimateSize } from '@/lib/types';
 import { enqueueMany } from '@/engine/downloadsRunner';
-import { Play, Shuffle, MoreVertical, Trash2, Pencil, Download, Search, X, Check, ListMusic, ArrowDownToLine } from 'lucide-react';
+import { Play, Shuffle, MoreVertical, Trash2, Pencil, Download, Search, X, Check, ListMusic, ArrowDownToLine, Copy } from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
@@ -23,6 +23,7 @@ export default function PlaylistView({ id }: { id: string }) {
   const playlist = useLibrary((s) => s.playlists.find((p) => p.id === id));
   const rename = useLibrary((s) => s.renamePlaylist);
   const del = useLibrary((s) => s.deletePlaylist);
+  const copyP = useLibrary((s) => s.copyPlaylist);
   const removeTrack = useLibrary((s) => s.removeFromPlaylist);
   const autoDl = useLibrary((s) => s.setAutoDownload);
   const doneCount = useDownloads((s) => Object.values(s.items).filter((i) => i.status === 'done' && playlist?.tracks.some((t2) => t2.videoId === i.videoId)).length);
@@ -106,6 +107,21 @@ export default function PlaylistView({ id }: { id: string }) {
                 <div className="absolute end-0 top-12 z-30 w-44 overflow-hidden rounded-xl border border-line bg-[var(--app-bg-2)] shadow-xl view-in">
                   <button className="flex w-full items-center gap-2 px-4 py-3 text-xs transition-colors hover:bg-surface2" onClick={() => { setRenaming(true); setNewName(playlist.name); setMenu(false); }}>
                     <Pencil size={13} /> {t(lang, 'rename')}
+                  </button>
+                  <button
+                    className="flex w-full items-center gap-2 px-4 py-3 text-xs transition-colors hover:bg-surface2"
+                    onClick={() => {
+                      const nid = copyP(playlist.id, t(lang, 'copyOf').replace('{n}', playlist.name));
+                      setMenu(false);
+                      if (nid) {
+                        toast(t(lang, 'copiedToast'));
+                        useView.getState().push('playlist', nid);
+                      } else {
+                        toast(t(lang, 'error'));
+                      }
+                    }}
+                  >
+                    <Copy size={13} /> {t(lang, 'copyPlaylist')}
                   </button>
                   <label className="flex w-full cursor-pointer items-center justify-between gap-2 px-4 py-3 text-xs transition-colors hover:bg-surface2">
                     <span className="flex items-center gap-2"><Download size={13} /> {t(lang, 'autoDownload')}</span>

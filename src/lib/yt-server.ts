@@ -173,14 +173,18 @@ function findVisitor(node: unknown, depth = 0): string | null {
   return null;
 }
 
-/** byte-range probe: only return URLs that REALLY stream (the 403-killer) */
+/** byte-range probe: only return URLs that REALLY stream (the 403-killer).
+ *  A 200/206 whose body arrives EMPTY is reported as 0 (dead URL) — the CDN
+ *  answers 200-with-no-bytes for spans past its serving window. */
 async function probeUrl(url: string, ua: string, range = 'bytes=0-1023'): Promise<number> {
   try {
     const r = await fetch(url, {
       headers: { 'user-agent': ua, range, referer: 'https://music.youtube.com/' },
       signal: AbortSignal.timeout(12000),
     });
-    try { await r.arrayBuffer(); } catch { /* body read failure is fine if status ok */ }
+    let bytes = 0;
+    try { bytes = (await r.arrayBuffer()).byteLength; } catch { /* body read failure is fine if status ok */ }
+    if ((r.status === 200 || r.status === 206) && bytes === 0) return 0;
     return r.status;
   } catch {
     return 0;
@@ -344,24 +348,45 @@ export async function extractStreamServer(videoId: string, qualityIdx = 0): Prom
       if (spot) finalUrl = `${finalUrl}&pot=${spot}`;
     }
     const probe = await probeUrl(finalUrl, cl.ua);
-    if (probe !== 200 && probe !== 206) throw new Error(`probe ${probe}`);
-    // preview-limit detection: geo-gated content (e.g. Persian music from a
-    // HK egress — the URL carries gcr=<cc>) serves only the first ~1 MiB,
-    // then the CDN 403s every further byte. Detect it BEFORE the client
+    if (probe !== 200 && probe !== 206) {
+      console.error(`[probe-fail] ${cl.name} status=${probe} pot=${finalUrl.includes('pot=')} urlLen=${finalUrl.length} urlHead=${finalUrl.slice(0, 90)}`);
+      throw new Error(`probe ${probe}`);
+    }
+    // preview-limit detection: geo-gated content serves only a serving window
+    // from this egress IP — observed shapes: gcr-marked URLs capped at ~1 MiB,
+    // and (verified live, Oct 2026) plain URLs that happily answer 206 at
+    // +1 MiB with a 4 KiB span yet 403 by +1.5 MiB. A track that "passes" the
+    // shallow probe therefore still freezes ~60-90 s in, when the audio
+    // element's read-ahead crosses the real wall. Detect it BEFORE the client
     // commits, so it can switch to the official player up-front instead of
-    // dying ~60 s into the track. Bias toward "not limited": only a hard
-    // 403/416 at +1 MiB counts (a flaky network must not break playback).
+    // dying mid-track. The decisive evidence is a hard 403/416/451 DEEP in
+    // the file (75% and 97% in) — the CDN never refuses those on a healthy
+    // URL. Timeouts/empties from BOTH deep probes also count as limited: a
+    // dead path must not be reported as playable.
     let previewLimited = false;
     const totalBytes = picked.contentLength ? Number(picked.contentLength) : 0;
     if (totalBytes > 1048576 + 4096) {
       // signal 1: gcr param — YouTube marks geo-credential-restricted URLs
       // with gcr=<cc>; every observed gcr URL enforced the ~1 MiB wall
       const gcr = /[?&]gcr=[A-Za-z]{2}/.test(finalUrl);
-      // signal 2: a REAL 4 KiB span at +1 MiB (2-byte probes are flaky — the
-      // CDN sometimes serves crumbs past the wall while refusing real spans)
+      // signal 2 (legacy, kept for observability): a 4 KiB span at +1 MiB
       const past = await probeUrl(finalUrl, cl.ua, 'bytes=1048576-1052671');
-      previewLimited = gcr || past === 403 || past === 416 || past === 451;
-      console.log(`[preview-probe] ${cl.name} itag=${picked.itag} total=${totalBytes} gcr=${gcr} past1MiB=${past} → limited=${previewLimited}`);
+      // signal 3 (decisive): 1 KiB spans at 75% and 97% of the file
+      const offA = Math.min(Math.floor(totalBytes * 0.75), totalBytes - 1024);
+      const offB = Math.max(Math.floor(totalBytes * 0.97), Math.min(offA + 1024, totalBytes - 1024));
+      const [deepA, deepB] = await Promise.all([
+        probeUrl(finalUrl, cl.ua, `bytes=${offA}-${offA + 1023}`),
+        probeUrl(finalUrl, cl.ua, `bytes=${offB}-${offB + 1023}`),
+      ]);
+      const hard = (s: number) => s === 403 || s === 416 || s === 451;
+      previewLimited =
+        gcr ||
+        hard(past) ||
+        hard(deepA) || hard(deepB) ||
+        (deepA === 0 && deepB === 0);
+      console.log(
+        `[preview-probe] ${cl.name} itag=${picked.itag} total=${totalBytes} gcr=${gcr} past1MiB=${past} deep75=${deepA} deep97=${deepB} → limited=${previewLimited}`,
+      );
     }
     const details = o?.videoDetails;
     return {

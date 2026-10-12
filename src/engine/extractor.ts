@@ -14,6 +14,9 @@ export interface ExtractedStream {
   artist?: string;
   /** true when the URL streams through our own layer (jixstream intercept or server proxy) */
   proxied?: boolean;
+  /** true when the server's CDN access is preview-limited (geo-gated content):
+   *  only the first ~1 MiB would stream — the caller should use another engine */
+  previewLimited?: boolean;
 }
 
 /** Why extraction failed, so the UI can say something the user can act on. */
@@ -254,7 +257,7 @@ export async function extractStream(videoId: string, quality: QualityId): Promis
       const r = await apiFetch(`/api/yt/player?id=${encodeURIComponent(videoId)}&q=${encodeURIComponent(quality)}`, { cache: 'no-store' }, 25000);
       const d = await r.json();
       if (d?.ok && d?.url) {
-        return { url: `${base}/api/yt/stream?id=${encodeURIComponent(videoId)}&q=${encodeURIComponent(quality)}`, itag: d.itag ?? 0, size: d.size, durationSec: d.durationSec, title: d.title, artist: d.artist, proxied: true };
+        return { url: `${base}/api/yt/stream?id=${encodeURIComponent(videoId)}&q=${encodeURIComponent(quality)}`, itag: d.itag ?? 0, size: d.size, durationSec: d.durationSec, title: d.title, artist: d.artist, proxied: true, previewLimited: !!d.previewLimited };
       }
       throw new Error(d?.error ?? 'SERVER_NO_STREAM');
     } catch (e) {
@@ -288,6 +291,7 @@ export async function extractStream(videoId: string, quality: QualityId): Promis
     title: d.title,
     artist: d.artist,
     proxied: true,
+    previewLimited: !!d.previewLimited,
   };
 }
 

@@ -6,7 +6,7 @@
  *  - Navigations are network-first so the user always gets fresh HTML;
  *    the cached shell is only the offline fallback.
  */
-const VERSION = 'jixone-v1.5.0';
+const VERSION = 'jixone-v1.5.1';
 const SHELL_CACHE = `${VERSION}-shell`;
 const STATIC_CACHE = `${VERSION}-static`;
 

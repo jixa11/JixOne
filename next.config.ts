@@ -27,6 +27,9 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: true,
   },
   reactStrictMode: false,
+  // jsdom (BotGuard runtime for poToken minting) must stay external — bundling
+  // it breaks the standalone server. bgutils-js stays external with it.
+  serverExternalPackages: ["jsdom", "bgutils-js"],
 };
 
 export default nextConfig;

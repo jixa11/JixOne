@@ -10,6 +10,7 @@ import { ytmSession, ytmSessionWeb, ytmLogin, ytmLogout, onYTMAuthChange, YTMSes
 import { runDiagnostics, diagReportText, DiagStep } from '@/engine/diagnostics';
 import { getApiBase, setApiBase } from '@/engine/apiBase';
 import { APP_VERSION, APK_SIZE_LABEL } from '@/lib/appInfo';
+import type { UpdateInfo } from '@/app/api/update/route';
 import { usePwa, pwaPromptInstall } from '@/lib/pwa';
 import { useState, useEffect } from 'react';
 import { Switch } from '@/components/ui/switch';
@@ -17,6 +18,7 @@ import { toast } from 'sonner';
 import {
   Check, Globe, Radio, Download, Sparkles, ShieldOff, Info,
   LogOut, RefreshCw, UserRound, Activity, X, Loader2, Copy, Smartphone, MonitorSmartphone,
+  ArrowUpCircle,
 } from 'lucide-react';
 
 function GoogleG({ size = 16 }: { size?: number }) {
@@ -53,8 +55,27 @@ export default function SettingsView() {
   const [diagBusy, setDiagBusy] = useState(false);
   const [diagVerdict, setDiagVerdict] = useState<{ fa: string; en: string } | null>(null);
   const [diagMode, setDiagMode] = useState<'device' | 'server' | null>(null);
+  // update check (GitHub latest release vs APP_VERSION)
+  const [upd, setUpd] = useState<'idle' | 'loading' | 'ok' | 'fail'>('idle');
+  const [updInfo, setUpdInfo] = useState<UpdateInfo | null>(null);
   const pwa = usePwa();
   useEffect(() => { storageUsage().then((u) => setUsage(u.usage)); }, []);
+
+  const checkUpdate = async () => {
+    setUpd('loading');
+    try {
+      const base = getApiBase();
+      const r = await fetch(`${base}/api/update`, { cache: 'no-store' });
+      const j: UpdateInfo = await r.json();
+      setUpdInfo(j);
+      setUpd(j.ok ? 'ok' : 'fail');
+    } catch {
+      setUpdInfo(null);
+      setUpd('fail');
+    }
+  };
+  // silent auto-check when Settings opens — the answer is usually ready before scrolled to
+  useEffect(() => { checkUpdate(); }, []);
 
   // YTM session: read on mount and again whenever native reports a change
   // (sign-in happens in a separate activity, so this page never unmounts).
@@ -532,13 +553,129 @@ export default function SettingsView() {
         </Section>
       )}
 
+      {/* CHECK FOR UPDATES — GitHub latest release vs the running build */}
+      <Section icon={ArrowUpCircle} title={t(lang, 'updateTitle')}>
+        <div className="space-y-3">
+          <div className="text-[11.5px] leading-relaxed text-dim">{t(lang, 'updateDesc')}</div>
+
+          {upd === 'loading' && (
+            <div className="flex items-center gap-2 text-[12px] font-semibold text-dim">
+              <Loader2 size={15} className="animate-spin text-[var(--accent)]" /> {t(lang, 'updateChecking')}
+            </div>
+          )}
+
+          {upd === 'fail' && (
+            <div className="space-y-2.5">
+              <div className="flex items-center gap-2 text-[12px] font-semibold text-[var(--danger)]">
+                <X size={15} className="shrink-0" /> {t(lang, 'updateFailed')}
+              </div>
+              <button
+                onClick={checkUpdate}
+                className="flex items-center gap-2 rounded-full border border-line px-4 py-2 text-[12px] font-bold transition-transform active:scale-95"
+              >
+                <RefreshCw size={14} /> {t(lang, 'updateCheck')}
+              </button>
+            </div>
+          )}
+
+          {upd === 'ok' && updInfo && !updInfo.hasUpdate && (
+            <div className="space-y-2.5">
+              <div className="flex items-center gap-2 rounded-xl bg-surface2 p-3 text-[12px] font-semibold text-[var(--success)]">
+                <Check size={15} className="shrink-0" /> {t(lang, 'updateLatest')}
+                <span dir="ltr" className="ms-auto font-mono text-[10px] text-dim">v{updInfo.latest}</span>
+              </div>
+              <button
+                onClick={checkUpdate}
+                className="flex items-center gap-2 text-[11px] font-semibold text-dim transition-transform active:scale-95"
+              >
+                <RefreshCw size={12} /> {t(lang, 'updateCheck')}
+              </button>
+            </div>
+          )}
+
+          {upd === 'ok' && updInfo?.hasUpdate && (
+            <div className="space-y-2.5 rounded-xl border border-[var(--accent)]/40 bg-surface2 p-3.5">
+              <div className="flex items-center gap-2 text-[12.5px] font-black text-[var(--accent)]">
+                <ArrowUpCircle size={16} className="shrink-0" /> {t(lang, 'updateAvailable')}
+              </div>
+              <div dir="ltr" className="font-mono text-[11px] text-dim">
+                v{updInfo.current} → v{updInfo.latest}{updInfo.apkSizeMB ? ` · ${updInfo.apkSizeMB} MB` : ''}
+              </div>
+              <a
+                href={updInfo.apkUrl}
+                className="neon-play flex items-center justify-center gap-2 rounded-full px-5 py-3 text-[13px] font-bold transition-transform active:scale-95 sm:inline-flex sm:w-auto"
+              >
+                <Download size={15} /> {t(lang, 'updateGet')}
+              </a>
+              {updInfo.notes && (
+                <details className="rounded-xl bg-surface p-3">
+                  <summary className="cursor-pointer select-none text-[11.5px] font-semibold text-dim">
+                    {t(lang, 'updateNotes')}
+                  </summary>
+                  <div dir="auto" className="mt-2 max-h-40 overflow-y-auto whitespace-pre-wrap text-[11px] leading-relaxed text-dim">
+                    {updInfo.notes}
+                  </div>
+                </details>
+              )}
+              <div className="flex items-center justify-between gap-2">
+                <a
+                  href={updInfo.releaseUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-[11.5px] font-semibold text-[var(--accent)] hover:underline"
+                >
+                  {t(lang, 'aboutReleases')} ↗
+                </a>
+                <button
+                  onClick={checkUpdate}
+                  className="flex items-center gap-1.5 text-[11px] font-semibold text-dim transition-transform active:scale-95"
+                >
+                  <RefreshCw size={12} /> {t(lang, 'updateCheck')}
+                </button>
+              </div>
+              {pwa.installed && (
+                <div className="text-[11px] leading-relaxed text-dim">{t(lang, 'updatePwaHint')}</div>
+              )}
+            </div>
+          )}
+
+          {upd === 'idle' && (
+            <button
+              onClick={checkUpdate}
+              className="flex items-center justify-center gap-2 rounded-full border border-line px-5 py-3 text-[13px] font-bold transition-transform active:scale-95 sm:inline-flex sm:w-auto"
+            >
+              <RefreshCw size={15} /> {t(lang, 'updateCheck')}
+            </button>
+          )}
+        </div>
+      </Section>
+
       {/* ABOUT */}
       <Section icon={Info} title={t(lang, 'about')}>
         <div className="space-y-1.5 text-xs text-dim">
-          <div>JixOne — {lang === 'fa' ? 'پلیر موزیک متن‌باز با کاتالوگ YouTube Music' : 'Open-source player with YouTube Music catalog'}</div>
-          <div>{t(lang, 'appVersion')}: v{APP_VERSION}</div>
-          <div>{ytm.signedIn ? `${t(lang, 'welcomeUser')}, ${ytm.name || 'YouTube Music'}` : t(lang, 'guestBadge')}</div>
+          <div className="text-[13.5px] font-bold">
+            JixOne <span dir="ltr" className="ms-1 font-mono text-[10.5px] font-normal">v{APP_VERSION}</span>
+          </div>
+          <div>{t(lang, 'aboutTagline')}</div>
+          <div>
+            {t(lang, 'aboutEngine')}:{' '}
+            <span className={ytm.signedIn ? 'font-semibold text-[var(--success)]' : 'font-semibold'}>
+              {ytm.signedIn ? `${t(lang, 'welcomeUser')}, ${ytm.name || 'YouTube Music'}` : t(lang, 'guestBadge')}
+            </span>
+          </div>
           {usage > 0 && <div>{t(lang, 'storageUsed')}: {fmtSize(usage, lang)}</div>}
+          <div className="flex flex-wrap gap-x-4 gap-y-1.5 pt-2.5 text-[11.5px] font-semibold text-[var(--accent)]">
+            <a href="https://github.com/jixa11/JixOne" target="_blank" rel="noreferrer" className="hover:underline">
+              {t(lang, 'aboutRepo')} ↗
+            </a>
+            <a href="https://github.com/jixa11/JixOne/releases" target="_blank" rel="noreferrer" className="hover:underline">
+              {t(lang, 'aboutReleases')} ↗
+            </a>
+            <a href="https://github.com/jixa11/JixOne/issues" target="_blank" rel="noreferrer" className="hover:underline">
+              {t(lang, 'aboutReport')} ↗
+            </a>
+          </div>
+          <div className="pt-2.5">{t(lang, 'aboutMadeWith')}</div>
         </div>
       </Section>
     </div>

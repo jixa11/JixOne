@@ -1,7 +1,25 @@
 import 'server-only';
-import { Innertube } from 'youtubei.js';
+import { Innertube, Platform } from 'youtubei.js';
 import { flattenYTM, RawSong } from '@/lib/ytm-shared';
-import { ytmAuthHeaders, ytmSignedIn } from '@/lib/ytm-auth';
+import { ytmAuthHeaders, ytmSignedIn, ytmBundle } from '@/lib/ytm-auth';
+import { getPlayerPoToken, getStreamingPoToken } from '@/lib/po-token';
+import vm from 'node:vm';
+
+// youtubei.js v18 ships WITHOUT a JS evaluator (needed to run the decipher
+// scripts it extracts from base.js). Provide one via node:vm — once.
+if (!(globalThis as any).__jixYtEvalPatched) {
+  try {
+    Platform.load({
+      ...Platform.shim,
+      eval: async (data: any, env: any) => {
+        const tail = `\n;process(${JSON.stringify(env.n ?? '')}, ${JSON.stringify(env.sp ?? '')}, ${JSON.stringify(env.sig ?? '')});`;
+        const code = `(function(){\n${data.output}\n${tail}\n})()`;
+        return vm.runInNewContext(code, { console: { log() {}, warn() {}, error() {} } }, { timeout: 10000 });
+      },
+    });
+    (globalThis as any).__jixYtEvalPatched = true;
+  } catch { /* platform already patched */ }
+}
 
 let ytPromise: Promise<Innertube> | null = null;
 
@@ -10,6 +28,35 @@ async function getYT(): Promise<Innertube> {
     ytPromise = Innertube.create().catch((e) => { ytPromise = null; throw e; });
   }
   return ytPromise;
+}
+
+/** The deciphering player (base.js sig/nsig machinery) with the streaming
+ *  pot bound — created only for the signed-in WEB_REMIX path. */
+let ytPlayerCache: { player: any; pot: string; at: number } | null = null;
+async function getYtPlayer(): Promise<any | null> {
+  const bundle = await ytmBundle();
+  const sid = bundle?.dataSyncId || bundle?.visitorData || null;
+  const pot = sid ? await getStreamingPoToken(sid) : null;
+  if (!pot) return null;
+  if (ytPlayerCache && ytPlayerCache.pot === pot && Date.now() - ytPlayerCache.at < 4 * 60 * 60 * 1000) {
+    return ytPlayerCache.player;
+  }
+  try {
+    const yts = await Innertube.create({
+      client_name: 'WEB_REMIX',
+      retrieve_player: true,
+      generate_session_locally: true,
+      enable_session_cache: false,
+    } as any);
+    const player = yts.session?.player;
+    if (!player) return null;
+    player.po_token = pot; // decipher() appends &pot= to googlevideo URLs
+    ytPlayerCache = { player, pot, at: Date.now() };
+    return player;
+  } catch {
+    ytPlayerCache = null;
+    return null;
+  }
 }
 
 export type { RawSong };
@@ -45,6 +92,10 @@ export interface ServerStream {
   mime?: string;
   /** UA that must be used when fetching `url` from googlevideo */
   ua?: string;
+  /** CDN will only serve the first ~1 MiB of this file (geo-gated content
+   *  from this server's egress region — gcr=<cc> URLs). The client should go
+   *  straight to the official player instead of a ~60 s mid-track cutoff. */
+  previewLimited?: boolean;
 }
 
 const ITAG_PREF: number[][] = [
@@ -61,7 +112,7 @@ const ITAG_PREF: number[][] = [
  *  IOS and ANDROID are gone: both answer HTTP 400 "Precondition check failed"
  *  without app attestation, and TVHTML5_SIMPLY_EMBEDDED_PLAYER answers "no
  *  longer supported" — keeping them only added latency to every failure. */
-const RAW_CLIENTS: { name: string; num: string; ver: string; ua: string; client: any; thirdParty?: boolean; musicHost?: boolean }[] = [
+const RAW_CLIENTS: { name: string; num: string; ver: string; ua: string; client: any; thirdParty?: boolean; musicHost?: boolean; loginSupported?: boolean }[] = [
   {
     name: 'ANDROID_VR', num: '28', ver: '1.62.27',
     ua: 'com.google.android.apps.youtube.vr.oculus/1.62.27 (Linux; U; Android 12; eureka-user Build/SQ3A.220605.009.A1) gzip',
@@ -79,10 +130,11 @@ const RAW_CLIENTS: { name: string; num: string; ver: string; ua: string; client:
     client: { clientName: 'TVHTML5', clientVersion: '7.20250101.10.00', hl: 'en', gl: 'US' },
   },
   {
-    name: 'WEB_REMIX', num: '67', ver: '1.20250101.01.00',
-    ua: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-    client: { clientName: 'WEB_REMIX', clientVersion: '1.20250101.01.00', hl: 'en', gl: 'US' },
+    name: 'WEB_REMIX', num: '67', ver: '1.20250310.01.00',
+    ua: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:128.0) Gecko/20100101 Firefox/128.0',
+    client: { clientName: 'WEB_REMIX', clientVersion: '1.20250310.01.00', hl: 'en', gl: 'US' },
     musicHost: true,
+    loginSupported: true,
   },
 ];
 
@@ -122,10 +174,10 @@ function findVisitor(node: unknown, depth = 0): string | null {
 }
 
 /** byte-range probe: only return URLs that REALLY stream (the 403-killer) */
-async function probeUrl(url: string, ua: string): Promise<number> {
+async function probeUrl(url: string, ua: string, range = 'bytes=0-1023'): Promise<number> {
   try {
     const r = await fetch(url, {
-      headers: { 'user-agent': ua, range: 'bytes=0-1023', referer: 'https://music.youtube.com/' },
+      headers: { 'user-agent': ua, range, referer: 'https://music.youtube.com/' },
       signal: AbortSignal.timeout(12000),
     });
     try { await r.arrayBuffer(); } catch { /* body read failure is fine if status ok */ }
@@ -144,35 +196,85 @@ function pickRawAudio(fmts: any[], pref: number[]): any | null {
   return direct[0] ?? null;
 }
 
-async function rawPlayerRequest(cl: (typeof RAW_CLIENTS)[number], videoId: string): Promise<any> {
+async function rawPlayerRequest(cl: (typeof RAW_CLIENTS)[number], videoId: string, extra?: { onBehalfOfUser?: string | null; signatureTimestamp?: number | null; poToken?: string | null; visitorData?: string | null }): Promise<any> {
   const host = cl.musicHost ? 'https://music.youtube.com' : 'https://www.youtube.com';
-  const visitor = await getVisitorData();
+  const visitor = extra?.visitorData || await getVisitorData();
   const body = {
     context: {
       client: { ...cl.client, ...(visitor ? { visitorData: visitor } : {}) },
       request: { internalExperimentFlags: [], useSsl: true },
-      user: { lockedSafetyMode: false },
+      user: {
+        lockedSafetyMode: false,
+        ...(extra?.onBehalfOfUser ? { onBehalfOfUser: extra.onBehalfOfUser } : {}),
+      },
       ...(cl.thirdParty ? { thirdParty: { embedUrl: 'https://www.youtube.com/' } } : {}),
     },
     videoId,
     contentCheckOk: true,
     racyCheckOk: true,
+    ...(extra?.signatureTimestamp ? { playbackContext: { contentPlaybackContext: { signatureTimestamp: extra.signatureTimestamp } } } : {}),
+    ...(extra?.poToken ? { serviceIntegrityDimensions: { poToken: extra.poToken } } : {}),
   };
   const r = await fetch(`${host}/youtubei/v1/player?prettyPrint=false`, {
     method: 'POST',
     headers: {
       'content-type': 'application/json',
       'user-agent': cl.ua,
+      'x-goog-api-format-version': '1',
       'x-youtube-client-name': cl.num,
       'x-youtube-client-version': cl.ver,
+      'x-origin': cl.musicHost ? 'https://music.youtube.com' : 'https://www.youtube.com',
+      ...(cl.musicHost ? { referer: 'https://music.youtube.com/' } : {}),
       ...(visitor ? { 'x-goog-visitor-id': visitor } : {}),
-      ...ytmAuthHeaders(),
+      // cookies ONLY on loginSupported clients — web cookies on app clients → 400
+      // + session invalidation risk (verified the hard way).
+      ...(cl.loginSupported ? ytmAuthHeaders() : {}),
     },
     body: JSON.stringify(body),
-    signal: AbortSignal.timeout(12000),
+    signal: AbortSignal.timeout(15000),
   });
   if (!r.ok) throw new Error(`http ${r.status}`);
   return r.json();
+}
+
+/** signatureTimestamp from the current base.js (cached ~12 h).
+ *  OuterTune: required for WEB-family clients to receive working streams —
+ *  without it WEB_REMIX answers UNPLAYABLE "The page needs to be reloaded". */
+let stsCache: { value: number; at: number } | null = null;
+const STS_UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:128.0) Gecko/20100101 Firefox/128.0';
+async function getSignatureTimestamp(videoId: string): Promise<number | null> {
+  if (stsCache && Date.now() - stsCache.at < 12 * 60 * 60 * 1000) return stsCache.value;
+  try {
+    // base.js URL sources: embed page (player refs incl. underscores!) or homepage ytcfg
+    let baseJsUrl: string | null = null;
+    try {
+      const emb = await fetch(`https://www.youtube.com/embed/${videoId}`, {
+        headers: { 'user-agent': STS_UA },
+        signal: AbortSignal.timeout(12000),
+      });
+      const embHtml = await emb.text();
+      baseJsUrl = embHtml.match(/(?:s|js|html5player)\/player\/[a-zA-Z0-9_.\/-]+\/base\.js/)?.[0] ?? null;
+    } catch { /* try homepage */ }
+    if (!baseJsUrl) {
+      const hp = await fetch('https://www.youtube.com', { headers: { 'user-agent': STS_UA }, signal: AbortSignal.timeout(12000) });
+      const hpHtml = await hp.text();
+      baseJsUrl = hpHtml.match(/"PLAYER_JS_URL":"([^"]+\/base\.js)"/)?.[1]?.replace(/\\u002f/g, '/') ?? null;
+    }
+    if (baseJsUrl) {
+      const baseJs = await fetch(`https://www.youtube.com${baseJsUrl.startsWith('/') ? '' : '/'}${baseJsUrl}`, {
+        headers: { 'user-agent': STS_UA },
+        signal: AbortSignal.timeout(15000),
+      });
+      const js = await baseJs.text();
+      const sts = js.match(/signatureTimestamp\\?"?\s*[:=]\s*(\d{4,6})/)?.[1]
+        ?? js.match(/signatureTimestamp\D{0,10}(\d{4,6})/)?.[1];
+      if (sts) {
+        stsCache = { value: Number(sts), at: Date.now() };
+        return stsCache.value;
+      }
+    }
+  } catch { /* STS is best-effort */ }
+  return null;
 }
 
 /**
@@ -197,40 +299,121 @@ export async function extractStreamServer(videoId: string, qualityIdx = 0): Prom
   let sawLoginRequired = false;
   let sawNetwork = false;
 
-  // A signed-in session works best on the music hosts (WEB_REMIX answers with
-  // the account's own formats); anonymous extraction prefers app clients.
-  const chain = ytmSignedIn()
-    ? [RAW_CLIENTS.find((c) => c.name === 'WEB_REMIX')!, ...RAW_CLIENTS.filter((c) => c.name !== 'WEB_REMIX')]
-    : RAW_CLIENTS;
+  // warm the session cache FIRST — ytmSignedIn() is sync and reads the
+  // in-memory bundle, which is empty until the file has been read once
+  const bundle = await ytmBundle();
+  const signedIn = !!(bundle?.cookie && ytmSignedIn());
 
-  for (const cl of chain) {
+  const tryOutcome = async (cl: (typeof RAW_CLIENTS)[number], o: any): Promise<ExtractOutcome | null> => {
+    const status = o?.playabilityStatus?.status;
+    if (status !== 'OK') {
+      if (status === 'LOGIN_REQUIRED') sawLoginRequired = true;
+      throw new Error(status || 'empty-status');
+    }
+    const fmts: any[] = o?.streamingData?.adaptiveFormats ?? [];
+    const audioFmts = fmts.filter((f) => String(f.mimeType ?? '').startsWith('audio'));
+    let picked = pickRawAudio(fmts, pref);
+    let url: string | null = picked?.url ?? null;
+
+    // WEB_REMIX answers with ciphered formats — decipher them (OuterTune's
+    // "Could not parse deobfuscation function" fallback, done properly here
+    // via youtubei.js's Player + our VM evaluator)
+    if (!url && audioFmts.length && cl.name === 'WEB_REMIX') {
+      const player = await getYtPlayer();
+      if (player) {
+        const nsigCache = new Map<string, string>();
+        const byPref = [...pref, ...audioFmts.map((f) => f.itag)].filter((v, i, a) => a.indexOf(v) === i);
+        for (const itag of byPref) {
+          const f = audioFmts.find((x) => x.itag === itag);
+          if (!f) continue;
+          try {
+            const dec = await player.decipher(f.url, f.signatureCipher, f.cipher, nsigCache);
+            if (dec) { picked = f; url = dec; break; }
+          } catch { /* next format */ }
+        }
+      }
+    }
+    if (!picked || !url) throw new Error('no-direct-audio');
+    // streaming pot: appended by decipher() when present; add it manually for
+    // direct (unciphered) URLs
+    let finalUrl: string = url;
+    if (!finalUrl.includes('pot=') && cl.name === 'WEB_REMIX') {
+      const bundle = await ytmBundle();
+      const sid = bundle?.dataSyncId || bundle?.visitorData;
+      const spot = sid ? await getStreamingPoToken(sid) : null;
+      if (spot) finalUrl = `${finalUrl}&pot=${spot}`;
+    }
+    const probe = await probeUrl(finalUrl, cl.ua);
+    if (probe !== 200 && probe !== 206) throw new Error(`probe ${probe}`);
+    // preview-limit detection: geo-gated content (e.g. Persian music from a
+    // HK egress — the URL carries gcr=<cc>) serves only the first ~1 MiB,
+    // then the CDN 403s every further byte. Detect it BEFORE the client
+    // commits, so it can switch to the official player up-front instead of
+    // dying ~60 s into the track. Bias toward "not limited": only a hard
+    // 403/416 at +1 MiB counts (a flaky network must not break playback).
+    let previewLimited = false;
+    const totalBytes = picked.contentLength ? Number(picked.contentLength) : 0;
+    if (totalBytes > 1048576 + 4096) {
+      // signal 1: gcr param — YouTube marks geo-credential-restricted URLs
+      // with gcr=<cc>; every observed gcr URL enforced the ~1 MiB wall
+      const gcr = /[?&]gcr=[A-Za-z]{2}/.test(finalUrl);
+      // signal 2: a REAL 4 KiB span at +1 MiB (2-byte probes are flaky — the
+      // CDN sometimes serves crumbs past the wall while refusing real spans)
+      const past = await probeUrl(finalUrl, cl.ua, 'bytes=1048576-1052671');
+      previewLimited = gcr || past === 403 || past === 416 || past === 451;
+      console.log(`[preview-probe] ${cl.name} itag=${picked.itag} total=${totalBytes} gcr=${gcr} past1MiB=${past} → limited=${previewLimited}`);
+    }
+    const details = o?.videoDetails;
+    return {
+      code: 'OK',
+      attempts: errors.join(' | '),
+      stream: {
+        url: finalUrl,
+        itag: picked.itag,
+        size: picked.contentLength ? Number(picked.contentLength) : undefined,
+        mime: typeof picked.mimeType === 'string' ? picked.mimeType.split(';')[0].trim() : undefined,
+        durationSec: details?.lengthSeconds ? Number(details.lengthSeconds) : undefined,
+        title: details?.title,
+        artist: details?.author,
+        ua: cl.ua,
+        previewLimited,
+      },
+    };
+  };
+
+  // ---- signed-in: the OuterTune-grade WEB_REMIX path (pot + STS + dataSyncId) ----
+  if (signedIn) {
+    const remix = RAW_CLIENTS.find((c) => c.name === 'WEB_REMIX')!;
+    try {
+      const sessionId = bundle?.dataSyncId || bundle?.visitorData || null;
+      // player poToken per video + the deciphering player (whose extracted
+      // STS is more reliable than any regex on base.js)
+      const [playerPot, ytPlayer] = await Promise.all([
+        getPlayerPoToken(videoId, sessionId),
+        getYtPlayer(),
+      ]);
+      const sts = ytPlayer?.signature_timestamp ?? await getSignatureTimestamp(videoId);
+      const o: any = await rawPlayerRequest(remix, videoId, {
+        onBehalfOfUser: bundle?.dataSyncId ?? null,
+        signatureTimestamp: sts,
+        poToken: playerPot,
+        visitorData: bundle?.visitorData ?? null,
+      });
+      const out = await tryOutcome(remix, o);
+      if (out) return out;
+    } catch (e: any) {
+      const msg = String(e?.message ?? 'error').slice(0, 60);
+      if (msg.startsWith('http ') || msg.includes('timeout') || msg.includes('fetch')) sawNetwork = true;
+      errors.push(`WEB_REMIX+auth:${msg}`);
+    }
+  }
+
+  // ---- anonymous app-client chain (no cookies — never) ----
+  for (const cl of RAW_CLIENTS.filter((c) => c.name !== 'WEB_REMIX')) {
     try {
       const o: any = await rawPlayerRequest(cl, videoId);
-      const status = o?.playabilityStatus?.status;
-      if (status !== 'OK') {
-        if (status === 'LOGIN_REQUIRED') sawLoginRequired = true;
-        throw new Error(status || 'empty-status');
-      }
-      const fmts: any[] = o?.streamingData?.adaptiveFormats ?? [];
-      const picked = pickRawAudio(fmts, pref);
-      if (!picked) throw new Error('no-direct-audio');
-      const probe = await probeUrl(picked.url, cl.ua);
-      if (probe !== 200 && probe !== 206) throw new Error(`probe ${probe}`);
-      const details = o?.videoDetails;
-      return {
-        code: 'OK',
-        attempts: errors.join(' | '),
-        stream: {
-          url: picked.url,
-          itag: picked.itag,
-          size: picked.contentLength ? Number(picked.contentLength) : undefined,
-          mime: typeof picked.mimeType === 'string' ? picked.mimeType.split(';')[0].trim() : undefined,
-          durationSec: details?.lengthSeconds ? Number(details.lengthSeconds) : undefined,
-          title: details?.title,
-          artist: details?.author,
-          ua: cl.ua,
-        },
-      };
+      const out = await tryOutcome(cl, o);
+      if (out) return out;
     } catch (e: any) {
       const msg = String(e?.message ?? 'error').slice(0, 50);
       if (msg.startsWith('http ') || msg.includes('timeout') || msg.includes('fetch')) sawNetwork = true;
@@ -238,7 +421,7 @@ export async function extractStreamServer(videoId: string, qualityIdx = 0): Prom
     }
   }
 
-  const authed = ytmSignedIn();
+  const authed = signedIn;
   const code: ExtractCode = sawLoginRequired && !authed ? 'LOGIN_REQUIRED'
     : sawLoginRequired ? 'LOGIN_STALE'
     : sawNetwork ? 'NETWORK'

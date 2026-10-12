@@ -55,6 +55,12 @@ async function processOne(videoId: string) {
   d.update(videoId, { status: 'extracting', progress: 0 });
   try {
     const stream = await extractStream(videoId, q);
+    // preview-limited extraction (geo-gated content): downloading would stop
+    // at ~1 MiB and store a broken file — refuse with a clear reason instead
+    if (stream.previewLimited) {
+      useDownloads.getState().update(videoId, { status: 'error', error: 'preview-limited (geo)' });
+      return;
+    }
     d.update(videoId, { status: 'downloading', sizeBytes: stream.size });
     const { size } = await downloadToOPFS(videoId, stream.itag, stream.url, (got, total) => {
       useDownloads.getState().update(videoId, { progress: total ? got / total : 0, sizeBytes: total || got });

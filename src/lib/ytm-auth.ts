@@ -11,38 +11,108 @@ import { dirname, join } from 'node:path';
  * ("Sign in to confirm you're not a bot") for most tracks. Supplying an account
  * cookie lifts that gate. Self-hosters set YTM_COOKIE to the full cookie string
  * copied from a signed-in music.youtube.com session; the in-app Settings page
- * can also save the cookie at runtime (stored under .data/, gitignored).
+ * can also save it at runtime (stored under .data/, gitignored).
+ *
+ * 2026-10: a signed-in WEB_REMIX player call additionally wants the session's
+ * visitorData + dataSyncId (window.yt.config_ on music.youtube.com) — the
+ * OuterTune recipe. The bundle is saved as JSON; a plain cookie string is
+ * still accepted (visitorData is then fetched fresh, dataSyncId absent).
  */
 
 export const YTM_ORIGIN = 'https://music.youtube.com';
 
-const COOKIE_FILE = join(process.cwd(), '.data', 'ytm-cookie.txt');
+/** Runtime state must live OUTSIDE .next — a rebuild wipes the standalone
+ *  tree and would take the saved session with it. JIXONE_DATA_DIR pins it. */
+const DATA_DIR = process.env.JIXONE_DATA_DIR || join(process.cwd(), '.data');
+const SESSION_FILE = join(DATA_DIR, 'ytm-session.json');
+const LEGACY_COOKIE_FILE = join(DATA_DIR, 'ytm-cookie.txt');
 
-let fileCookie: string | null | undefined;
+export interface YTMSessionBundle {
+  cookie: string;
+  visitorData?: string;
+  dataSyncId?: string;
+  savedAt?: string;
+}
 
-async function readCookieFile(): Promise<string | null> {
-  if (fileCookie !== undefined) return fileCookie;
-  try {
-    const txt = (await readFile(COOKIE_FILE, 'utf-8')).trim();
-    fileCookie = txt || null;
-  } catch {
-    fileCookie = null;
+let fileBundle: YTMSessionBundle | null | undefined;
+
+function parseCookieString(cookie: string): Record<string, string> {
+  const jar: Record<string, string> = {};
+  for (const part of cookie.split(';')) {
+    const i = part.indexOf('=');
+    if (i > 0) jar[part.slice(0, i).trim()] = part.slice(i + 1).trim();
   }
-  return fileCookie;
+  return jar;
+}
+
+async function readSessionFile(): Promise<YTMSessionBundle | null> {
+  if (fileBundle !== undefined) return fileBundle;
+  let raw = '';
+  try {
+    raw = (await readFile(SESSION_FILE, 'utf-8')).trim();
+  } catch {
+    try {
+      // legacy single-cookie storage (v1.5.0)
+      const legacy = (await readFile(LEGACY_COOKIE_FILE, 'utf-8')).trim();
+      fileBundle = legacy ? { cookie: legacy } : null;
+      return fileBundle;
+    } catch {
+      fileBundle = null;
+      return null;
+    }
+  }
+  try {
+    if (raw.startsWith('{')) {
+      const j = JSON.parse(raw);
+      fileBundle = j?.cookie ? { cookie: String(j.cookie), visitorData: j.visitorData || undefined, dataSyncId: j.dataSyncId || undefined, savedAt: j.savedAt } : null;
+    } else {
+      fileBundle = raw ? { cookie: raw } : null;
+    }
+  } catch {
+    fileBundle = null;
+  }
+  return fileBundle;
+}
+
+/** Accepts a plain cookie string OR a JSON bundle string. */
+function coerceInput(raw: string): YTMSessionBundle | null {
+  const s = (raw ?? '').trim();
+  if (!s) return null;
+  if (s.startsWith('{')) {
+    try {
+      const j = JSON.parse(s);
+      if (j?.cookie) return { cookie: String(j.cookie), visitorData: j.visitorData || undefined, dataSyncId: j.dataSyncId || undefined };
+    } catch { /* fall through */ }
+  }
+  return { cookie: s };
 }
 
 export function ytmCookie(): string | null {
   return process.env.YTM_COOKIE?.trim() || null;
 }
 
-async function ytmCookieAsync(): Promise<string | null> {
-  return process.env.YTM_COOKIE?.trim() || (await readCookieFile());
+async function ytmBundleAsync(): Promise<YTMSessionBundle | null> {
+  if (process.env.YTM_COOKIE?.trim()) {
+    return coerceInput(process.env.YTM_COOKIE);
+  }
+  return readSessionFile();
 }
 
-/** Cookie used by the request path (sync hot path: env wins, file cookie is
+/** Cookie used by the request path (sync hot path: env wins, file bundle is
  *  read once and cached by setYtmCookie / clearYtmCookie). */
 export function effectiveYtmCookie(): string | null {
-  return process.env.YTM_COOKIE?.trim() || fileCookie || null;
+  if (process.env.YTM_COOKIE?.trim()) return process.env.YTM_COOKIE.trim();
+  return fileBundle?.cookie ?? null;
+}
+
+/** visitorData of the stored session (empty → fetch fresh per request). */
+export function ytmSessionVisitorData(): string | null {
+  return fileBundle?.visitorData ?? null;
+}
+
+/** dataSyncId of the stored session — the signed-in poToken identifier. */
+export function ytmSessionDataSyncId(): string | null {
+  return fileBundle?.dataSyncId ?? null;
 }
 
 export interface CookieSaveResult {
@@ -51,28 +121,25 @@ export interface CookieSaveResult {
   name?: string;
 }
 
-/** Validate + persist a pasted cookie. Returns the account name when the
- *  session actually answers for us. */
+/** Validate + persist a pasted cookie (or JSON bundle). Returns the account
+ *  name when the session actually answers for us. */
 export async function setYtmCookie(raw: string): Promise<CookieSaveResult> {
-  const cookie = (raw ?? '').trim();
-  if (!cookie) return { ok: false, code: 'EMPTY' };
-  const jar: Record<string, string> = {};
-  for (const part of cookie.split(';')) {
-    const i = part.indexOf('=');
-    if (i > 0) jar[part.slice(0, i).trim()] = part.slice(i + 1).trim();
-  }
+  const bundle = coerceInput(raw);
+  if (!bundle) return { ok: false, code: 'EMPTY' };
+  const jar = parseCookieString(bundle.cookie);
   if (!jar.SAPISID && !jar['__Secure-3PAPISID'] && !jar['__Secure-1PAPISID']) {
     return { ok: false, code: 'NO_SAPISID' };
   }
-  const name = await probeAccountName(cookie);
+  const name = await probeAccountName(bundle.cookie);
   if (name === null) {
     // the session did not answer — reject so the user immediately knows
     return { ok: false, code: 'SAVE_FAILED' };
   }
   try {
-    await mkdir(dirname(COOKIE_FILE), { recursive: true });
-    await writeFile(COOKIE_FILE, cookie, 'utf-8');
-    fileCookie = cookie;
+    await mkdir(dirname(SESSION_FILE), { recursive: true });
+    await writeFile(SESSION_FILE, JSON.stringify({ ...bundle, savedAt: new Date().toISOString() }, null, 2), 'utf-8');
+    await rm(LEGACY_COOKIE_FILE, { force: true }).catch(() => {});
+    fileBundle = { ...bundle };
   } catch {
     return { ok: false, code: 'SAVE_FAILED' };
   }
@@ -80,24 +147,27 @@ export async function setYtmCookie(raw: string): Promise<CookieSaveResult> {
 }
 
 export async function clearYtmCookie(): Promise<void> {
-  fileCookie = null;
-  try { await rm(COOKIE_FILE, { force: true }); } catch { /* already gone */ }
+  fileBundle = null;
+  try { await rm(SESSION_FILE, { force: true }); } catch { /* already gone */ }
+  try { await rm(LEGACY_COOKIE_FILE, { force: true }); } catch { /* already gone */ }
 }
 
 /** Ask account_menu who this session belongs to. null = session rejected. */
 export async function probeAccountName(cookie: string): Promise<string | null> {
-  const sapisid = sapisidOf(cookie);
-  if (!sapisid) return null;
+  const jar = parseCookieString(cookie);
+  // OuterTune parity: only the first-party SAPISID produces a valid hash;
+  // without it the cookie travels alone (no Authorization header at all)
+  const sapisid1p = jar.SAPISID ?? null;
   try {
     const r = await fetch(`${YTM_ORIGIN}/youtubei/v1/account/account_menu?prettyPrint=false`, {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
-        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:128.0) Gecko/20100101 Firefox/128.0',
         origin: YTM_ORIGIN,
         'x-origin': YTM_ORIGIN,
         'x-goog-authuser': '0',
-        authorization: sapisidHash(sapisid, YTM_ORIGIN),
+        ...(sapisid1p ? { authorization: sapisidHash(sapisid1p, YTM_ORIGIN) } : {}),
         cookie,
       },
       body: JSON.stringify({
@@ -142,11 +212,7 @@ export async function probeAccountName(cookie: string): Promise<string | null> {
 }
 
 function sapisidOf(cookie: string): string | null {
-  const jar: Record<string, string> = {};
-  for (const part of cookie.split(';')) {
-    const i = part.indexOf('=');
-    if (i > 0) jar[part.slice(0, i).trim()] = part.slice(i + 1).trim();
-  }
+  const jar = parseCookieString(cookie);
   return jar.SAPISID ?? jar['__Secure-3PAPISID'] ?? jar['__Secure-1PAPISID'] ?? null;
 }
 
@@ -157,29 +223,43 @@ function sapisidHash(sapisid: string, origin: string): string {
   return `SAPISIDHASH ${ts}_${hash}`;
 }
 
-/** Auth headers for innertube, or `{}` when no session is configured. */
+/** Auth headers for innertube — ONLY for loginSupported clients (WEB_REMIX).
+ *  Sending web cookies to app clients (ANDROID_VR etc.) answers HTTP 400 and
+ *  risks the whole session being invalidated. OuterTune gates the same way. */
 export function ytmAuthHeaders(): Record<string, string> {
   const cookie = effectiveYtmCookie();
   if (!cookie) return {};
-  const sapisid = sapisidOf(cookie);
-  if (!sapisid) return {};
-  return {
+  const jar = parseCookieString(cookie);
+  const out: Record<string, string> = {
     cookie,
-    authorization: sapisidHash(sapisid, YTM_ORIGIN),
     'x-goog-authuser': '0',
     origin: YTM_ORIGIN,
     'x-origin': YTM_ORIGIN,
+    referer: `${YTM_ORIGIN}/`,
   };
+  // OuterTune: hash ONLY from the first-party SAPISID; 1P/3P variants appended.
+  // Without SAPISID the cookie travels alone.
+  if (jar.SAPISID) {
+    const ts = Math.floor(Date.now() / 1000);
+    const hash = createHash('sha1').update(`${ts} ${jar.SAPISID} ${YTM_ORIGIN}`).digest('hex');
+    out.authorization = `SAPISIDHASH ${ts}_${hash} SAPISID1PHASH ${ts}_${hash} SAPISID3PHASH ${ts}_${hash}`;
+  }
+  return out;
 }
 
-/** Sync signed-in check (env + cached file cookie) — used by extraction hot path. */
+/** Sync signed-in check (env + cached file bundle) — used by extraction hot path. */
 export function ytmSignedIn(): boolean {
   const c = effectiveYtmCookie();
   return !!c && !!sapisidOf(c);
 }
 
-/** Async signed-in check that also reads the cookie file on first call. */
+/** Async signed-in check that also reads the session file on first call. */
 export async function ytmSignedInDeep(): Promise<boolean> {
-  await readCookieFile();
+  await readSessionFile();
   return ytmSignedIn();
+}
+
+/** Async bundle access for the extraction engine. */
+export async function ytmBundle(): Promise<YTMSessionBundle | null> {
+  return ytmBundleAsync();
 }

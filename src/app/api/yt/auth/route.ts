@@ -24,11 +24,23 @@ export async function GET() {
   }
 }
 
-/** POST /api/yt/auth { cookie } → validate + save the YouTube Music session. */
+/** POST /api/yt/auth { cookie, visitorData?, dataSyncId? } → validate + save
+ *  the YouTube Music session. `cookie` may be the plain cookie string or a
+ *  JSON bundle; visitorData/dataSyncId fields are merged in when present. */
 export async function POST(req: NextRequest) {
-  let body: { cookie?: string } = {};
+  let body: { cookie?: string; visitorData?: string; dataSyncId?: string } = {};
   try { body = await req.json(); } catch { /* empty body */ }
   const raw = typeof body.cookie === 'string' ? body.cookie : '';
+  if (raw && (body.visitorData || body.dataSyncId)) {
+    // upgrade the plain cookie to a full session bundle
+    const asJson = JSON.stringify({
+      cookie: raw,
+      ...(body.visitorData ? { visitorData: body.visitorData } : {}),
+      ...(body.dataSyncId ? { dataSyncId: body.dataSyncId } : {}),
+    });
+    const out = await setYtmCookie(asJson);
+    return NextResponse.json(out, { status: 200 });
+  }
   const out = await setYtmCookie(raw);
   return NextResponse.json(out, { status: 200 });
 }

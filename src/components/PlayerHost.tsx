@@ -190,6 +190,9 @@ export default function PlayerHost() {
     }
     // set by the custom-engine attempt so the failure message can name the cause
     let lastCode: ReturnType<typeof extractCodeOf> = null;
+    // set when the server CAN extract but its region is only allowed a ~1 MiB
+    // preview (geo-gated content) — the official player must take over
+    let previewHit = false;
 
     const stopWith = (key: Parameters<typeof t>[1] | null) => {
       if (cancelled) return;
@@ -226,6 +229,10 @@ export default function PlayerHost() {
         abortRef.current = new AbortController();
         const s = await extractStream(track.videoId, 'high');
         if (cancelled) return false;
+        // geo-gated track: the server's region only gets a ~1 MiB preview —
+        // playing it would die ~60 s in, so hand the track to the official
+        // player up-front (it streams from the LISTENER's region, unrestricted)
+        if (s.previewLimited) { previewHit = true; return false; }
         if (s.durationSec) usePlayer.getState().setDuration(s.durationSec);
         audioRef.current.load(s.url, true);
         audioRef.current.setVolume(useSettings.getState().volume);
@@ -250,7 +257,7 @@ export default function PlayerHost() {
         // ad-free failed → fall back to the official player ONCE
         if (!attemptsRef.current.officialTried) {
           attemptsRef.current.officialTried = true;
-          toastOnce('adfreeFail', msg('adfreeFail'));
+          toastOnce(previewHit ? 'previewLimited' : 'adfreeFail', msg(previewHit ? 'previewLimited' : 'adfreeFail'));
           if (await loadKind('yt')) { usePlayer.getState().setLoading(false); return; }
         }
         stopWith(signInHint(lastCode) ?? 'playFail');

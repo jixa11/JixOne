@@ -12,8 +12,10 @@ const UA_FALLBACK =
   'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36';
 
 /** googlevideo stops sending partway through an un-ranged request — a 3.4 MB
- *  track arrived ~55% complete — so the upstream is always read in ranges. */
-const CHUNK = 2 * 1024 * 1024;
+ *  track arrived ~55% complete — so the upstream is always read in ranges.
+ *  Cap: pot-bound WEB_REMIX URLs answer 403 for range spans beyond ~1 MB
+ *  (verified: 1 MB → 206, 1.25 MB → 403), so chunks stay at 768 KB. */
+const CHUNK = 768 * 1024;
 
 function upstreamHeaders(ua: string | undefined, range: string): Record<string, string> {
   return {
@@ -24,13 +26,20 @@ function upstreamHeaders(ua: string | undefined, range: string): Record<string, 
 }
 
 /**
- * A continuous stream of `start..end` assembled from successive ranged requests.
- * Position advances by bytes actually received, so a short chunk just resumes
- * from where it stopped rather than leaving a hole.
+ * A continuous stream of `start..end` assembled from successive ranged
+ * requests. On upstream 403/429 (the per-URL byte quota on pot-bound URLs),
+ * the URL is refreshed via a fresh extraction and the chunk retries — the
+ * position keeps advancing from where the previous chunk stopped.
  */
-function rangedStream(url: string, ua: string | undefined, start: number, end: number): ReadableStream<Uint8Array> {
+function rangedStream(
+  holder: { meta: Meta },
+  refresh: () => Promise<Meta | null>,
+  start: number,
+  end: number,
+): ReadableStream<Uint8Array> {
   let pos = start;
   let reader: ReadableStreamDefaultReader<Uint8Array> | null = null;
+  let refreshes = 0;
 
   return new ReadableStream<Uint8Array>({
     async pull(controller) {
@@ -41,10 +50,33 @@ function rangedStream(url: string, ua: string | undefined, start: number, end: n
             return;
           }
           const stop = Math.min(pos + CHUNK - 1, end);
-          const res = await fetch(url, {
-            headers: upstreamHeaders(ua, `bytes=${pos}-${stop}`),
-            signal: AbortSignal.timeout(60000),
-          });
+          let res: Response;
+          try {
+            res = await fetch(holder.meta.url, {
+              headers: upstreamHeaders(holder.meta.ua, `bytes=${pos}-${stop}`),
+              signal: AbortSignal.timeout(60000),
+            });
+          } catch (e: any) {
+            if (refreshes < 4) {
+              // transient network hiccup — refresh and retry once
+              refreshes++;
+              const fresh = await refresh();
+              if (fresh) { holder.meta = fresh; continue; }
+            }
+            controller.error(new Error(`upstream fetch: ${e?.message ?? e}`));
+            return;
+          }
+          if ((res.status === 403 || res.status === 429) && refreshes < 4) {
+            refreshes++;
+            try { await res.arrayBuffer().catch(() => undefined); } catch { /* drain */ }
+            const fresh = await refresh();
+            if (fresh) {
+              holder.meta = fresh;
+              continue; // retry the same byte span on the fresh URL
+            }
+            controller.error(new Error('upstream 403 — no fresh URL'));
+            return;
+          }
           if (!res.ok || !res.body) {
             controller.error(new Error(`upstream ${res.status}`));
             return;
@@ -141,8 +173,20 @@ export async function GET(req: NextRequest) {
     'cache-control': 'no-store',
   });
   if (wanted) headers.set('content-range', `bytes ${start}-${end}/${total}`);
+  // observability: the client normally learns this from /api/yt/player
+  if (meta.previewLimited) headers.set('x-jix-preview', '1');
 
-  return new Response(rangedStream(meta.url, meta.ua, start, end), {
+  const holder = { meta };
+  const refresh = async (): Promise<Meta | null> => {
+    try {
+      const out = await getStream(id, q, true); // fresh extraction (pots stay cached)
+      return out.stream ?? null;
+    } catch {
+      return null;
+    }
+  };
+
+  return new Response(rangedStream(holder, refresh, start, end), {
     status: wanted ? 206 : 200,
     headers,
   });

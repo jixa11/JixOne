@@ -4,7 +4,7 @@
 >
 > پلیر موزیک زیبا و بدون تبلیغ برای کاتالوگ YouTube Music — اپ اندروید کاملاً مستقل (رابط وب داخل خود APK) + نسخه وب (Next.js).
 
-**Current build: v1.3.0** · [download the APK](public/JixOne-v1.3.0.apk)
+**Current build: v1.4.0** · [download the APK](public/JixOne-latest.apk)
 
 ---
 
@@ -46,6 +46,7 @@
 - **Persian & English** — automatic RTL/LTR layout flip, Vazirmatn typography, locale-aware digits.
 - **Professional animations** — staggered list entrances, player slide-in, panel transitions, theme cross-fade, and full `prefers-reduced-motion` support.
 - **Standalone Android APK** — the whole web UI ships inside the app: install it and it just works, with **no server and no setup** (optional custom-server mode for power users in Settings).
+- **Installable web app (PWA)** — the web build installs from the browser too (Settings → *Install as an app*, or Chrome's ⋮ menu): its own icon, a standalone window, an offline shell, background playback and lock-screen controls. Live data (API, streams) is never cached.
 - **Android extras** — MediaStyle lock-screen notification with play/pause/next/previous and a live seekbar, plus a resizable 4×1 home-screen widget that follows the app's accent color.
 
 ### Why sign-in matters
@@ -136,6 +137,7 @@ JixOne is a client for publicly available YouTube content and hosts no media its
 - **فارسی و انگلیسی** — چرخش خودکار راست‌به‌چپ/چپ‌به‌راست، فونت وزیرمتن و اعداد هم‌ساز با زبان.
 - **انیمیشن‌های حرفه‌ای** — ورود پله‌ای لیست‌ها، اسلاید پلیر، ترنزیشن پنل‌ها، کراس‌فید تم و پشتیبانی کامل از `prefers-reduced-motion`.
 - **APK اندروید کاملاً مستقل** — کل رابط وب داخل خود اپ جاسازی شده: نصب کن و استفاده کن، **بدون هیچ سرور و تنظیماتی** (حالت «سرور دلخواه» برای کاربران حرفه‌ای در تنظیمات هست).
+- **نصب به‌عنوان اپ (PWA)** — نسخه‌ی وب هم از خود مرورگر نصب می‌شود (تنظیمات ← *نصب به‌عنوان اپ* یا منوی ⋮ کروم): آیکون اختصاصی، پنجره‌ی مستقل، پوسته‌ی آفلاین، پخش پس‌زمینه و کنترل از لاک‌اسکرین. داده‌های زنده (API و استریم) هرگز کش نمی‌شوند.
 - **امکانات اندروید** — نوتیفیکیشن قفل‌صفحه با دکمه‌های پخش/توقف/بعدی/قبلی و نوار پیشرفت زنده، به‌همراه ویجت ۴×۱ قابل تغییر اندازه که رنگ اکسنت برنامه را دنبال می‌کند.
 
 ### چرا ورود به حساب مهم است؟

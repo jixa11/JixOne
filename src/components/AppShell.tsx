@@ -6,6 +6,7 @@ import QueuePanel from '@/components/QueuePanel';
 import NowPlaying from '@/components/NowPlaying';
 import PlayerHost from '@/components/PlayerHost';
 import ThemeApplier from '@/components/ThemeApplier';
+import PWARegister from '@/components/PWARegister';
 import ExploreView from '@/components/views/ExploreView';
 import SearchView from '@/components/views/SearchView';
 import LibraryView from '@/components/views/LibraryView';
@@ -35,6 +36,7 @@ export default function AppShell() {
   return (
     <div className="h-screen w-full overflow-hidden">
       <ThemeApplier />
+      <PWARegister />
       <PlayerHost />
 
       <div className="flex h-full">

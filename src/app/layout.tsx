@@ -7,6 +7,12 @@ export const metadata: Metadata = {
   title: "JixOne — Music Player",
   description: "JixOne: a beautiful music player with YouTube Music catalog — Persian & English",
   applicationName: "JixOne",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "JixOne",
+  },
 };
 
 export const viewport: Viewport = {

@@ -8,7 +8,8 @@ android/build/
 .env.*
 *.log
 .zscripts/
-scripts/
+scripts/*
+!scripts/make-pwa-icons.mjs
 examples/
 skills/
 tests/

@@ -3,6 +3,20 @@ plugins {
     id("org.jetbrains.kotlin.android")
 }
 
+// Single source of truth for the version: src/lib/appInfo.ts (the web app's
+// label). Previously versionCode/versionName were hardcoded here and drifted —
+// the v1.4.0 APK would still have introduced itself as "1.3.0 (10)".
+val appInfoTs = File(rootDir.parentFile, "src/lib/appInfo.ts").readText()
+val jixVersionName: String =
+    Regex("APP_VERSION\\s*=\\s*'([0-9]+\\.[0-9]+\\.[0-9]+)'")
+        .find(appInfoTs)?.groupValues?.get(1) ?: "1.4.0"
+// 1.4.0 → 10400; always increases, never collides with the old hand-bumped 10
+val jixVersionCode: Int = jixVersionName.split(".").let {
+    (it.getOrNull(0)?.toIntOrNull() ?: 1) * 10000 +
+    (it.getOrNull(1)?.toIntOrNull() ?: 0) * 100 +
+    (it.getOrNull(2)?.toIntOrNull() ?: 0)
+}
+
 android {
     namespace = "com.jixone.app"
     compileSdk = 34
@@ -11,8 +25,8 @@ android {
         applicationId = "com.jixone.app"
         minSdk = 26
         targetSdk = 34
-        versionCode = 10
-        versionName = "1.3.0"
+        versionCode = jixVersionCode
+        versionName = jixVersionName
     }
 
     // The release key is deliberately NOT in the repo — a committed signing key

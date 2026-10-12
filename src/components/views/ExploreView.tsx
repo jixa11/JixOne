@@ -43,10 +43,10 @@ export default function ExploreView() {
     if (cached && Array.isArray(cached) && cached.length > 0) {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- instant stale-while-revalidate paint
       setTracks(cached);
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+       
       setCurated(false);
     } else {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- first visit for this mood — show skeleton
+       
       setTracks(null);
     }
     // device-side search (primary) → helper-server fallback → curated offline catalog

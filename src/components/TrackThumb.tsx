@@ -51,7 +51,7 @@ export const TrackThumb = memo(function TrackThumb({
   const hid = `th${uid}`;
   if (track.thumb) {
     return (
-      // eslint-disable-next-line @next/next/no-img-element
+       
       <img src={track.thumb} alt="" loading="lazy" className={cn(rounded, 'object-cover', className, imgClassName)} />
     );
   }

@@ -9,12 +9,14 @@ import { assetUrl } from '@/lib/asset';
 import { ytmSession, ytmLogin, ytmLogout, onYTMAuthChange, YTMSession, ytmCanPasteCookie, ytmSetCookie } from '@/lib/ytm-session';
 import { runDiagnostics, diagReportText, DiagStep } from '@/engine/diagnostics';
 import { getApiBase, setApiBase } from '@/engine/apiBase';
+import { APP_VERSION, APK_SIZE_LABEL } from '@/lib/appInfo';
+import { usePwa, pwaPromptInstall } from '@/lib/pwa';
 import { useState, useEffect } from 'react';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import {
   Check, Globe, Radio, Download, Sparkles, ShieldOff, Info,
-  LogOut, RefreshCw, UserRound, Activity, X, Loader2, Copy, Smartphone,
+  LogOut, RefreshCw, UserRound, Activity, X, Loader2, Copy, Smartphone, MonitorSmartphone,
 } from 'lucide-react';
 
 function GoogleG({ size = 16 }: { size?: number }) {
@@ -35,25 +37,24 @@ export default function SettingsView() {
   const setUser = useAuth((st) => st.setUser);
   const signOut = useAuth((st) => st.signOut);
   const [ytm, setYtm] = useState<YTMSession>({ available: false, signedIn: false, name: '' });
-  const [canPaste, setCanPaste] = useState(false);
+  // lazily initialized from the environment — reading these in an effect body
+  // was both a cascading-render lint error and one frame of wrong UI
+  const [canPaste] = useState(() => ytmCanPasteCookie());
   const [cookiePaste, setCookiePaste] = useState('');
   const [usage, setUsage] = useState(0);
   const [busy, setBusy] = useState(false);
-  const [isAndroid, setIsAndroid] = useState(false);
-  const [srv, setSrv] = useState('');
-  const [fb, setFb] = useState('');
+  const [isAndroid] = useState(() => typeof window !== 'undefined' && !!(window as any).AndroidBridge);
+  const [srv, setSrv] = useState(() => {
+    if (typeof window === 'undefined') return '';
+    try { return ((window as any).AndroidBridge?.getServerUrl?.() ?? '') || ''; } catch { return ''; }
+  });
+  const [fb, setFb] = useState(() => getApiBase());
   const [diagSteps, setDiagSteps] = useState<DiagStep[] | null>(null);
   const [diagBusy, setDiagBusy] = useState(false);
   const [diagVerdict, setDiagVerdict] = useState<{ fa: string; en: string } | null>(null);
   const [diagMode, setDiagMode] = useState<'device' | 'server' | null>(null);
+  const pwa = usePwa();
   useEffect(() => { storageUsage().then((u) => setUsage(u.usage)); }, []);
-  useEffect(() => {
-    const b = (window as any).AndroidBridge;
-    setFb(getApiBase());
-    if (!b) return;
-    setIsAndroid(true);
-    try { setSrv(b.getServerUrl?.() ?? ''); } catch { /* noop */ }
-  }, []);
 
   // YTM session: read on mount and again whenever native reports a change
   // (sign-in happens in a separate activity, so this page never unmounts).
@@ -65,7 +66,6 @@ export default function SettingsView() {
       else setUser(null);
     };
     sync();
-    setCanPaste(ytmCanPasteCookie());
     return onYTMAuthChange(sync);
   }, [setUser]);
 
@@ -156,7 +156,32 @@ export default function SettingsView() {
             >
               <Download size={15} /> {t(lang, 'apkBtn')}
             </a>
-            <div dir="ltr" className="text-[10.5px] font-mono text-dim">JixOne-v1.3.0 · ~5.3 MB</div>
+            <div dir="ltr" className="text-[10.5px] font-mono text-dim">JixOne-v{APP_VERSION} · {APK_SIZE_LABEL}</div>
+          </div>
+        </Section>
+      )}
+
+      {/* INSTALL AS APP (PWA) — web/preview only; inside the APK it is pointless. */}
+      {!isAndroid && (
+        <Section icon={MonitorSmartphone} title={t(lang, 'pwaTitle')}>
+          <div className="space-y-3">
+            <div className="text-[11.5px] leading-relaxed text-dim">{t(lang, 'pwaDesc')}</div>
+            {pwa.installed ? (
+              <div className="flex items-center gap-2 rounded-xl bg-surface2 p-3 text-[12px] font-semibold text-[var(--success)]">
+                <Check size={15} className="shrink-0" /> {t(lang, 'pwaRunning')}
+              </div>
+            ) : pwa.canInstall ? (
+              <button
+                onClick={() => pwaPromptInstall()}
+                className="neon-play flex items-center justify-center gap-2 rounded-full px-5 py-3 text-[13px] font-bold transition-transform active:scale-95 sm:inline-flex sm:w-auto"
+              >
+                <MonitorSmartphone size={15} /> {t(lang, 'pwaBtn')}
+              </button>
+            ) : (
+              <div className="rounded-xl bg-surface2 p-3 text-[11.5px] leading-relaxed text-dim">
+                {pwa.platform === 'ios' ? t(lang, 'pwaIOS') : t(lang, 'pwaManual')}
+              </div>
+            )}
           </div>
         </Section>
       )}
@@ -490,7 +515,7 @@ export default function SettingsView() {
       <Section icon={Info} title={t(lang, 'about')}>
         <div className="space-y-1.5 text-xs text-dim">
           <div>JixOne — {lang === 'fa' ? 'پلیر موزیک متن‌باز با کاتالوگ YouTube Music' : 'Open-source player with YouTube Music catalog'}</div>
-          <div>{t(lang, 'appVersion')}: v1.2.0</div>
+          <div>{t(lang, 'appVersion')}: v{APP_VERSION}</div>
           <div>{ytm.signedIn ? `${t(lang, 'welcomeUser')}, ${ytm.name || 'YouTube Music'}` : t(lang, 'guestBadge')}</div>
           {usage > 0 && <div>{t(lang, 'storageUsed')}: {fmtSize(usage, lang)}</div>}
         </div>

@@ -52,6 +52,44 @@ export default function PlayerHost() {
   // ---- toast helpers (lang-aware) ----
   const msg = (key: Parameters<typeof t>[1]) => t(useSettings.getState().lang, key);
 
+  // ---- engine error handling (mid-play failures) ----
+  // declared before the effects that close over it — use-before-declaration is
+  // a purity hazard for the compiler, even though plain JS hoists it fine
+  const handleEngineError = (msgRaw: string) => {
+    const st = usePlayer.getState();
+    const mode = useSettings.getState().playbackMode;
+    if (st.engine === 'custom' && mode !== 'adfree' && msgRaw === 'AUDIO_ERROR') {
+      // the ad-free stream died mid-play → try the official player once
+      toastOnce('adfreeFail', msg('adfreeFail'));
+      st.setEngine('yt');
+      st.setLoading(true);
+    } else if (st.engine === 'custom' && mode === 'adfree') {
+      toastOnce('extractFail', msg('extractFail'));
+      st.setPlaying(false);
+    } else if (st.engine === 'yt') {
+      toastOnce('officialFail', msg('officialUnavailable'));
+      st.setPlaying(false);
+    }
+  };
+
+  const hooksRef = useRef({} as ReturnType<typeof makeHooks>);
+  function makeHooks() {
+    if (!hooksRef.current.onPosition) {
+      hooksRef.current = {
+        onPosition: (sec: number) => {
+          usePlayer.getState().setPosition(sec);
+          try { navigator.mediaSession?.setPositionState?.({ position: sec, duration: usePlayer.getState().duration || sec, playbackRate: 1 }); } catch { /* noop */ }
+          bridge()?.updateMedia(JSON.stringify({ pos: Math.round(sec) }));
+        },
+        onDuration: (sec: number) => usePlayer.getState().setDuration(sec),
+        onPlayState: (b: boolean) => usePlayer.getState().setPlaying(b),
+        onEnded: () => usePlayer.getState().next(true),
+        onError: () => handleEngineError('AUDIO_ERROR'),
+      };
+    }
+    return hooksRef.current;
+  }
+
   // ---- init controllers ----
   useEffect(() => {
     const hooks = {
@@ -137,26 +175,8 @@ export default function PlayerHost() {
       stop: () => { ytCtl.stop(); audioCtl.stop(); },
     };
     setController(dispatch);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, []);
-
-  // ---- engine error handling (mid-play failures) ----
-  const handleEngineError = (msgRaw: string) => {
-    const st = usePlayer.getState();
-    const mode = useSettings.getState().playbackMode;
-    if (st.engine === 'custom' && mode !== 'adfree' && msgRaw === 'AUDIO_ERROR') {
-      // the ad-free stream died mid-play → try the official player once
-      toastOnce('adfreeFail', msg('adfreeFail'));
-      st.setEngine('yt');
-      st.setLoading(true);
-    } else if (st.engine === 'custom' && mode === 'adfree') {
-      toastOnce('extractFail', msg('extractFail'));
-      st.setPlaying(false);
-    } else if (st.engine === 'yt') {
-      toastOnce('officialFail', msg('officialUnavailable'));
-      st.setPlaying(false);
-    }
-  };
 
   // ---- load orchestration: one custom attempt + one official attempt per track ----
   const attemptsRef = useRef<{ videoId: string; officialTried: boolean }>({ videoId: '', officialTried: false });
@@ -243,26 +263,8 @@ export default function PlayerHost() {
     })();
 
     return () => { cancelled = true; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [track?.videoId]);
-
-  const hooksRef = useRef({} as ReturnType<typeof makeHooks>);
-  function makeHooks() {
-    if (!hooksRef.current.onPosition) {
-      hooksRef.current = {
-        onPosition: (sec: number) => {
-          usePlayer.getState().setPosition(sec);
-          try { navigator.mediaSession?.setPositionState?.({ position: sec, duration: usePlayer.getState().duration || sec, playbackRate: 1 }); } catch { /* noop */ }
-          bridge()?.updateMedia(JSON.stringify({ pos: Math.round(sec) }));
-        },
-        onDuration: (sec: number) => usePlayer.getState().setDuration(sec),
-        onPlayState: (b: boolean) => usePlayer.getState().setPlaying(b),
-        onEnded: () => usePlayer.getState().next(true),
-        onError: () => handleEngineError('AUDIO_ERROR'),
-      };
-    }
-    return hooksRef.current;
-  }
 
   // ---- play/pause reaction ----
   useEffect(() => {
@@ -272,7 +274,7 @@ export default function PlayerHost() {
     else ctl.pause();
     bridge()?.setPlaying(playing);
     try { if (navigator.mediaSession) navigator.mediaSession.playbackState = playing ? 'playing' : 'paused'; } catch { /* noop */ }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [playing, engine, track?.videoId]);
 
   // ---- volume ----
@@ -291,20 +293,40 @@ export default function PlayerHost() {
           title: track.title,
           artist: track.artist,
           album: 'JixOne',
-          artwork: [{ src: track.thumb, sizes: '512x512', type: 'image/jpeg' }],
+          artwork: [
+            { src: track.thumb, sizes: '96x96', type: 'image/jpeg' },
+            { src: track.thumb, sizes: '512x512', type: 'image/jpeg' },
+          ],
         });
       }
-      navigator.mediaSession?.setActionHandler?.('play', () => usePlayer.getState().explicitPlay());
-      navigator.mediaSession?.setActionHandler?.('pause', () => usePlayer.getState().explicitPause());
-      navigator.mediaSession?.setActionHandler?.('previoustrack', () => usePlayer.getState().prev());
-      navigator.mediaSession?.setActionHandler?.('nexttrack', () => usePlayer.getState().next());
-      navigator.mediaSession?.setActionHandler?.('seekto', (d: any) => { if (d.seekTime != null) usePlayer.getState().seek(d.seekTime); });
     } catch { /* noop */ }
+
+    // One handler at a time: a single unsupported action used to throw and
+    // silently take every handler after it down with it.
+    const setHandler = (name: string, fn: (ev?: any) => void) => {
+      try { navigator.mediaSession?.setActionHandler?.(name as any, fn as any); } catch { /* not supported here */ }
+    };
+    const seekBy = (delta: number) => {
+      const st = usePlayer.getState();
+      st.seek(Math.max(0, st.position + delta));
+    };
+    setHandler('play', () => usePlayer.getState().explicitPlay());
+    setHandler('pause', () => usePlayer.getState().explicitPause());
+    setHandler('previoustrack', () => usePlayer.getState().prev());
+    setHandler('nexttrack', () => usePlayer.getState().next());
+    setHandler('seekto', (d: any) => { if (d?.seekTime != null) usePlayer.getState().seek(d.seekTime); });
+    setHandler('seekbackward', () => seekBy(-10));
+    setHandler('seekforward', () => seekBy(10));
+    setHandler('stop', () => {
+      usePlayer.getState().stopAll();
+      getController()?.pause();
+      try { if (navigator.mediaSession) navigator.mediaSession.playbackState = 'paused'; } catch { /* noop */ }
+    });
     bridge()?.updateMedia(JSON.stringify({
       title: track.title, artist: track.artist, artwork: track.thumb,
       duration: usePlayer.getState().duration, videoId: track.videoId,
     }));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [track?.videoId, engine]);
 
   useEffect(() => {

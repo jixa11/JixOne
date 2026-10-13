@@ -718,12 +718,20 @@
     <string name="crash_close">Close</string>
     <string name="crash_no_log">No crash log available</string>
 
+    <string name="theme_artwork_background">Persian artwork background</string>
+    <string name="theme_artwork_background_desc">Show the Persian artwork behind the app for the four JixOne themes</string>
     <!-- Theme Palette Names -->
     <string name="palette_dynamic">Dynamic</string>
     <string name="palette_jixone_tile">Isfahan Tile</string>
     <string name="palette_jixone_carpet">Persian Carpet</string>
     <string name="palette_jixone_derafsh">Derafsh Kaviani</string>
     <string name="palette_jixone_cyrus">Cyrus</string>
+    <string name="palette_neon_crimson">Neon Crimson</string>
+    <string name="palette_neo_tokyo">Neo Tokyo</string>
+    <string name="palette_synthwave">Synthwave</string>
+    <string name="palette_classic_spotify">Classic Spotify</string>
+    <string name="palette_dubai_sunset">Dubai Sunset</string>
+    <string name="palette_youtube">YouTube</string>
     <string name="palette_crimson">Crimson</string>
     <string name="palette_rose">Rose</string>
     <string name="palette_purple">Purple</string>
@@ -862,6 +870,9 @@
     <string name="credits_telegram">Telegram channel</string>
     <string name="credits_view_repo">View repository</string>
     <string name="credits_upstream">Upstream project (Metrolist)</string>
+    <string name="credits_upstream_section">Upstream · Metrolist</string>
+    <string name="jixone_tagline">A native YouTube Music client</string>
+    <string name="jixone_upstream_note">JixOne native is based on Metrolist (GPL-3.0) — many thanks to the upstream team.</string>
     <string name="buy_mo_a_coffee">Buy me a coffee!</string>
     <string name="community_and_info">Community &amp; Info</string>
     <string name="metrolist">METROLIST</string>

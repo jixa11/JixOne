@@ -12,6 +12,8 @@ if (localPropertiesFile.exists()) {
 // installed, and comparing them side by side is the whole point right now.
 // It becomes com.jixone.app when native replaces the WebView build.
 val baseApplicationId = "com.jixone.native"
+val appVersionCode = 202
+val appVersionName = "2.0.2"
 val applicationIdOverride = System.getenv("METROLIST_APPLICATION_ID")?.takeIf { it.isNotBlank() }
 val appNameOverride = System.getenv("METROLIST_APP_NAME")?.takeIf { it.isNotBlank() }
 val buildCommit =
@@ -45,8 +47,8 @@ android {
         applicationId = applicationIdOverride ?: baseApplicationId
         minSdk = 26
         targetSdk = 36
-        versionCode = 201
-        versionName = "2.0.1"
+        versionCode = appVersionCode
+        versionName = appVersionName
         val baseVersionName = requireNotNull(versionName)
         buildConfigField("String", "BASE_VERSION_NAME", "\"$baseVersionName\"")
         buildCommit?.let { versionName = "$baseVersionName+$it" }
@@ -129,6 +131,25 @@ android {
             keyPassword = "android"
             storePassword = "android"
             storeFile = file("${System.getProperty("user.home")}/.android/debug.keystore")
+        }
+    }
+
+    // Per-CPU split APKs (much smaller downloads — see the release
+    // workflow). The universal APK keeps the plain versionCode so
+    // switching between an ABI build and the universal build never
+    // looks like a downgrade.
+    splits {
+        abi {
+            isEnable = true
+            reset()
+            include("arm64-v8a", "armeabi-v7a", "x86_64")
+            isUniversalApk = true
+        }
+    }
+    applicationVariants.all {
+        outputs.all {
+            (this as? com.android.build.gradle.internal.api.BaseVariantOutputImpl)
+                ?.versionCodeOverride = appVersionCode
         }
     }
 

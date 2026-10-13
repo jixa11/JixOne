@@ -59,6 +59,7 @@ import com.metrolist.music.constants.DefaultOpenTabKey
 import com.metrolist.music.constants.DensityScale
 import com.metrolist.music.constants.DensityScaleKey
 import com.metrolist.music.constants.DynamicThemeKey
+import com.metrolist.music.constants.ThemeArtworkKey
 import com.metrolist.music.constants.EnableDynamicIconKey
 import com.metrolist.music.constants.EnableHighRefreshRateKey
 import com.metrolist.music.constants.EnableLandscapeScalingKey
@@ -111,6 +112,7 @@ import com.metrolist.music.ui.component.PlayerSliderTrack
 import com.metrolist.music.ui.component.SquigglySlider
 import com.metrolist.music.ui.component.WavySlider
 import com.metrolist.music.ui.theme.DefaultThemeColor
+import com.metrolist.music.ui.theme.PersianCarpetSeed
 import com.metrolist.music.ui.theme.PlayerSliderColors
 import com.metrolist.music.ui.utils.backToMain
 import com.metrolist.music.utils.IconUtils
@@ -129,6 +131,11 @@ fun AppearanceSettings(
     val (dynamicTheme, onDynamicThemeChange) =
         rememberPreference(
             DynamicThemeKey,
+            defaultValue = false,
+        )
+    val (themeArtwork, onThemeArtworkChange) =
+        rememberPreference(
+            ThemeArtworkKey,
             defaultValue = true,
         )
     val (enableDynamicIcon, onEnableDynamicIconPrefChange) =
@@ -154,7 +161,7 @@ fun AppearanceSettings(
     val (selectedThemeColorInt) =
         rememberPreference(
             SelectedThemeColorKey,
-            defaultValue = DefaultThemeColor.toArgb(),
+            defaultValue = PersianCarpetSeed.toArgb(),
         )
     // Check if user has selected a custom color (not the default/dynamic color)
     val isUsingCustomColor = selectedThemeColorInt != DefaultThemeColor.toArgb()
@@ -955,6 +962,31 @@ fun AppearanceSettings(
                                 )
                             },
                             onClick = { onEnableLandscapeScalingChange(!enableLandscapeScaling) },
+                        ),
+                    )
+                    // Persian artwork background — the signature JixOne look
+                    add(
+                        Material3SettingsItem(
+                            icon = painterResource(R.drawable.palette),
+                            title = { Text(stringResource(R.string.theme_artwork_background)) },
+                            description = { Text(stringResource(R.string.theme_artwork_background_desc)) },
+                            trailingContent = {
+                                Switch(
+                                    checked = themeArtwork,
+                                    onCheckedChange = onThemeArtworkChange,
+                                    thumbContent = {
+                                        Icon(
+                                            painter =
+                                                painterResource(
+                                                    id = if (themeArtwork) R.drawable.check else R.drawable.close,
+                                                ),
+                                            contentDescription = null,
+                                            modifier = Modifier.size(SwitchDefaults.IconSize),
+                                        )
+                                    },
+                                )
+                            },
+                            onClick = { onThemeArtworkChange(!themeArtwork) },
                         ),
                     )
                     // Only show dynamic theme option when using the default/dynamic color

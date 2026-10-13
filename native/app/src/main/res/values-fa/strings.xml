@@ -104,7 +104,16 @@
     <string name="palette_jixone_carpet">فرش ایرانی</string>
     <string name="palette_jixone_derafsh">درفش کاویانی</string>
     <string name="palette_jixone_cyrus">کوروش</string>
+    <string name="palette_neon_crimson">کریمسون نئون</string>
+    <string name="palette_neo_tokyo">نئو توکیو</string>
+    <string name="palette_synthwave">سینت‌ویو</string>
+    <string name="palette_classic_spotify">اسپاتیفای کلاسیک</string>
+    <string name="palette_dubai_sunset">غروب دبی</string>
+    <string name="palette_youtube">یوتیوب</string>
     <string name="credits_upstream">پروژهٔ بالادستی (Metrolist)</string>
+    <string name="credits_upstream_section">پروژه‌ی پایه · Metrolist</string>
+    <string name="jixone_tagline">کلاینت نیتیو یوتیوب موزیک</string>
+    <string name="jixone_upstream_note">نسخه‌ی نیتیو جیکس‌وان بر پایه‌ی Metrolist (GPL-3.0) ساخته شده — سپاس از تیم پروژه‌ی پایه.</string>
     <string name="create_playlist">ایجاد فهرست‌پخش</string>
     <string name="playlist_name">نام فهرست‌پخش</string>
     <string name="error_playlist_name_empty">نام فهرست‌پخش نمی تواند خالی باشد.</string>
@@ -167,6 +176,8 @@
     <string name="settings">تنظیمات</string>
     <string name="appearance">ظاهر</string>
     <string name="enable_dynamic_theme">فعال‌کردن طرح پویا</string>
+    <string name="theme_artwork_background">پس‌زمینه‌ی هنری ایرانی</string>
+    <string name="theme_artwork_background_desc">نمایش اثر هنری ایرانی پشت کل برنامه برای چهار تم جیکس‌وان</string>
     <string name="dark_theme">تم تاریک</string>
     <string name="dark_theme_on">روشن</string>
     <string name="dark_theme_off">خاموش</string>

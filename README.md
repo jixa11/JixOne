@@ -1,12 +1,13 @@
+<div align="center">
+  <img src="docs/screenshots/app-icon.png" width="110" alt="JixOne">
+
 # JixOne
 
-![JixOne native](docs/screenshots/native-hero.png)
+**Native Android client for YouTube Music** · پلیر نیتیو اندروید برای یوتیوب موزیک
 
-> **Native Android music player for the YouTube Music catalog** — Persian themes, offline downloads, in-app updater. Based on [Metrolist](https://github.com/Metrolist/Metrolist).
->
-> **پلیر موزیک نیتیو اندروید برای کاتالوگ YouTube Music** — تم‌های ایرانی، دانلود آفلاین و به‌روزرسانی داخل خود اپ.
+[⬇ Download · دانلود](https://github.com/jixa11/JixOne/releases/latest)
 
-**Current release: JixOne 2.0.0 (native)** · [⬇ Download / دانلود](https://github.com/jixa11/JixOne/releases/latest)
+</div>
 
 ---
 
@@ -14,36 +15,46 @@
 
 | | |
 | --- | --- |
-| File | `JixOne-2.0.0.apk` — from the [Releases page](https://github.com/jixa11/JixOne/releases/tag/n2.0.0) only |
-| Exact size · حجم دقیق | **29,247,749 bytes (27.9 MB)** |
-| SHA-256 | `2f3416ad4a06d5afbffb30412936c58d6c7493ec4a435e61e22417e2987564be` |
-| Signature | APK Signature Scheme v2, key `CN=JixOne` (valid to 2056) |
+| Recommended · پیشنهادی | `JixOne-2.0.2-arm64-v8a.apk` — for phones made after ~2015 (much smaller download) |
+| Older 32-bit phones | `JixOne-2.0.2-armeabi-v7a.apk` |
+| Emulator | `JixOne-2.0.2-x86_64.apk` |
+| Universal (every device) | `JixOne-2.0.2.apk` — or `JixOne-2.0.2-apk.zip` (survives bad proxies better) |
+| Where | [Releases page](https://github.com/jixa11/JixOne/releases/latest) only — exact sizes and SHA-256 checksums are published there for every file |
+| Signature | **v1 + v2 + v3** (all schemes), key `CN=JixOne` (valid to 2056) |
 | Android | **8.0 (API 26) or newer** · اندروید ۸ به بالا |
 | Package | `com.jixone.native` — coexists with the old WebView app (`com.jixone.app`) |
 
 ### «App not installed as package appears to be invalid»
 
-The APK on the Releases page is **verified valid** — the ZIP integrity, the v2 signature and the signing certificate were all checked and match the JixOne key. This error on your phone means the *copy you downloaded* is damaged or it is not actually the APK. In order of likelihood:
+The APK on the Releases page is **verified valid** — checked with Google's own `apksigner verify` (signature **Verifies**), `zipalign` and `aapt` all pass, and the signing certificate matches the JixOne key. When a phone still shows this error, the cause is almost always the downloaded copy or the device, in this order:
 
-1. **Incomplete download (most common).** Your file must be **exactly 29,247,749 bytes**. Check it in your file manager — if the size differs, the download was cut off. Re-download over a stable connection (a VPN or a resuming download manager helps a lot with GitHub in some regions).
-2. **You installed the wrong file.** Files from the *Actions* tab are ZIP artifacts — inside them is the APK; do not install the ZIP itself, and do not rename it. Only use the `JixOne-2.0.0.apk` on the **Releases** page.
+1. **Incomplete download (most common).** A browser can report “download complete” on a truncated file. Check the size in your file manager — it must match the **exact byte size on the release page**. If it differs, re-download over a stable connection or VPN, ideally with Chrome itself (not a download manager).
+2. **Use the zip copy to prove it.** Each release also ships `JixOne-<version>-apk.zip`. Download that instead, extract it, install the APK inside. **If extraction fails, the download was corrupted — definitively.** If it extracts fine but still won't install, the problem is on the device side.
 3. **Older test build installed.** If an earlier JixOne *native* test APK happens to be on the device, uninstall it first — different signatures cannot upgrade over each other. (The old WebView JixOne can stay; it is a different package.)
 4. **Android below 8.0** cannot install this app.
-5. Optional: verify the file — `sha256sum JixOne-2.0.0.apk` must print the SHA-256 above.
+5. **ROM restrictions.** On Xiaomi/MIUI enable *Install via USB* in Developer options; on Huawei/Honor watch for AppGallery guards.
+6. Optional: `sha256sum JixOne-*.apk` must print the SHA-256 published on the release.
 
 ### دانلود و نصب (فارسی)
 
-۱. فایل `JixOne-2.0.0.apk` را فقط از صفحه‌ی [Releases](https://github.com/jixa11/JixOne/releases/tag/n2.0.0) دانلود کنید.
-۲. **حجم فایل باید دقیقاً ۲۹٬۲۴۷٬۷۴۹ بایت (۲۷٫۹ مگابایت) باشد.** اگر متفاوت بود یعنی دانلود ناقص است — با اینترنت پایدارتر، VPN یا یک دانلودمنیجر دوباره بگیرید. این شایع‌ترین دلیل خطای «package appears to be invalid» است.
-۳. فایل‌های تب Actions فایل ZIP هستند؛ خودِ APK داخلشان است — فقط از صفحه‌ی Releases دانلود کنید.
-۴. اندروید ۸ به بالا لازم است. اگر نسخه‌ی آزمایشی قدیمی‌تری از اپ نیتیو نصب دارید، اول آن را حذف کنید (اپ قدیمی WebView مشکلی ندارد و جدا است).
-۵. اجازه‌ی «Install unknown apps» باید به مرورگر یا فایل‌منیجر داده شود.
+۱. برای گوشی‌های جدید (۲۰۱۵ به بعد) فایل **`JixOne-2.0.2-arm64-v8a.apk`** را از صفحه‌ی [Releases](https://github.com/jixa11/JixOne/releases/latest) دانلود کنید — حجمش تقریباً نصف نسخه‌ی universal است و در ایران کمتر خراب می‌شود. برای گوشی‌های قدیمی ۳۲ بیتی نسخه‌ی `armeabi-v7a` و برای همه‌ی دستگاه‌ها نسخه‌ی `JixOne-2.0.2.apk` (universal) موجود است.
+۲. **حجم فایل باید دقیقاً با عدد نوشته‌شده در صفحه‌ی Releases یکی باشد** (بایت به بایت). اگر متفاوت بود یعنی دانلود ناقص است — با اینترنت پایدار، VPN و خودِ کروم دوباره بگیرید.
+۳. اندروید ۸ به بالا لازم است. اگر نسخه‌ی آزمایشی قدیمی‌تری از اپ نیتیو نصب دارید، اول آن را حذف کنید (اپ قدیمی WebView مشکلی ندارد و جدا است).
+۴. شیائومی: گزینه‌ی «Install via USB» در Developer options را فعال کنید. اجازه‌ی «Install unknown apps» هم باید به مرورگر/فایل‌منیجر داده شود.
 
 ---
 
-## What's new in 2.0.0 — the native rewrite
+## What's new — 2.0.2: the JixOne look is back
 
-JixOne started as a WebView wrapper around a bundled web app. **v2.0.0 replaces that with a fully native app** (Kotlin + Jetpack Compose + Media3/ExoPlayer, based on Metrolist 13.7.0):
+**The Persian artwork themes from the original web app now live in the native app.** The four JixOne themes — Persian Carpet, Isfahan Tile, Derafsh Kaviani and Cyrus — carry their real artwork (the carpet photo, the Isfahan tilework, the banner, the relief) behind the whole app, veiled exactly like before so text keeps full contrast. **Persian Carpet is the default theme again**, the way the web app was. The other web-app themes (Neon Crimson, Neo Tokyo, Synthwave, Classic Spotify, Dubai Sunset, YouTube) are in the theme picker too. Settings → Appearance has a new "Persian artwork background" switch if you ever want the artwork off.
+
+Also in this release, after a user's phone refused a 29 MB universal APK that apksigner proves valid:
+
+- **Per-CPU builds** — `arm64-v8a` (most phones, roughly half the size), `armeabi-v7a` (older phones), `x86_64` (emulator), plus the universal build. Smaller downloads are simply harder to corrupt.
+- The APK is signed with **all three signature schemes (v1 + v2 + v3)** — quirky OEM installers accept it more readily (2.0.1).
+- Every release also ships a **zip-wrapped copy** and **SHA-256 checksums** for every APK (2.0.1).
+
+JixOne started as a WebView wrapper around a bundled web app. **v2.0.0 replaced that with a fully native app** (Kotlin + Jetpack Compose + Media3/ExoPlayer, based on Metrolist 13.7.0):
 
 | | WebView app (v1.x) | Native app (v2.0+) |
 | --- | --- | --- |
@@ -54,7 +65,7 @@ JixOne started as a WebView wrapper around a bundled web app. **v2.0.0 replaces 
 | Account | Cookie-based session | YouTube Music account sign-in in the app |
 | Updates | Manual APK | In-app **check for updates** + changelog |
 | Language | English / Persian | Full Persian (RTL) UI + 20+ languages via Metrolist |
-| Themes | 12 web themes incl. 4 Persian | Material You + 4 Persian themes (Isfahan Tile, Persian Carpet, Derafsh Kaviani, Cyrus) |
+| Themes | 12 web themes | The JixOne web themes, ported — Persian artwork + all the rest |
 
 The old web app (v1.5.2) is still in this repository and still works — see the legacy section below.
 
@@ -68,25 +79,7 @@ JixOne plays the **YouTube Music catalog**, streamed through YouTube's internal 
 
 ## Screenshots
 
-The banner above is the v2.0 native app. The screenshots below are from the v1.x **web** app (kept for reference) — the native app is brand new, so real device screenshots will be added as it is used. If you install it, feel free to share yours in an issue!
-
-| Home | Now playing |
-| --- | --- |
-| ![Home](docs/screenshots/home.png) | ![Player](docs/screenshots/player.png) |
-
-| Settings | Mobile |
-| --- | --- |
-| ![Settings](docs/screenshots/settings.png) | ![Mobile](docs/screenshots/mobile.png) |
-
-### The four Persian themes
-
-| فرش ایرانی · Persian Carpet | کاشی اصفهان · Isfahan Tile |
-| --- | --- |
-| ![Carpet](docs/screenshots/theme-carpet.png) | ![Tile](docs/screenshots/theme-tile.png) |
-
-| درفش کاویانی · Kaviani Banner | کوروش هخامنشی · Cyrus the Great |
-| --- | --- |
-| ![Derafsh](docs/screenshots/theme-derafsh.png) | ![Cyrus](docs/screenshots/theme-cyrus.png) |
+The native app is brand new — real device screenshots will be added as it is used (feel free to share yours in an issue). Screenshots of the v1.x **web** app are preserved in the legacy section at the bottom.
 
 ---
 
@@ -103,8 +96,7 @@ Everything is verified in the shipped code, not aspirational:
 - **Downloads & offline** — download songs and entire playlists as real audio files; play them with zero network.
 - **Lyrics** (synced), **sleep timer**, **equalizer**, **backup/restore** the library, **M3U** playlist import/export.
 - **Android Auto** and **Google Cast** (GMS build), MediaStyle notification, Bluetooth & headset controls.
-- **4 Persian themes** — Isfahan Tile, Persian Carpet, Derafsh Kaviani and Cyrus the Great — plus Material You dynamic color and pure black. Pick them in Settings → Appearance.
-- **Persian UI** — full `values-fa` translation with RTL layout.
+- **Persian UI** — full `values-fa` translation with RTL layout; the JixOne web themes are ported over, Persian Carpet artwork by default, plus Material You dynamic color.
 - **In-app updater** — Settings → About → *Check for updates* reads this repo's releases and opens the new APK when one is available.
 
 ### Building the native app
@@ -127,6 +119,23 @@ The Next.js web app and its WebView APK remain in this repo (`src/`, `android/`)
 
 <details>
 <summary>Web app details (v1.5.2)</summary>
+
+| Home | Now playing | Settings | Mobile |
+| --- | --- | --- | --- |
+| ![Home](docs/screenshots/home.png) | ![Player](docs/screenshots/player.png) | ![Settings](docs/screenshots/settings.png) | ![Mobile](docs/screenshots/mobile.png) |
+
+<details>
+<summary>Web app Persian themes — فرش ایرانی، کاشی اصفهان، درفش کاویانی، کوروش</summary>
+
+| فرش ایرانی · Persian Carpet | کاشی اصفهان · Isfahan Tile |
+| --- | --- |
+| ![Carpet](docs/screenshots/theme-carpet.png) | ![Tile](docs/screenshots/theme-tile.png) |
+
+| درفش کاویانی · Kaviani Banner | کوروش هخامنشی · Cyrus the Great |
+| --- | --- |
+| ![Derafsh](docs/screenshots/theme-derafsh.png) | ![Cyrus](docs/screenshots/theme-cyrus.png) |
+
+</details>
 
 - **Ad-free engine with fallback** — streams are extracted on-device (ANDROID_VR → ANDROID_MUSIC → TVHTML5 → WEB_REMIX client chain, byte-range-probed before playback); regional blocks are detected *before* playback starts and hand off to the official player.
 - **Sign-in matters** — YouTube bot-gates anonymous player calls (`LOGIN_REQUIRED`). In the Android app: Settings → Account. On the web: paste your `music.youtube.com` cookie in Settings, or set `YTM_COOKIE` for self-hosting.
@@ -154,8 +163,7 @@ JixOne is a client for publicly available YouTube content and hosts no media its
 - **دانلود و پخش آفلاین** — دانلود آهنگ و کل پلی‌لیست به‌صورت فایل صوتی واقعی روی حافظه؛ پخش بدون اینترنت.
 - **متن آهنگ (همگام)**، **تایمر خواب**، **اکولایزر**، **پشتیبان‌گیری/بازیابی کتابخانه**، درون‌ریزی/برون‌بری **M3U**.
 - **Android Auto** و **Google Cast** (بیلد GMS)، نوتیفیکیشن MediaStyle، کنترل با بلوتوث و هدفون.
-- **۴ تم ایرانی** — کاشی اصفهان، فرش ایرانی، درفش کاویانی و کوروش هخامنشی — به‌علاوه‌ی Material You و مشکی مطلق؛ از تنظیمات ← ظاهر انتخاب می‌شوند.
-- **رابط فارسی** — ترجمه‌ی کامل `values-fa` با چیدمان راست‌به‌چپ.
+- **رابط فارسی** — ترجمه‌ی کامل `values-fa` با چیدمان راست‌به‌چپ؛ تم‌های وب‌اپ جیکس‌وان (با پیش‌فرض فرش ایرانی و پس‌زمینه‌ی هنری) به‌علاوه‌ی Material You.
 - **بررسی به‌روزرسانی داخل اپ** — تنظیمات ← درباره ← «بررسی به‌روزرسانی» ریلیزهای همین ریپو را می‌خواند و دانلود نسخه‌ی جدید را باز می‌کند.
 
 ### منبع موسیقی

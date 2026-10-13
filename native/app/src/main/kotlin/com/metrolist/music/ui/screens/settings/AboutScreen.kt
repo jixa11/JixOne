@@ -5,6 +5,7 @@
 
 package com.metrolist.music.ui.screens.settings
 
+import android.os.Build
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -124,6 +125,9 @@ private val communityLinks = listOf(
     CommunityLink(R.string.credits_telegram, R.drawable.telegram, "https://t.me/metrolistapp")
 )
 
+/* JixOne — the upstream Metrolist team is credited below, but this app's
+   identity is JixOne (see NOTICE.md for the fork attribution). */
+
 private fun handleEasterEggClick(
     clickCount: Int,
     favoriteSongVideoId: String?,
@@ -242,7 +246,7 @@ fun AboutScreen(
 
         Spacer(Modifier.height(16.dp))
 
-        // App Header Section
+        // App Header Section — JixOne
         ElevatedCard(
             shape = RoundedCornerShape(32.dp),
             modifier = Modifier.fillMaxWidth()
@@ -254,28 +258,25 @@ fun AboutScreen(
                     .padding(24.dp)
             ) {
                 Image(
-                    painter = painterResource(R.drawable.small_icon),
-                    contentDescription = stringResource(R.string.metrolist),
-                    colorFilter = ColorFilter.tint(
-                        color = MaterialTheme.colorScheme.primary,
-                        blendMode = BlendMode.SrcIn,
-                    ),
-                    modifier = Modifier.size(64.dp)
+                    painter = painterResource(R.drawable.ic_launcher_foreground),
+                    contentDescription = "JixOne",
+                    modifier = Modifier.size(72.dp)
                 )
         
                 Spacer(Modifier.width(20.dp))
         
                 Column {
-                    val metrolistName = stringResource(R.string.metrolist)
-                        .lowercase(Locale.getDefault())
-                        .replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
-
                     Text(
-                        text = metrolistName,
+                        text = "JixOne",
                         style = MaterialTheme.typography.headlineLarge,
                         fontWeight = FontWeight.Black,
                         color = MaterialTheme.colorScheme.onSurface,
                         letterSpacing = (-0.5).sp
+                    )
+                    Text(
+                        text = stringResource(R.string.jixone_tagline),
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
             
                     Spacer(Modifier.height(8.dp))
@@ -301,7 +302,7 @@ fun AboutScreen(
                             color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)
                         ) {
                             Text(
-                                text = BuildConfig.ARCHITECTURE.uppercase(),
+                                text = Build.SUPPORTED_ABIS.firstOrNull()?.uppercase() ?: "UNIVERSAL",
                                 style = MaterialTheme.typography.labelMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSecondaryContainer,
@@ -330,7 +331,7 @@ fun AboutScreen(
 
         Spacer(Modifier.height(24.dp))
 
-        // Lead Developer Hero Card
+        // Project card — repo, releases, upstream
         ElevatedCard(
             shape = RoundedCornerShape(32.dp),
             modifier = Modifier.fillMaxWidth()
@@ -338,80 +339,23 @@ fun AboutScreen(
             Column(
                 modifier = Modifier.padding(24.dp),
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(20.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    var leadClickCount by remember(leadDeveloper.name) { mutableIntStateOf(0) }
-            
-                    ContributorAvatar(
-                        avatarUrl = leadDeveloper.avatarUrl,
-                        sizeDp = 110,
-                        shape = leadDeveloper.polygon?.toShape() ?: CircleShape,
-                        contentDescription = leadDeveloper.name,
-                        onClick = {
-                            handleEasterEggClick(
-                                clickCount = leadClickCount,
-                                favoriteSongVideoId = leadDeveloper.favoriteSongVideoId,
-                                coroutineScope = coroutineScope,
-                                snackbarHostState = snackbarHostState,
-                                playerConnection = playerConnection,
-                                wannaPlayStr = wannaPlayStr,
-                                yeahStr = yeahStr,
-                                onCountUpdate = { leadClickCount = it }
-                            )
-                        }
-                    )
-
-                    Column(
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        Text(
-                            text = leadDeveloper.name,
-                            style = MaterialTheme.typography.headlineLarge,
-                            fontWeight = FontWeight.Black,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            lineHeight = 38.sp,
-                            letterSpacing = (-0.5).sp
-                        )
-                        Text(
-                            text = stringResource(R.string.credits_lead_developer),
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.primary,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
-                }
-                
-                Spacer(Modifier.height(24.dp))
-                
                 DeveloperSocials(uriHandler)
-                
                 Spacer(Modifier.height(16.dp))
-                
-                Button(
-                    onClick = { uriHandler.openUri("https://buymeacoffee.com/mostafaalagamy") },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = CircleShape,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary
-                    )
-                ) {
-                    Icon(painterResource(R.drawable.buymeacoffee), contentDescription = null, modifier = Modifier.size(20.dp))
-                    Spacer(Modifier.width(12.dp))
-                    Text(stringResource(R.string.buy_mo_a_coffee), fontWeight = FontWeight.ExtraBold, fontSize = 16.sp)
-                }
+                Text(
+                    text = stringResource(R.string.jixone_upstream_note),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         }
 
         Spacer(Modifier.height(32.dp))
         
-        // Collaborators section - back to Material3SettingsGroup
+        // Upstream credits — the Metrolist team (JixOne native is based on
+        // their work; kept visible as GPL-3.0 attribution)
         Material3SettingsGroup(
-            title = stringResource(R.string.credits_collaborators_section),
-            items = collaborators.map { contributor ->
+            title = stringResource(R.string.credits_upstream_section),
+            items = (listOf(leadDeveloper) + collaborators).map { contributor ->
                 Material3SettingsItem(
                     leadingContent = {
                         var clickCount by remember(contributor.name) { mutableIntStateOf(0) }
@@ -488,15 +432,6 @@ fun AboutScreen(
             }
         )
 
-        Spacer(Modifier.height(48.dp))
-        
-        Text(
-            text = stringResource(R.string.stands_with_palestine),
-            style = MaterialTheme.typography.labelLarge,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        
         Spacer(Modifier.height(48.dp))
     }
 

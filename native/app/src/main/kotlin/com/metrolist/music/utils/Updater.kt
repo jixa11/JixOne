@@ -5,6 +5,7 @@
 
 package com.metrolist.music.utils
 
+import android.os.Build
 import com.metrolist.music.BuildConfig
 import io.ktor.client.HttpClient
 import io.ktor.client.request.get
@@ -70,10 +71,12 @@ object Updater {
     }
 
     /**
-     * Get the current app's architecture and variant
+     * Get the current app's architecture and variant. The architecture is
+     * detected at runtime from the device's primary ABI so the updater can
+     * pick the matching per-CPU APK (falls back to the universal build).
      */
     private fun getCurrentAppVariant(): Pair<String, String> {
-        val architecture = BuildConfig.ARCHITECTURE
+        val architecture = Build.SUPPORTED_ABIS.firstOrNull() ?: BuildConfig.ARCHITECTURE
         val variant = if (BuildConfig.CAST_AVAILABLE) "gms" else "foss"
         return architecture to variant
     }
@@ -96,8 +99,17 @@ object Updater {
             
             // Parse architecture and variant from filename
             val (arch, variant) = when {
-                // JixOne native releases ship a single universal APK per version
-                name.startsWith("JixOne") && name.endsWith(".apk") -> "universal" to "gms"
+                // JixOne per-CPU builds: JixOne-2.0.2-arm64-v8a.apk etc.
+                name.startsWith("JixOne") && name.endsWith(".apk") -> {
+                    val arch = when {
+                        name.endsWith("-arm64-v8a.apk") -> "arm64-v8a"
+                        name.endsWith("-armeabi-v7a.apk") -> "armeabi-v7a"
+                        name.endsWith("-x86_64.apk") -> "x86_64"
+                        name.endsWith("-x86.apk") -> "x86"
+                        else -> "universal"
+                    }
+                    arch to "gms"
+                }
                 name == "Metrolist.apk" -> "universal" to "foss"
                 name == "Metrolist-with-Google-Cast.apk" -> "universal" to "gms"
                 name.startsWith("app-") && name.endsWith("-release.apk") -> {

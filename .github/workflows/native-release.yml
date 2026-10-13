@@ -78,13 +78,28 @@ jobs:
             VERSION="dev-$(date +%Y%m%d)"
           fi
           mkdir -p out
-          cp app/build/outputs/apk/gms/release/app-gms-release.apk "out/JixOne-${VERSION}.apk" 2>/dev/null \
-            || cp app/build/outputs/apk/gms/release/app-gms-release-unsigned.apk "out/JixOne-${VERSION}.apk"
+          RELDIR=app/build/outputs/apk/gms/release
+          # Per-CPU builds — much smaller downloads; the universal one covers
+          # everything else (older 32-bit phones, emulators, odd devices).
+          for abi in arm64-v8a armeabi-v7a x86_64; do
+            if [ -f "$RELDIR/app-gms-${abi}-release.apk" ]; then
+              cp "$RELDIR/app-gms-${abi}-release.apk" "out/JixOne-${VERSION}-${abi}.apk"
+            fi
+          done
+          # Universal APK (name varies by AGP version)
+          UNIVERSAL="$(ls "$RELDIR/app-gms-release.apk" "$RELDIR/app-gms-universal-release.apk" 2>/dev/null | head -1 || true)"
+          if [ -n "$UNIVERSAL" ]; then
+            cp "$UNIVERSAL" "out/JixOne-${VERSION}.apk"
+          else
+            echo "FATAL: no universal release APK found"; ls -la "$RELDIR"; exit 1
+          fi
           cp app/build/outputs/apk/gms/debug/*.apk out/ || true
           # Zip-wrapped copy: in some regions .apk downloads get mangled by
           # proxies/accelerators; a .zip survives better and its CRC check
           # makes corruption obvious at extraction time.
           (cd out && zip -q "JixOne-${VERSION}-apk.zip" "JixOne-${VERSION}.apk")
+          # Checksums so anyone can verify their download
+          (cd out && for f in JixOne-*.apk; do sha256sum "$f" > "$f.sha256"; done)
           ls -la out/
 
       - name: Upload debug APK (artifact)
@@ -107,4 +122,5 @@ jobs:
           generate_release_notes: false
           files: |
             native/out/JixOne-*.apk
+            native/out/JixOne-*.apk.sha256
             native/out/JixOne-*-apk.zip

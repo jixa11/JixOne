@@ -39,6 +39,18 @@ plugins {
     alias(libs.plugins.protobuf)
 }
 
+androidComponents {
+    // Keep the versionCode uniform across the per-CPU splits and the
+    // universal build (Kotlin DSL: applicationVariants is Groovy-only) —
+    // switching between an ABI APK and the universal APK must never look
+    // like a downgrade to the package installer.
+    onVariants { variant ->
+        variant.outputs.forEach { output ->
+            output.versionCode.set(appVersionCode)
+        }
+    }
+}
+
 android {
     namespace = "com.metrolist.music"
     compileSdk = 37
@@ -144,12 +156,6 @@ android {
             reset()
             include("arm64-v8a", "armeabi-v7a", "x86_64")
             isUniversalApk = true
-        }
-    }
-    applicationVariants.all {
-        outputs.all {
-            (this as? com.android.build.gradle.internal.api.BaseVariantOutputImpl)
-                ?.versionCodeOverride = appVersionCode
         }
     }
 

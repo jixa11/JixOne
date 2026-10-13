@@ -60,6 +60,17 @@ The APK on the Releases page is **verified valid** — checked with Google's own
 
 ## What's new · تازه‌ها
 
+### 3.0.0 — the web app's soul, the native app's engine
+
+**The two JixOnes are now one.** This release takes the look you loved from the old web app and puts it on top of the working native engine, front-end only — the player backend is untouched.
+
+- **The web's ambient mesh background** — three soft theme-colored glows in the screen corners over a vertical gradient, on **every** screen and for **every** theme (the Persian four carry the exact colors from the web's `globals.css`; the rest derive them from their color scheme).
+- **Root-cause fix: "it's still a Metrolist copy"** — the main scaffold was painting an opaque layer over the whole background, so the Persian artwork and its veil were never actually visible. Now the themed ground (mesh + artwork + veil) really shows behind the entire app, for the first time.
+- **Full-screen player = the web's NowPlaying** (default) — the current cover, blown up and blurred, is the player's ground (`.np-bg` of the web app); real blur on Android 12+, a softened cover below.
+- **Mini player = per-track color gradient** (default) — colors are pulled from the playing song's cover, like the web bar.
+- **Web-style typography** — bolder headings app-wide; body text untouched for readability (incl. Persian).
+- **Glass navigation bar** with an accent indicator pill, and a translucent top bar.
+
 ### 2.0.2 — the JixOne look is back
 
 **The Persian artwork themes from the original web app now live in the native app.** The four JixOne themes — Persian Carpet, Isfahan Tile, Derafsh Kaviani and Cyrus — carry their real artwork (the carpet photo, the Isfahan tilework, the banner, the relief) behind the whole app, veiled exactly like before so text keeps full contrast. **Persian Carpet is the default theme again**, the way the web app was. The other web-app themes (Neon Crimson, Neo Tokyo, Synthwave, Classic Spotify, Dubai Sunset, YouTube) are in the theme picker too. Settings → Appearance has a "Persian artwork background" switch if you ever want the artwork off.

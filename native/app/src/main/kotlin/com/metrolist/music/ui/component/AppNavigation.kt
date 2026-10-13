@@ -34,6 +34,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.material3.NavigationBarItemDefaults
 import com.metrolist.music.ui.screens.Screens
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
@@ -68,7 +69,9 @@ fun AppNavigationRail(
 
     NavigationRail(
         modifier = modifier,
-        containerColor = containerColor
+        // JixOne: glass rail — slightly translucent so the ambient mesh
+        // breathes through, like the web sidebar over the body gradient.
+        containerColor = if (pureBlack) containerColor else containerColor.copy(alpha = 0.94f)
     ) {
         Spacer(modifier = Modifier.weight(1f))
 
@@ -149,8 +152,19 @@ fun AppNavigationBar(
     val haptics = LocalHapticFeedback.current
     val viewConfiguration = LocalViewConfiguration.current
 
+    // JixOne: the web nav's active treatment — accent-soft pill behind the
+    // icon (web .seg /accent-soft 14%) with the accent carrying icon + label.
+    val itemColors = NavigationBarItemDefaults.colors(
+        indicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.16f),
+        selectedIconColor = MaterialTheme.colorScheme.primary,
+        selectedTextColor = MaterialTheme.colorScheme.primary,
+        unselectedIconColor = contentColor,
+        unselectedTextColor = contentColor,
+    )
+
     // JixOne: floating pill navigation bar — rounded, inset from the screen
-    // edges and softly elevated, instead of a flat full-width bar.
+    // edges and softly elevated, instead of a flat full-width bar. Slightly
+    // translucent so the ambient mesh glows through (web glass look).
     NavigationBar(
         modifier = modifier
             .padding(start = 14.dp, end = 14.dp, bottom = 4.dp)
@@ -161,7 +175,7 @@ fun AppNavigationBar(
                 spotColor = Color.Black.copy(alpha = 0.55f),
             )
             .clip(RoundedCornerShape(32.dp)),
-        containerColor = containerColor,
+        containerColor = if (pureBlack) containerColor else containerColor.copy(alpha = 0.92f),
         contentColor = contentColor
     ) {
         navigationItems.forEach { screen ->
@@ -212,6 +226,7 @@ fun AppNavigationBar(
                     // Long presses are handled via InteractionSource
                 },
                 interactionSource = interactionSource,
+                colors = itemColors,
                 icon = {
                     Icon(
                         painter = painterResource(id = iconRes),

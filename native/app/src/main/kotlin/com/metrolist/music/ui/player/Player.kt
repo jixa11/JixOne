@@ -237,7 +237,14 @@ fun BottomSheetPlayer(
 
     val playerBackground by rememberEnumPreference(
         key = PlayerBackgroundStyleKey,
-        defaultValue = PlayerBackgroundStyle.DEFAULT,
+        // JixOne: the web app's NowPlaying look (blurred cover as the sheet's
+        // ground, globals.css .np-bg) is the default experience. Gated to
+        // Android 12+ exactly like the settings picker gates the option.
+        defaultValue =
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S)
+                PlayerBackgroundStyle.BLUR
+            else
+                PlayerBackgroundStyle.DEFAULT,
     )
     val playerButtonsStyle by rememberEnumPreference(
         key = PlayerButtonsStyleKey,

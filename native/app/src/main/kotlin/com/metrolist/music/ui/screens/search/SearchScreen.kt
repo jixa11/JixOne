@@ -277,7 +277,9 @@ fun SearchScreen(
                     ),
             )
         },
-        containerColor = if (pureBlack) Color.Black else MaterialTheme.colorScheme.background,
+        // JixOne: transparent so the root mesh/artwork shows through the search
+        // screen for every theme (pureBlack keeps true black; the root paints).
+        containerColor = Color.Transparent,
     ) { paddingValues ->
         Box(
             modifier =

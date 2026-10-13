@@ -183,7 +183,9 @@ private fun NewMiniPlayer(
     // Theme settings - these rarely change
     val miniPlayerBackground by rememberEnumPreference(
         MiniPlayerBackgroundStyleKey,
-        defaultValue = MiniPlayerBackgroundStyle.DEFAULT,
+        // JixOne default: the web player bar's look — a per-track color
+        // gradient pulled from the current artwork (works on every API level).
+        defaultValue = MiniPlayerBackgroundStyle.GRADIENT,
     )
     val context = LocalContext.current
     var gradientColors by remember { mutableStateOf<List<Color>>(emptyList()) }

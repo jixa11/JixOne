@@ -174,7 +174,8 @@ fun AppearanceSettings(
     val (miniPlayerBackground, onMiniPlayerBackgroundChange) =
         rememberEnumPreference(
             MiniPlayerBackgroundStyleKey,
-            defaultValue = MiniPlayerBackgroundStyle.DEFAULT,
+            // JixOne default: per-track gradient (the web player bar look)
+            defaultValue = MiniPlayerBackgroundStyle.GRADIENT,
         )
 
     val availableMiniPlayerBackgroundStyles =
@@ -202,7 +203,13 @@ fun AppearanceSettings(
     val (playerBackground, onPlayerBackgroundChange) =
         rememberEnumPreference(
             PlayerBackgroundStyleKey,
-            defaultValue = PlayerBackgroundStyle.DEFAULT,
+            // JixOne default: the web NowPlaying blurred-cover look (S+ only,
+            // same gate the option list below uses)
+            defaultValue =
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
+                    PlayerBackgroundStyle.BLUR
+                else
+                    PlayerBackgroundStyle.DEFAULT,
         )
 
     val (defaultOpenTab, onDefaultOpenTabChange) =

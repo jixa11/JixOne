@@ -205,7 +205,12 @@ fun ExperimentalLyrics(
 
     val playerBackground by rememberEnumPreference(
         key = PlayerBackgroundStyleKey,
-        defaultValue = PlayerBackgroundStyle.DEFAULT
+        // JixOne default: match the player's blurred-cover look (Android 12+)
+        defaultValue =
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S)
+                PlayerBackgroundStyle.BLUR
+            else
+                PlayerBackgroundStyle.DEFAULT
     )
 
     val enabledLanguages = remember(romanizeLyricsList.value) {

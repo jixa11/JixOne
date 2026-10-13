@@ -12,7 +12,6 @@ package com.metrolist.music.ui.theme
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import com.metrolist.music.R
-
 /** The JixOne app-default seed: Persian Carpet gold (matches the web app). */
 val PersianCarpetSeed = Color(0xFFD9A441)
 val PersianTileSeed = Color(0xFF33C5D6)
@@ -34,6 +33,14 @@ data class PersianArtworkTheme(
     val veilAlphaDark: Float = 0.70f,
     /** how much veil covers the art in light mode */
     val veilAlphaLight: Float = 0.80f,
+    /** ambient mesh blobs under the artwork (dark mode) — web globals.css --mesh-1/2/3 */
+    val meshDark: Triple<Color, Color, Color>? = null,
+    /** ambient mesh blobs (light mode) */
+    val meshLight: Triple<Color, Color, Color>? = null,
+    /** vertical-gradient partner of the dark bg — web --app-bg-2 (null = derive) */
+    val darkBg2: Color? = null,
+    /** vertical-gradient partner of the light bg — web --app-bg-2 (null = derive) */
+    val lightBg2: Color? = null,
 )
 
 /**
@@ -58,6 +65,14 @@ val PersianArtworkThemes = listOf(
         tiled = false,
         // web: body::after opacity .30 → veil .70 (globals.css persian-carpet)
         veilAlphaDark = 0.70f,
+        // web mesh: gold 15% / copper 12% / lapis 12% (globals.css persian-carpet)
+        meshDark = Triple(
+            Color(0x26D9A441),
+            Color(0x1FC8763A),
+            Color(0x1F2860A0),
+        ),
+        // web --app-bg-2 (globals.css persian-carpet)
+        darkBg2 = Color(0xFF0C2136),
     ),
     PersianArtworkTheme(
         seed = PersianTileSeed,
@@ -67,6 +82,14 @@ val PersianArtworkThemes = listOf(
         tiled = true,
         // web: opacity .34 → veil .66 (globals.css persian-tile)
         veilAlphaDark = 0.66f,
+        // web mesh: turquoise 16% / lapis 16% / saffron 8% (globals.css persian-tile)
+        meshDark = Triple(
+            Color(0x2933C5D6),
+            Color(0x294F7FE6),
+            Color(0x14D8AA50),
+        ),
+        // web --app-bg-2 (globals.css persian-tile)
+        darkBg2 = Color(0xFF0C1A33),
     ),
     PersianArtworkTheme(
         seed = DerafshKavianiSeed,
@@ -76,6 +99,14 @@ val PersianArtworkThemes = listOf(
         tiled = false,
         // web: opacity .32 → veil .68 (globals.css derafsh)
         veilAlphaDark = 0.68f,
+        // web mesh: gold 15% / amethyst 17% / madder 9% (globals.css derafsh)
+        meshDark = Triple(
+            Color(0x26E0B24A),
+            Color(0x2B9A5BE0),
+            Color(0x17C83250),
+        ),
+        // web --app-bg-2 (globals.css derafsh)
+        darkBg2 = Color(0xFF25103A),
     ),
     PersianArtworkTheme(
         seed = CyrusSeed,
@@ -85,9 +116,35 @@ val PersianArtworkThemes = listOf(
         tiled = false,
         // web: opacity .20 on the light parchment → veil .80 (globals.css cyrus)
         veilAlphaLight = 0.80f,
+        // web mesh (light): gold 13% / lapis 11% / terracotta 9% (globals.css cyrus)
+        meshLight = Triple(
+            Color(0x21B08A2E),
+            Color(0x1C2A5D9F),
+            Color(0x17C46240),
+        ),
+        // web --app-bg-2 (globals.css cyrus)
+        lightBg2 = Color(0xFFFBF6EA),
     ),
 )
 
 /** Returns the Persian artwork theme whose seed matches, or null. */
 fun persianThemeFor(seed: Color): PersianArtworkTheme? =
     PersianArtworkThemes.firstOrNull { it.seed == seed }
+
+/**
+ * The ambient mesh the app root paints behind everything: three soft color
+ * blobs at the screen corners over a vertical base gradient — the signature
+ * look of the JixOne web app (globals.css `body` background), ported 1:1.
+ * Provided by [MetrolistTheme] via [LocalThemeMesh].
+ */
+class ThemeMesh(
+    val blobTopRight: Color,
+    val blobBottomLeft: Color,
+    val blobBottomCenter: Color,
+    /** top color of the vertical base gradient (web: --app-bg) */
+    val baseTop: Color,
+    /** bottom color of the vertical base gradient (web: --app-bg-2) */
+    val baseBottom: Color,
+)
+
+val LocalThemeMesh = staticCompositionLocalOf<ThemeMesh?> { null }

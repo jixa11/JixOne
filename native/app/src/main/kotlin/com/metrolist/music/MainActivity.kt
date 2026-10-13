@@ -90,6 +90,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.graphics.graphicsLayer
@@ -203,6 +205,7 @@ import com.metrolist.music.ui.screens.settings.NavigationTab
 import com.metrolist.music.ui.theme.ColorSaver
 import com.metrolist.music.ui.theme.DefaultThemeColor
 import com.metrolist.music.ui.theme.LocalThemeArtwork
+import com.metrolist.music.ui.theme.LocalThemeMesh
 import com.metrolist.music.ui.theme.MetrolistTheme
 import com.metrolist.music.ui.theme.PersianCarpetSeed
 import com.metrolist.music.ui.theme.extractThemeColor
@@ -717,14 +720,22 @@ class MainActivity : FragmentActivity() {
             // Persian theme is active (see JixOneThemes.kt). The veil on top
             // keeps every screen's text at full contrast, exactly like the
             // original JixOne web app.
+            //
+            // JixOne ambient mesh: the web app's signature background
+            // (globals.css `body`) — a vertical base gradient plus three soft
+            // theme-colored blobs at the corners. It sits under everything,
+            // including the Persian artwork, so every theme gets the web's
+            // depth: exact web colors for the Persian four, scheme-derived
+            // tints for the rest.
             val themeArtwork = LocalThemeArtwork.current
+            val themeMesh = LocalThemeMesh.current
             BoxWithConstraints(
                 modifier =
                     Modifier
                         .fillMaxSize()
                         .then(
-                            if (themeArtwork != null) {
-                                Modifier // artwork covers this anyway
+                            if (themeArtwork != null || themeMesh != null) {
+                                Modifier // artwork / mesh gradient covers this anyway
                             } else {
                                 Modifier.background(
                                     if (pureBlack) Color.Black else MaterialTheme.colorScheme.surface
@@ -732,6 +743,39 @@ class MainActivity : FragmentActivity() {
                             }
                         ),
             ) {
+                if (themeMesh != null) {
+                    Box(
+                        modifier =
+                            Modifier
+                                .matchParentSize()
+                                .drawBehind {
+                                    val w = size.width
+                                    val h = size.height
+                                    // vertical base: web linear-gradient(180deg, --app-bg, --app-bg-2)
+                                    drawRect(
+                                        brush = Brush.verticalGradient(
+                                            listOf(themeMesh.baseTop, themeMesh.baseBottom)
+                                        )
+                                    )
+                                    // the three ambient blobs, positioned like the web:
+                                    // top-right, bottom-left, bottom-center
+                                    fun blob(color: Color, cx: Float, cy: Float, radius: Float) {
+                                        drawCircle(
+                                            brush = Brush.radialGradient(
+                                                colors = listOf(color, Color.Transparent),
+                                                center = Offset(cx, cy),
+                                                radius = radius,
+                                            ),
+                                            radius = radius,
+                                            center = Offset(cx, cy),
+                                        )
+                                    }
+                                    blob(themeMesh.blobTopRight, w * 0.85f, -h * 0.12f, w * 0.62f)
+                                    blob(themeMesh.blobBottomLeft, w * 0.02f, h * 1.08f, w * 0.55f)
+                                    blob(themeMesh.blobBottomCenter, w * 0.50f, h * 1.15f, w * 0.45f)
+                                },
+                    )
+                }
                 if (themeArtwork != null) {
                     if (themeArtwork.tiled) {
                         // Seamless motif (Isfahan tile): repeat the bitmap via a
@@ -1108,6 +1152,13 @@ class MainActivity : FragmentActivity() {
 
                     Scaffold(
                         snackbarHost = { SnackbarHost(snackbarHostState) },
+                        // JixOne: the root layer (ambient mesh gradient and/or
+                        // Persian artwork + veil, see BoxWithConstraints above)
+                        // is the app's background, exactly like the web app's
+                        // body. The scaffold must NOT paint an opaque surface
+                        // over it — every screen's content reads directly on the
+                        // themed ground.
+                        containerColor = Color.Transparent,
                         topBar = {
                             AnimatedVisibility(
                                 visible = shouldShowTopBar,
@@ -1173,8 +1224,10 @@ class MainActivity : FragmentActivity() {
                                         scrollBehavior = topAppBarScrollBehavior,
                                         colors =
                                             TopAppBarDefaults.topAppBarColors(
-                                                containerColor = if (pureBlack) Color.Black else MaterialTheme.colorScheme.surfaceContainer,
-                                                scrolledContainerColor = if (pureBlack) Color.Black else MaterialTheme.colorScheme.surfaceContainer,
+                                                // JixOne: glass top bar — 92% so a breath of
+                                                // the mesh glows through (web player-glass).
+                                                containerColor = if (pureBlack) Color.Black else MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.92f),
+                                                scrolledContainerColor = if (pureBlack) Color.Black else MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.92f),
                                                 titleContentColor = MaterialTheme.colorScheme.onSurface,
                                                 actionIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                                                 navigationIconContentColor = MaterialTheme.colorScheme.onSurfaceVariant,

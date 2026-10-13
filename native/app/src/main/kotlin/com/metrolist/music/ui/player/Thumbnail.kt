@@ -222,7 +222,12 @@ fun Thumbnail(
     val cropAlbumArt by rememberPreference(CropAlbumArtKey, false)
     val playerBackground by rememberEnumPreference(
         key = PlayerBackgroundStyleKey,
-        defaultValue = PlayerBackgroundStyle.DEFAULT
+        // JixOne default: web NowPlaying blurred-cover look (Android 12+)
+        defaultValue =
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S)
+                PlayerBackgroundStyle.BLUR
+            else
+                PlayerBackgroundStyle.DEFAULT
     )
     
     // Pre-calculate text color based on background style

@@ -34,10 +34,39 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
 
+      # GitHub runners do not ship ~/.android/debug.keystore; generate it so
+      # the debug signing config validates.
+      - name: Ensure debug keystore exists
+        run: |
+          mkdir -p "$HOME/.android"
+          if [ ! -f "$HOME/.android/debug.keystore" ]; then
+            keytool -genkeypair -v -keystore "$HOME/.android/debug.keystore" \
+              -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 \
+              -storepass android -keypass android \
+              -dname "CN=Android Debug,O=Android,C=US"
+          fi
+
+      # Optional project signing key — same secret the WebView releases use.
+      # Without it the release APK falls back to the debug key.
+      - name: Restore the signing key
+        env:
+          KEYSTORE_B64: ${{ secrets.JIXONE_KEYSTORE_B64 }}
+        run: |
+          if [ -n "$KEYSTORE_B64" ]; then
+            echo "$KEYSTORE_B64" | base64 -d > ../android/jixone.keystore
+            echo "signing with the project key"
+          else
+            echo "no JIXONE_KEYSTORE_B64 secret — falling back to the debug key"
+          fi
+
       - name: Build debug APK (compile test)
         run: ./gradlew --console=plain assembleGmsDebug --warning-mode summary
 
-      - name: Build release APK (debug-signed without keystore, installable)
+      - name: Build release APK (project-signed, debug fallback)
+        env:
+          JIXONE_STORE_PASSWORD: ${{ secrets.JIXONE_STORE_PASSWORD }}
+          JIXONE_KEY_PASSWORD: ${{ secrets.JIXONE_KEY_PASSWORD }}
+          JIXONE_KEY_ALIAS: jixone
         run: ./gradlew --console=plain assembleGmsRelease --warning-mode summary
 
       - name: Collect APKs

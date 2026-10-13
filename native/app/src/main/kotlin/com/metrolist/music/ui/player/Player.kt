@@ -92,6 +92,7 @@ import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.toArgb
@@ -838,7 +839,17 @@ fun BottomSheetPlayer(
                 modifier =
                     Modifier
                         .fillMaxSize()
-                        .background(bottomSheetBackgroundColor),
+                        // JixOne: theme-tinted gradient instead of a flat sheet —
+                        // the accent fades from the top into the player color.
+                        .background(
+                            Brush.verticalGradient(
+                                listOf(
+                                    lerp(bottomSheetBackgroundColor, MaterialTheme.colorScheme.primary, 0.28f),
+                                    lerp(bottomSheetBackgroundColor, MaterialTheme.colorScheme.primary, 0.10f),
+                                    bottomSheetBackgroundColor,
+                                )
+                            )
+                        ),
             ) {
                 when (playerBackground) {
                     PlayerBackgroundStyle.BLUR -> {

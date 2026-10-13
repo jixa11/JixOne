@@ -104,6 +104,8 @@ val PaletteColors = listOf(
     ThemePalette(R.string.palette_classic_spotify, Color(0xFF1DB954)), // JixOne web: Classic Spotify
     ThemePalette(R.string.palette_dubai_sunset, Color(0xFFFF6B35)), // JixOne web: Dubai Sunset
     ThemePalette(R.string.palette_youtube, Color(0xFFFF0033)), // JixOne web: YouTube
+    ThemePalette(R.string.palette_pure_oled, Color(0xFFE4E4E7)), // JixOne web: Pure OLED (neutral)
+    ThemePalette(R.string.palette_youtube_light, Color(0xFFFF5E3A)), // JixOne web: YouTube Light
     ThemePalette(R.string.palette_crimson, Color(0xFFEC5464)), // Slightly shifted from DefaultThemeColor (0xFF5F5BF9) to avoid conflict
     ThemePalette(R.string.palette_rose, Color(0xFFD81B60)),
     ThemePalette(R.string.palette_purple, Color(0xFF8E24AA)),

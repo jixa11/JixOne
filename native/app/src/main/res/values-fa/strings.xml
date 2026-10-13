@@ -110,6 +110,8 @@
     <string name="palette_classic_spotify">اسپاتیفای کلاسیک</string>
     <string name="palette_dubai_sunset">غروب دبی</string>
     <string name="palette_youtube">یوتیوب</string>
+    <string name="palette_pure_oled">OLED خالص</string>
+    <string name="palette_youtube_light">روشن یوتیوب</string>
     <string name="credits_upstream">پروژهٔ بالادستی (Metrolist)</string>
     <string name="credits_upstream_section">پروژه‌ی پایه · Metrolist</string>
     <string name="jixone_tagline">کلاینت نیتیو یوتیوب موزیک</string>

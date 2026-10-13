@@ -732,6 +732,8 @@
     <string name="palette_classic_spotify">Classic Spotify</string>
     <string name="palette_dubai_sunset">Dubai Sunset</string>
     <string name="palette_youtube">YouTube</string>
+    <string name="palette_pure_oled">Pure OLED</string>
+    <string name="palette_youtube_light">YouTube Light</string>
     <string name="palette_crimson">Crimson</string>
     <string name="palette_rose">Rose</string>
     <string name="palette_purple">Purple</string>

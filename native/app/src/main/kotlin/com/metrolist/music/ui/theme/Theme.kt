@@ -8,8 +8,10 @@ package com.metrolist.music.ui.theme
 import android.graphics.Bitmap
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Shapes
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.runtime.Composable
@@ -17,9 +19,11 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.SaverScope
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 import androidx.palette.graphics.Palette
 import com.materialkolor.PaletteStyle
 import com.materialkolor.dynamiccolor.ColorSpec
@@ -33,8 +37,41 @@ val DefaultThemeColor = Color(0xFF5F5BF9)
 
 // How much the artwork veil covers: high enough that text on top keeps full
 // contrast (same idea as the web app's veil), low enough the art still reads.
-private const val ArtworkVeilAlphaDark = 0.87f
-private const val ArtworkVeilAlphaLight = 0.82f
+private const val ArtworkVeilAlphaDark = 0.83f
+private const val ArtworkVeilAlphaLight = 0.78f
+
+/**
+ * JixOne modern shape language: generous, soft corners everywhere —
+ * the visual signature that separates JixOne from stock Material/Metrolist.
+ */
+val JixOneShapes = Shapes(
+    extraSmall = RoundedCornerShape(10.dp),
+    small = RoundedCornerShape(16.dp),
+    medium = RoundedCornerShape(22.dp),
+    large = RoundedCornerShape(28.dp),
+    extraLarge = RoundedCornerShape(36.dp),
+)
+
+/**
+ * JixOne gradient kit — used by the player screen, cards and headers to give
+ * the app a modern layered look instead of flat minimal surfaces.
+ */
+object JixOneGradients {
+    /** Top-of-screen tint that fades into the background (player, headers). */
+    @Composable
+    fun scrim(top: Color, bottom: Color): Brush = Brush.verticalGradient(
+        0.0f to top,
+        0.55f to bottom.copy(alpha = 0.55f),
+        1.0f to bottom,
+    )
+
+    /** Accent gradient for highlighted cards / chips / progress pills. */
+    @Composable
+    fun accent(): Brush {
+        val c = MaterialTheme.colorScheme
+        return Brush.linearGradient(listOf(c.primary, c.tertiary))
+    }
+}
 
 @Composable
 fun MetrolistTheme(
@@ -101,6 +138,7 @@ fun MetrolistTheme(
     CompositionLocalProvider(LocalThemeArtwork provides artwork) {
         MaterialTheme(
             colorScheme = colorScheme,
+            shapes = JixOneShapes,
             content = content,
         )
     }

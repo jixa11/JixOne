@@ -1,11 +1,14 @@
 name: Native APK (JixOne)
 
 # Builds the native (Metrolist-based) JixOne Android app.
-# Trigger: push a tag starting with "n" (e.g. n2.0.0), or run manually.
+# Trigger: push a tag starting with "n" (e.g. n2.0.0), a push to the
+# native-outertune branch (compile test), or run manually from main.
 # The in-app updater reads releases whose tag starts with "n" from
 # jixa11/JixOne and expects an asset named JixOne-<version>.apk.
 on:
   push:
+    branches:
+      - native-outertune
     tags:
       - 'n*'
   workflow_dispatch:

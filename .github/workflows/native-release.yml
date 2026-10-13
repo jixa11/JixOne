@@ -81,6 +81,10 @@ jobs:
           cp app/build/outputs/apk/gms/release/app-gms-release.apk "out/JixOne-${VERSION}.apk" 2>/dev/null \
             || cp app/build/outputs/apk/gms/release/app-gms-release-unsigned.apk "out/JixOne-${VERSION}.apk"
           cp app/build/outputs/apk/gms/debug/*.apk out/ || true
+          # Zip-wrapped copy: in some regions .apk downloads get mangled by
+          # proxies/accelerators; a .zip survives better and its CRC check
+          # makes corruption obvious at extraction time.
+          (cd out && zip -q "JixOne-${VERSION}-apk.zip" "JixOne-${VERSION}.apk")
           ls -la out/
 
       - name: Upload debug APK (artifact)
@@ -101,4 +105,6 @@ jobs:
         with:
           name: JixOne ${{ github.ref_name }} (native)
           generate_release_notes: false
-          files: native/out/JixOne-*.apk
+          files: |
+            native/out/JixOne-*.apk
+            native/out/JixOne-*-apk.zip

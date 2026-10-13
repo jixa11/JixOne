@@ -45,8 +45,8 @@ android {
         applicationId = applicationIdOverride ?: baseApplicationId
         minSdk = 26
         targetSdk = 36
-        versionCode = 200
-        versionName = "2.0.0"
+        versionCode = 201
+        versionName = "2.0.1"
         val baseVersionName = requireNotNull(versionName)
         buildConfigField("String", "BASE_VERSION_NAME", "\"$baseVersionName\"")
         buildCommit?.let { versionName = "$baseVersionName+$it" }
@@ -115,6 +115,13 @@ android {
                 storePassword = System.getenv("JIXONE_STORE_PASSWORD") ?: System.getenv("STORE_PASSWORD")
                 keyAlias = System.getenv("JIXONE_KEY_ALIAS") ?: System.getenv("KEY_ALIAS") ?: "jixone"
                 keyPassword = System.getenv("JIXONE_KEY_PASSWORD") ?: System.getenv("KEY_PASSWORD")
+                // Sign with every scheme so even quirky OEM package installers
+                // (some old Android 8/9 ROMs mishandle v2-only APKs) accept it.
+                // 2.0.1: a user hit "package appears to be invalid" on a file
+                // that apksigner proves valid — belt and suspenders.
+                enableV1Signing = true
+                enableV2Signing = true
+                enableV3Signing = true
             }
         }
         getByName("debug") {

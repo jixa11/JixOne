@@ -90,11 +90,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.graphics.BitmapShader
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.ShaderBrush
-import androidx.compose.ui.graphics.TileMode
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -103,7 +100,6 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalWindowInfo
-import androidx.compose.ui.res.imageResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextRange
@@ -738,15 +734,28 @@ class MainActivity : FragmentActivity() {
             ) {
                 if (themeArtwork != null) {
                     if (themeArtwork.tiled) {
-                        val tileBitmap = ImageBitmap.imageResource(themeArtwork.artworkRes)
-                        val tileShader = remember(tileBitmap) {
-                            BitmapShader(tileBitmap, TileMode.REPEAT, TileMode.REPEAT)
+                        // Seamless motif (Isfahan tile): repeat the bitmap via a
+                        // framework BitmapShader wrapped in a Compose ShaderBrush
+                        // — the Compose BitmapShader factory isn't available in
+                        // this UI version.
+                        val tileBrush = remember(themeArtwork.artworkRes) {
+                            val bmp = android.graphics.BitmapFactory.decodeResource(
+                                this@MainActivity.resources,
+                                themeArtwork.artworkRes,
+                            )
+                            ShaderBrush(
+                                android.graphics.BitmapShader(
+                                    bmp,
+                                    android.graphics.Shader.TileMode.REPEAT,
+                                    android.graphics.Shader.TileMode.REPEAT,
+                                )
+                            )
                         }
                         Box(
                             modifier =
                                 Modifier
                                     .matchParentSize()
-                                    .drawBehind { drawRect(brush = ShaderBrush(tileShader)) }
+                                    .drawBehind { drawRect(brush = tileBrush) }
                         )
                     } else {
                         Image(

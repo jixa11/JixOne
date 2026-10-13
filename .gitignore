@@ -13,7 +13,7 @@ scripts/*
 examples/
 skills/
 tests/
-db/
+/db/
 download/
 upload/
 *.png
@@ -31,7 +31,7 @@ tool-results/
 dev.log
 worklog.md
 upload/
-db/
+/db/
 tools/
 android/.gradle/
 android/app/build/

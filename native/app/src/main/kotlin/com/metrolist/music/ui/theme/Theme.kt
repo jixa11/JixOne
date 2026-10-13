@@ -35,11 +35,6 @@ import com.materialkolor.score.Score
 // theme picker stores this value as the "follow system wallpaper" sentinel.
 val DefaultThemeColor = Color(0xFF5F5BF9)
 
-// How much the artwork veil covers: high enough that text on top keeps full
-// contrast (same idea as the web app's veil), low enough the art still reads.
-private const val ArtworkVeilAlphaDark = 0.83f
-private const val ArtworkVeilAlphaLight = 0.78f
-
 /**
  * JixOne modern shape language: generous, soft corners everywhere —
  * the visual signature that separates JixOne from stock Material/Metrolist.
@@ -119,6 +114,9 @@ fun MetrolistTheme(
     }
 
     // Veil over the artwork, colored with the theme's own web-app background.
+    // Veil strength per theme, ported 1:1 from the web app's globals.css
+    // (art opacity .30 carpet / .34 tile / .32 derafsh / .20 cyrus) so the
+    // artwork is exactly as visible as it was on the web.
     val artwork = persianTheme?.let { theme ->
         val veilBase = if (darkTheme) {
             theme.darkBackground ?: baseColorScheme.background
@@ -129,7 +127,7 @@ fun MetrolistTheme(
             artworkRes = theme.artworkRes,
             tiled = theme.tiled,
             veilColor = veilBase.copy(
-                alpha = if (darkTheme) ArtworkVeilAlphaDark else ArtworkVeilAlphaLight
+                alpha = if (darkTheme) theme.veilAlphaDark else theme.veilAlphaLight
             ),
         )
     }

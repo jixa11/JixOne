@@ -30,6 +30,10 @@ data class PersianArtworkTheme(
     val artworkRes: Int,
     /** true = seamless motif, repeated (tiled) instead of cropped */
     val tiled: Boolean,
+    /** how much veil covers the art in dark mode — 1 - (web art opacity) */
+    val veilAlphaDark: Float = 0.70f,
+    /** how much veil covers the art in light mode */
+    val veilAlphaLight: Float = 0.80f,
 )
 
 /**
@@ -52,6 +56,8 @@ val PersianArtworkThemes = listOf(
         lightBackground = null,
         artworkRes = R.drawable.jixone_bg_carpet,
         tiled = false,
+        // web: body::after opacity .30 → veil .70 (globals.css persian-carpet)
+        veilAlphaDark = 0.70f,
     ),
     PersianArtworkTheme(
         seed = PersianTileSeed,
@@ -59,6 +65,8 @@ val PersianArtworkThemes = listOf(
         lightBackground = null,
         artworkRes = R.drawable.jixone_bg_tile,
         tiled = true,
+        // web: opacity .34 → veil .66 (globals.css persian-tile)
+        veilAlphaDark = 0.66f,
     ),
     PersianArtworkTheme(
         seed = DerafshKavianiSeed,
@@ -66,6 +74,8 @@ val PersianArtworkThemes = listOf(
         lightBackground = null,
         artworkRes = R.drawable.jixone_bg_derafsh,
         tiled = false,
+        // web: opacity .32 → veil .68 (globals.css derafsh)
+        veilAlphaDark = 0.68f,
     ),
     PersianArtworkTheme(
         seed = CyrusSeed,
@@ -73,6 +83,8 @@ val PersianArtworkThemes = listOf(
         lightBackground = Color(0xFFF5EEDE), // cyrus parchment (web app)
         artworkRes = R.drawable.jixone_bg_cyrus,
         tiled = false,
+        // web: opacity .20 on the light parchment → veil .80 (globals.css cyrus)
+        veilAlphaLight = 0.80f,
     ),
 )
 

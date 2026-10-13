@@ -15,10 +15,10 @@
 
 | | |
 | --- | --- |
-| Recommended · پیشنهادی | `JixOne-2.0.2-arm64-v8a.apk` — for phones made after ~2015 (much smaller download) |
+| Recommended · پیشنهادی | `JixOne-2.0.2-arm64-v8a.apk` — for phones made after ~2015 (27.3 MB, a bit lighter than universal) |
 | Older 32-bit phones | `JixOne-2.0.2-armeabi-v7a.apk` |
 | Emulator | `JixOne-2.0.2-x86_64.apk` |
-| Universal (every device) | `JixOne-2.0.2.apk` — or `JixOne-2.0.2-apk.zip` (survives bad proxies better) |
+| Universal (every device) | `JixOne-2.0.2.apk` (29.9 MB) — or `JixOne-2.0.2-apk.zip` (survives bad proxies better) |
 | Where | [Releases page](https://github.com/jixa11/JixOne/releases/latest) only — exact sizes and SHA-256 checksums are published there for every file |
 | Signature | **v1 + v2 + v3** (all schemes), key `CN=JixOne` (valid to 2056) |
 | Android | **8.0 (API 26) or newer** · اندروید ۸ به بالا |
@@ -37,7 +37,7 @@ The APK on the Releases page is **verified valid** — checked with Google's own
 
 ### دانلود و نصب (فارسی)
 
-۱. برای گوشی‌های جدید (۲۰۱۵ به بعد) فایل **`JixOne-2.0.2-arm64-v8a.apk`** را از صفحه‌ی [Releases](https://github.com/jixa11/JixOne/releases/latest) دانلود کنید — حجمش تقریباً نصف نسخه‌ی universal است و در ایران کمتر خراب می‌شود. برای گوشی‌های قدیمی ۳۲ بیتی نسخه‌ی `armeabi-v7a` و برای همه‌ی دستگاه‌ها نسخه‌ی `JixOne-2.0.2.apk` (universal) موجود است.
+۱. برای گوشی‌های جدید (۲۰۱۵ به بعد) فایل **`JixOne-2.0.2-arm64-v8a.apk`** را از صفحه‌ی [Releases](https://github.com/jixa11/JixOne/releases/latest) دانلود کنید — مخصوص پردازنده‌ی گوشی شماست و کمی سبک‌تر از نسخه‌ی کامل است. برای گوشی‌های قدیمی ۳۲ بیتی نسخه‌ی `armeabi-v7a` و برای همه‌ی دستگاه‌ها نسخه‌ی `JixOne-2.0.2.apk` (universal) موجود است.
 ۲. **حجم فایل باید دقیقاً با عدد نوشته‌شده در صفحه‌ی Releases یکی باشد** (بایت به بایت). اگر متفاوت بود یعنی دانلود ناقص است — با اینترنت پایدار، VPN و خودِ کروم دوباره بگیرید.
 ۳. اندروید ۸ به بالا لازم است. اگر نسخه‌ی آزمایشی قدیمی‌تری از اپ نیتیو نصب دارید، اول آن را حذف کنید (اپ قدیمی WebView مشکلی ندارد و جدا است).
 ۴. شیائومی: گزینه‌ی «Install via USB» در Developer options را فعال کنید. اجازه‌ی «Install unknown apps» هم باید به مرورگر/فایل‌منیجر داده شود.
@@ -50,7 +50,7 @@ The APK on the Releases page is **verified valid** — checked with Google's own
 
 Also in this release, after a user's phone refused a 29 MB universal APK that apksigner proves valid:
 
-- **Per-CPU builds** — `arm64-v8a` (most phones, roughly half the size), `armeabi-v7a` (older phones), `x86_64` (emulator), plus the universal build. Smaller downloads are simply harder to corrupt.
+- **Per-CPU builds** — `arm64-v8a` (most phones), `armeabi-v7a` (older phones), `x86_64` (emulator), plus the universal build; all report the same version code, so switching between them never looks like a downgrade. The in-app updater automatically picks the right one for the device.
 - The APK is signed with **all three signature schemes (v1 + v2 + v3)** — quirky OEM installers accept it more readily (2.0.1).
 - Every release also ships a **zip-wrapped copy** and **SHA-256 checksums** for every APK (2.0.1).
 

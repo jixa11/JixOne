@@ -210,12 +210,12 @@ object Updater {
     fun getDownloadUrlForCurrentVariant(releaseInfo: ReleaseInfo): String? {
         val (currentArch, currentVariant) = getCurrentAppVariant()
 
-        return releaseInfo.assets
+        val asset = releaseInfo.assets
             .find { it.architecture == currentArch && it.variant == currentVariant }
             ?: releaseInfo.assets.find { it.architecture == "universal" && it.variant == currentVariant }
             ?: releaseInfo.assets.find { it.architecture == "universal" }
             ?: releaseInfo.assets.firstOrNull()
-            ?.downloadUrl
+        return asset?.downloadUrl
     }
 
     /**

@@ -1,14 +1,74 @@
 # JixOne
 
-> A beautiful, ad-free music player for the YouTube Music catalog — a fully standalone Android app (web UI bundled inside the APK) plus a Next.js web app.
->
-> پلیر موزیک زیبا و بدون تبلیغ برای کاتالوگ YouTube Music — اپ اندروید کاملاً مستقل (رابط وب داخل خود APK) + نسخه وب (Next.js).
+![JixOne native](docs/screenshots/native-hero.png)
 
-**Current build: v1.4.0** · [download the APK](public/JixOne-latest.apk)
+> **Native Android music player for the YouTube Music catalog** — Persian themes, offline downloads, in-app updater. Based on [Metrolist](https://github.com/Metrolist/Metrolist).
+>
+> **پلیر موزیک نیتیو اندروید برای کاتالوگ YouTube Music** — تم‌های ایرانی، دانلود آفلاین و به‌روزرسانی داخل خود اپ.
+
+**Current release: JixOne 2.0.0 (native)** · [⬇ Download / دانلود](https://github.com/jixa11/JixOne/releases/latest)
 
 ---
 
+## Download & install · دانلود و نصب
+
+| | |
+| --- | --- |
+| File | `JixOne-2.0.0.apk` — from the [Releases page](https://github.com/jixa11/JixOne/releases/tag/n2.0.0) only |
+| Exact size · حجم دقیق | **29,247,749 bytes (27.9 MB)** |
+| SHA-256 | `2f3416ad4a06d5afbffb30412936c58d6c7493ec4a435e61e22417e2987564be` |
+| Signature | APK Signature Scheme v2, key `CN=JixOne` (valid to 2056) |
+| Android | **8.0 (API 26) or newer** · اندروید ۸ به بالا |
+| Package | `com.jixone.native` — coexists with the old WebView app (`com.jixone.app`) |
+
+### «App not installed as package appears to be invalid»
+
+The APK on the Releases page is **verified valid** — the ZIP integrity, the v2 signature and the signing certificate were all checked and match the JixOne key. This error on your phone means the *copy you downloaded* is damaged or it is not actually the APK. In order of likelihood:
+
+1. **Incomplete download (most common).** Your file must be **exactly 29,247,749 bytes**. Check it in your file manager — if the size differs, the download was cut off. Re-download over a stable connection (a VPN or a resuming download manager helps a lot with GitHub in some regions).
+2. **You installed the wrong file.** Files from the *Actions* tab are ZIP artifacts — inside them is the APK; do not install the ZIP itself, and do not rename it. Only use the `JixOne-2.0.0.apk` on the **Releases** page.
+3. **Older test build installed.** If an earlier JixOne *native* test APK happens to be on the device, uninstall it first — different signatures cannot upgrade over each other. (The old WebView JixOne can stay; it is a different package.)
+4. **Android below 8.0** cannot install this app.
+5. Optional: verify the file — `sha256sum JixOne-2.0.0.apk` must print the SHA-256 above.
+
+### دانلود و نصب (فارسی)
+
+۱. فایل `JixOne-2.0.0.apk` را فقط از صفحه‌ی [Releases](https://github.com/jixa11/JixOne/releases/tag/n2.0.0) دانلود کنید.
+۲. **حجم فایل باید دقیقاً ۲۹٬۲۴۷٬۷۴۹ بایت (۲۷٫۹ مگابایت) باشد.** اگر متفاوت بود یعنی دانلود ناقص است — با اینترنت پایدارتر، VPN یا یک دانلودمنیجر دوباره بگیرید. این شایع‌ترین دلیل خطای «package appears to be invalid» است.
+۳. فایل‌های تب Actions فایل ZIP هستند؛ خودِ APK داخلشان است — فقط از صفحه‌ی Releases دانلود کنید.
+۴. اندروید ۸ به بالا لازم است. اگر نسخه‌ی آزمایشی قدیمی‌تری از اپ نیتیو نصب دارید، اول آن را حذف کنید (اپ قدیمی WebView مشکلی ندارد و جدا است).
+۵. اجازه‌ی «Install unknown apps» باید به مرورگر یا فایل‌منیجر داده شود.
+
+---
+
+## What's new in 2.0.0 — the native rewrite
+
+JixOne started as a WebView wrapper around a bundled web app. **v2.0.0 replaces that with a fully native app** (Kotlin + Jetpack Compose + Media3/ExoPlayer, based on Metrolist 13.7.0):
+
+| | WebView app (v1.x) | Native app (v2.0+) |
+| --- | --- | --- |
+| Playback | HTML5 audio in a WebView | Media3/ExoPlayer service — real background playback |
+| Downloads | Browser storage (OPFS) inside the app | Real audio files on your storage, survive reinstalls of data |
+| Offline | Inside the sandbox only | System-wide, any player can see exported files |
+| Lock screen | Basic MediaSession | MediaStyle notification, Bluetooth/headset buttons, Android Auto, Cast |
+| Account | Cookie-based session | YouTube Music account sign-in in the app |
+| Updates | Manual APK | In-app **check for updates** + changelog |
+| Language | English / Persian | Full Persian (RTL) UI + 20+ languages via Metrolist |
+| Themes | 12 web themes incl. 4 Persian | Material You + 4 Persian themes (Isfahan Tile, Persian Carpet, Derafsh Kaviani, Cyrus) |
+
+The old web app (v1.5.2) is still in this repository and still works — see the legacy section below.
+
+## Music source — منبع موسیقی
+
+JixOne plays the **YouTube Music catalog**, streamed through YouTube's internal InnerTube API on your own IP — no middleman server, no rehosted audio.
+
+- **Not SoundCloud, not Radio Javan.** Those services are not part of the app and never were — in either the old or the new version.
+- Signing in with your YouTube Music account is recommended: anonymous playback calls are bot-gated (`LOGIN_REQUIRED`) on most tracks, and a signed-in session also unlocks licensed songs and albums in search.
+- Playback reliability depends on your network/IP — residential IPs and normal VPNs behave best; datacenter IPs are gated hard.
+
 ## Screenshots
+
+The banner above is the v2.0 native app. The screenshots below are from the v1.x **web** app (kept for reference) — the native app is brand new, so real device screenshots will be added as it is used. If you install it, feel free to share yours in an issue!
 
 | Home | Now playing |
 | --- | --- |
@@ -32,176 +92,98 @@
 
 ## English
 
-### Features
+### The native app (v2.0+)
 
-- **Full YouTube Music catalog** — search songs and artists and start listening instantly.
-- **Ad-free playback engine** — audio streams are extracted directly on your device (raw innertube calls from Kotlin, the same approach as Metrolist). If extraction fails, the app falls back to the official YouTube player.
-- **YouTube Music sign-in** — a real account session, which is what makes playback work at all on most tracks (see below).
-- **Downloads & offline playback** — save songs to device storage (OPFS) at 160 / 70 / 50 kbps Opus, watch live progress in the download queue, and play them back with zero network.
-- **Smart download queue** — sequential processing, retry on failure, automatic pause/resume when the network drops.
-- **Library** — liked songs, listening history, and custom playlists (create, rename, delete, add/remove songs).
-- **Queue panel** with shuffle and repeat (off / all / one), jump-to-track.
-- **Video support** — switch between hidden / mini / theater video modes of the official player.
-- **12 themes, 4 of them Persian** — Persian Carpet, Isfahan Tile, Kaviani Banner and Cyrus the Great each carry real artwork behind the whole app, veiled so text stays at full contrast. Plus Cyber Red, Cyber Blue, Synthwave, Spotify, OLED, Dubai, YT Light and YT Original.
-- **Persian & English** — automatic RTL/LTR layout flip, Vazirmatn typography, locale-aware digits.
-- **Professional animations** — staggered list entrances, player slide-in, panel transitions, theme cross-fade, and full `prefers-reduced-motion` support.
-- **Standalone Android APK** — the whole web UI ships inside the app: install it and it just works, with **no server and no setup** (optional custom-server mode for power users in Settings).
-- **Installable web app (PWA)** — the web build installs from the browser too (Settings → *Install as an app*, or Chrome's ⋮ menu): its own icon, a standalone window, an offline shell, background playback and lock-screen controls. Live data (API, streams) is never cached.
-- **Android extras** — MediaStyle lock-screen notification with play/pause/next/previous and a live seekbar, plus a resizable 4×1 home-screen widget that follows the app's accent color.
+Everything is verified in the shipped code, not aspirational:
 
-### Why sign-in matters
+- **Full YouTube Music catalog** — search songs, albums, artists and playlists; stream instantly.
+- **Account sign-in** — log in with your YouTube Music account inside the app.
+- **Complete player** — play/pause, next/previous, shuffle, repeat (off / all / one), drag-and-drop queue.
+- **Playlists** — create, rename, delete, add/remove songs, and **copy a playlist** (new in 2.0: duplicates the whole list with all its songs in order — «کپی فهرست پخش» in the ⋯ menu).
+- **Downloads & offline** — download songs and entire playlists as real audio files; play them with zero network.
+- **Lyrics** (synced), **sleep timer**, **equalizer**, **backup/restore** the library, **M3U** playlist import/export.
+- **Android Auto** and **Google Cast** (GMS build), MediaStyle notification, Bluetooth & headset controls.
+- **4 Persian themes** — Isfahan Tile, Persian Carpet, Derafsh Kaviani and Cyrus the Great — plus Material You dynamic color and pure black. Pick them in Settings → Appearance.
+- **Persian UI** — full `values-fa` translation with RTL layout.
+- **In-app updater** — Settings → About → *Check for updates* reads this repo's releases and opens the new APK when one is available.
 
-YouTube bot-gates anonymous innertube player calls. For most tracks an unauthenticated request comes back with:
+### Building the native app
 
-```
-playabilityStatus: LOGIN_REQUIRED — "Sign in to confirm you're not a bot"
-```
+CI does the releases: push a tag like `n2.1.0` and [.github/workflows/native-release.yml](.github/workflows/native-release.yml) builds a signed GMS release APK (key material comes from repo secrets — see [docs/SIGNING.md](docs/SIGNING.md)) and attaches it to the GitHub release. The in-app updater finds it automatically.
 
-No stream URL means no playback and no download, so signing in is not a nice-to-have — it is the difference between the app working and not working. A signed-in session lifts the gate, and it also unlocks the licensed song catalogue in search: an anonymous session is offered only Artists / Videos / Episodes / Playlists / Profiles filters, with no Songs or Albums at all.
-
-**In the Android app:** Settings → Account → *Sign in to YouTube Music*. A WebView carries you through the normal Google login, and the session cookie is read from the CookieManager and stored on the device. Nothing is sent anywhere else — every innertube request simply carries that cookie plus the `SAPISIDHASH` authorization header Google's own clients send.
-
-**On the web build:** browsers cannot read Google's cookies from another origin, so the session lives on the server. Two ways to set it:
-
-1. **In the app (v1.5.0+):** Settings → Account → *Sign in with a cookie*. Sign in to `music.youtube.com` in desktop Chrome, open DevTools (F12) → Network → click any request → copy the whole `Cookie` request header, and paste it into the app. The server validates the session against YouTube, stores it under `.data/` (gitignored), and immediately uses it for extraction — showing your account name in Settings.
-2. **Via environment variable** (for self-hosters): put the same cookie string into `YTM_COOKIE`:
-
-```
-YTM_COOKIE="SID=…; SAPISID=…; HSID=…"
-```
-
-Without a session the web build still runs; it just hits the same gate on most tracks (the app then falls back to the official YouTube embed player for playable videos).
-
-### How playback works
-
-The device extracts audio stream URLs directly from YouTube's innertube API, from **your own IP** — no middleman server. The client chain is ANDROID_VR first (the one app client that still returns direct, un-ciphered URLs), then ANDROID_MUSIC, TVHTML5 and WEB_REMIX, each carrying a `visitorData` session id. Every candidate URL is byte-range probed before it reaches the player, so a locked or expired URL never becomes a silent failure.
-
-Playback quality therefore depends on your network: datacenter IPs are gated hard, residential IPs and VPNs behave normally. YouTube Music also has to be available in your region — a VPN solves that too.
-
-### Run the web app
+Local build (JDK 21):
 
 ```bash
-npm install
-npm run dev
-# open http://localhost:3000
+cd native
+./gradlew assembleGmsDebug     # debug APK
+./gradlew assembleGmsRelease   # release APK (project key, debug fallback)
 ```
 
-Production build:
+Release checklist: bump `versionName`/`versionCode` in `native/app/build.gradle.kts` → commit → tag `n<version>` → push. Done.
 
-```bash
-npm run build && npm start
-```
+### The web app (v1.x — legacy, still here)
 
-### Android app
+The Next.js web app and its WebView APK remain in this repo (`src/`, `android/`). It still installs as a PWA, streams via the same InnerTube approach, and its README knowledge base lives on below. For day-to-day listening, the native app is now the recommended build.
 
-The Android app is **fully standalone**: the entire web app is bundled inside the APK and served locally over a secure origin (`WebViewAssetLoader`), so search, playback, downloads and OPFS offline storage all run on the device. Install and play — no server URL is ever asked.
+<details>
+<summary>Web app details (v1.5.2)</summary>
 
-Rebuild everything (static web export → embed into assets → signed release APK) with one script:
+- **Ad-free engine with fallback** — streams are extracted on-device (ANDROID_VR → ANDROID_MUSIC → TVHTML5 → WEB_REMIX client chain, byte-range-probed before playback); regional blocks are detected *before* playback starts and hand off to the official player.
+- **Sign-in matters** — YouTube bot-gates anonymous player calls (`LOGIN_REQUIRED`). In the Android app: Settings → Account. On the web: paste your `music.youtube.com` cookie in Settings, or set `YTM_COOKIE` for self-hosting.
+- **Run it** — `npm install && npm run dev`, or `npm run build && npm start`. Build the WebView APK with `./build-apk.sh`.
+- **Tech stack** — Next.js 16, TypeScript, Tailwind CSS 4, Zustand, OPFS offline storage, Kotlin WebView shell.
 
-```bash
-./build-apk.sh
-# result: download/JixOne-v1.3.0.apk
-```
-
-Requirements: Node.js, JDK 17+, Android SDK (platform 34 + build-tools 34), Gradle 8.7+.
-
-- **Advanced:** Settings → *Custom server* lets a power user point the app at their own hosted JixOne web server instead of the bundled UI.
-- Signing is pre-configured in `app/build.gradle.kts` and expects `android/jixone.keystore` (**not committed — keep a private backup**, it is required to sign future updates with the same identity). Without it, `gradle assembleDebug` still produces an installable APK, but its signature differs from release builds, so an installed release copy has to be uninstalled first.
-
-### Tech stack
-
-| Layer | Tools |
-| --- | --- |
-| Web | Next.js 16 (App Router), TypeScript, Tailwind CSS 4, shadcn/ui |
-| State | Zustand (player / library / downloads / settings / view) |
-| Extraction | Raw innertube (Kotlin on device, Node on the server) |
-| Offline storage | OPFS (Origin Private File System) |
-| Android | Kotlin WebView shell, MediaSessionCompat, RemoteViews widget |
+</details>
 
 ### Disclaimer
 
-JixOne is a client for publicly available YouTube content and hosts no media itself. Use it in accordance with YouTube's Terms of Service and your local copyright laws. This project is for personal, non-commercial use. The Persian theme artwork is third-party stock imagery — check its licence before distributing the app publicly.
+JixOne is a client for publicly available YouTube content and hosts no media itself — all audio is streamed from YouTube. Use it in accordance with YouTube's Terms of Service and your local copyright laws. The Persian theme artwork is third-party stock imagery — check its licence before redistributing. The native app is based on [Metrolist](https://github.com/Metrolist/Metrolist); its license and attribution are preserved in `native/`.
 
 ---
 
 ## فارسی
 
-### امکانات
+### اپ نیتیو (نسخه ۲٫۰ به بعد)
 
-- **دسترسی کامل به کاتالوگ YouTube Music** — جستجوی آهنگ و خواننده و پخش فوری.
-- **موتور پخش بدون تبلیغ** — استریم صوتی مستقیماً روی دستگاه خودت استخراج می‌شود (درخواست خام innertube از Kotlin، همان روش Metrolist). اگر استخراج ناموفق باشد، برنامه به پلیر رسمی یوتیوب سوئیچ می‌کند.
-- **ورود به یوتیوب موزیک** — یک نشست واقعی حساب کاربری؛ همان چیزی که اصلاً باعث می‌شود پخش روی بیشتر آهنگ‌ها کار کند (پایین‌تر توضیح داده شده).
-- **دانلود و پخش آفلاین** — ذخیره آهنگ‌ها در حافظه دستگاه (OPFS) با کیفیت ۱۶۰ / ۷۰ / ۵۰ کیلوبیت Opus، نمایش زنده پیشرفت در صف دانلود، و پخش بدون اینترنت.
-- **صف دانلود هوشمند** — پردازش ترتیبی، تلاش مجدد بعد از خطا، توقف/ادامه خودکار هنگام قطع اینترنت.
-- **کتابخانه** — علاقه‌مندی‌ها، تاریخچه پخش و پلی‌لیست‌های شخصی (ساخت، تغییر نام، حذف، افزودن آهنگ).
-- **صف پخش** با پخش تصادفی و تکرار (خاموش / همه / یکی).
-- **پشتیبانی ویدیو** — حالت‌های مخفی / مینی / تئاتر برای ویدیوی رسمی.
-- **۱۲ تم که ۴ تای آن ایرانی است** — فرش ایرانی، کاشی اصفهان، درفش کاویانی و کوروش هخامنشی هرکدام یک اثر هنری واقعی پشت کل برنامه دارند که زیر یک پرده می‌نشیند تا متن کنتراست کامل خود را نگه دارد. به‌علاوه کریمسون نئون، نئو توکیو، سینث‌ویو، اسپاتیفای، OLED، دبی، روشن یوتیوب و یوتیوب میوزیک.
-- **فارسی و انگلیسی** — چرخش خودکار راست‌به‌چپ/چپ‌به‌راست، فونت وزیرمتن و اعداد هم‌ساز با زبان.
-- **انیمیشن‌های حرفه‌ای** — ورود پله‌ای لیست‌ها، اسلاید پلیر، ترنزیشن پنل‌ها، کراس‌فید تم و پشتیبانی کامل از `prefers-reduced-motion`.
-- **APK اندروید کاملاً مستقل** — کل رابط وب داخل خود اپ جاسازی شده: نصب کن و استفاده کن، **بدون هیچ سرور و تنظیماتی** (حالت «سرور دلخواه» برای کاربران حرفه‌ای در تنظیمات هست).
-- **نصب به‌عنوان اپ (PWA)** — نسخه‌ی وب هم از خود مرورگر نصب می‌شود (تنظیمات ← *نصب به‌عنوان اپ* یا منوی ⋮ کروم): آیکون اختصاصی، پنجره‌ی مستقل، پوسته‌ی آفلاین، پخش پس‌زمینه و کنترل از لاک‌اسکرین. داده‌های زنده (API و استریم) هرگز کش نمی‌شوند.
-- **امکانات اندروید** — نوتیفیکیشن قفل‌صفحه با دکمه‌های پخش/توقف/بعدی/قبلی و نوار پیشرفت زنده، به‌همراه ویجت ۴×۱ قابل تغییر اندازه که رنگ اکسنت برنامه را دنبال می‌کند.
+جیکس‌وان از یک WebView دور رابط وب شروع شد؛ **نسخه ۲٫۰٫۰ یک اپ کاملاً نیتیو** است (Kotlin + Jetpack Compose + Media3/ExoPlayer بر پایه‌ی Metrolist 13.7.0). همه‌ی موارد زیر در کد نسخه‌ی منتشرشده بررسی و تأیید شده است:
 
-### چرا ورود به حساب مهم است؟
+- **دسترسی کامل به کاتالوگ YouTube Music** — جستجوی آهنگ، آلبوم، خواننده و پلی‌لیست؛ پخش فوری.
+- **ورود با حساب یوتیوب موزیک** — داخل خود اپ؛ محدودیت ربات هم برداشته می‌شود و کاتالوگ دارای لایسنس هم در جستجو باز می‌شود.
+- **پلیر کامل** — پخش/توقف، بعدی/قبلی، شافل، تکرار (خاموش/همه/یکی)، مدیریت صف با درگ‌اند‌دراپ.
+- **پلی‌لیست‌ها** — ساخت، تغییر نام، حذف، افزودن/حذف آهنگ و **کپی پلی‌لیست** (تازه در نسخه ۲٫۰: از منوی ⋯ هر پلی‌لیست، یک نسخه‌ی کامل با همه‌ی آهنگ‌ها و همان ترتیب ساخته می‌شود — «کپی فهرست پخش»).
+- **دانلود و پخش آفلاین** — دانلود آهنگ و کل پلی‌لیست به‌صورت فایل صوتی واقعی روی حافظه؛ پخش بدون اینترنت.
+- **متن آهنگ (همگام)**، **تایمر خواب**، **اکولایزر**، **پشتیبان‌گیری/بازیابی کتابخانه**، درون‌ریزی/برون‌بری **M3U**.
+- **Android Auto** و **Google Cast** (بیلد GMS)، نوتیفیکیشن MediaStyle، کنترل با بلوتوث و هدفون.
+- **۴ تم ایرانی** — کاشی اصفهان، فرش ایرانی، درفش کاویانی و کوروش هخامنشی — به‌علاوه‌ی Material You و مشکی مطلق؛ از تنظیمات ← ظاهر انتخاب می‌شوند.
+- **رابط فارسی** — ترجمه‌ی کامل `values-fa` با چیدمان راست‌به‌چپ.
+- **بررسی به‌روزرسانی داخل اپ** — تنظیمات ← درباره ← «بررسی به‌روزرسانی» ریلیزهای همین ریپو را می‌خواند و دانلود نسخه‌ی جدید را باز می‌کند.
 
-یوتیوب درخواست‌های ناشناس innertube را bot-gate می‌کند. برای بیشتر آهنگ‌ها، پاسخ یک درخواست بدون احراز هویت این است:
+### منبع موسیقی
 
-```
-playabilityStatus: LOGIN_REQUIRED — «Sign in to confirm you're not a bot»
-```
+جیکس‌وان کاتالوگ **YouTube Music** را از طریق API داخلی InnerTube یوتیوب و با IP خودتان پخش می‌کند — بدون سرور واسط و بدون میزبانی فایل.
 
-بدون آدرس استریم، نه پخشی هست نه دانلودی. پس ورود به حساب یک امکان جانبی نیست — مرز بین کارکردن و کارنکردن برنامه است. نشست لاگین‌شده این محدودیت را برمی‌دارد و کاتالوگ آهنگ‌های دارای لایسنس را هم در جستجو باز می‌کند: به نشست ناشناس فقط فیلترهای هنرمند / ویدیو / قسمت / پلی‌لیست / پروفایل داده می‌شود و اصلاً فیلتر «آهنگ» و «آلبوم» وجود ندارد.
+- **ساندکلاد و رادیو جوان جزو اپ نیستند** — نه در نسخه‌ی قبلی و نه در نسخه‌ی جدید.
+- ورود با حساب توصیه می‌شود: درخواست‌های پخش ناشناس روی بیشتر آهنگ‌ها محدود می‌شوند (`LOGIN_REQUIRED`).
+- پایداری پخش به شبکه‌ی شما بستگی دارد — اینترنت خانگی و VPNهای عادی بهترین نتیجه را می‌دهند.
 
-**در اپ اندروید:** تنظیمات ← حساب کاربری ← *ورود به یوتیوب موزیک*. یک WebView تو را از مسیر عادی ورود گوگل عبور می‌دهد و کوکی نشست از CookieManager خوانده و روی همان دستگاه ذخیره می‌شود. هیچ چیزی جای دیگری فرستاده نمی‌شود — هر درخواست innertube فقط همان کوکی را به‌همراه هدر `SAPISIDHASH` که کلاینت‌های خود گوگل می‌فرستند حمل می‌کند.
+### بیلد و انتشار نسخه‌ی نیتیو
 
-**در نسخه وب:** مرورگر نمی‌تواند کوکی گوگل را از origin دیگری بخواند، پس نشست روی سرور نگه داشته می‌شود. دو راه:
+انتشار با CI انجام می‌شود: یک تگ مثل `n2.1.0` بزنید تا [native-release.yml](.github/workflows/native-release.yml) APK امضاشده‌ی release بسازد و به ریلیز گیت‌هاب بچسباند؛ به‌روزرسانی داخل اپ هم خودکار آن را پیدا می‌کند (مطابق [docs/SIGNING.md](docs/SIGNING.md)، کلید امضا در Secretهای ریپو است).
 
-1. **داخل خود اپ (نسخه 1.5.0 به بعد):** تنظیمات ← حساب کاربری ← *ورود با کوکی*. در کروم دسکتاپ وارد `music.youtube.com` شو، DevTools (کلید F12) ← تب Network ← روی یکی از درخواست‌ها کلیک کن ← کل مقدار هدر `Cookie` را کپی کن و همین‌جا بچسبان. سرور نشست را با یوتیوب اعتبارسنجی می‌کند، در مسیر `.data/` (داخل .gitignore) ذخیره می‌کند و بلافاصله برای استخراج به کار می‌برد — اسم حسابت هم در تنظیمات دیده می‌شود.
-2. **با متغیر محیطی** (برای کسانی که خودشان هاست می‌کنند): همان رشته‌ی کوکی را در `YTM_COOKIE` بگذار:
-
-```
-YTM_COOKIE="SID=…; SAPISID=…; HSID=…"
-```
-
-بدون نشست هم نسخه وب اجرا می‌شود؛ فقط روی بیشتر آهنگ‌ها به همان محدودیت می‌خورد (آن‌وقت اپ برای ویدیوهای قابل پخش به پلیر رسمی یوتیوب برمی‌گردد).
-
-### نحوه پخش چطور کار می‌کند؟
-
-دستگاه آدرس استریم صوتی را مستقیماً از API اینرتیوب یوتیوب و با **IP خودت** استخراج می‌کند — بدون سرور واسط. زنجیره‌ی کلاینت‌ها اول ANDROID_VR است (تنها کلاینت اپی که هنوز آدرس مستقیم و بدون رمز برمی‌گرداند)، بعد ANDROID_MUSIC، TVHTML5 و WEB_REMIX، و همه یک شناسه‌ی نشست `visitorData` حمل می‌کنند. هر آدرس کاندید قبل از رسیدن به پلیر با یک درخواست بازه‌ای بایت آزموده می‌شود، تا آدرس قفل‌شده یا منقضی هیچ‌وقت به یک خطای بی‌صدا تبدیل نشود.
-
-پس کیفیت پخش به شبکه‌ات بستگی دارد: IPهای دیتاسنتر سخت گیت می‌شوند، ولی اینترنت خانگی و VPN عادی کار می‌کنند. یوتیوب موزیک هم باید در منطقه‌ات در دسترس باشد — که VPN آن را هم حل می‌کند.
-
-### اجرای نسخه وب
+بیلد محلی (JDK 21):
 
 ```bash
-npm install
-npm run dev
-# باز کن http://localhost:3000
+cd native
+./gradlew assembleGmsDebug
+./gradlew assembleGmsRelease
 ```
 
-بیلد نهایی:
+چک‌لیست انتشار: `versionName`/`versionCode` در `native/app/build.gradle.kts` را بالا ببرید ← کامیت ← تگ `n<version>` ← پوش. تمام.
 
-```bash
-npm run build && npm start
-```
+### اپ وب (نسخه ۱٫x — قدیمی، ولی همین‌جا هست)
 
-### نسخه اندروید
-
-اپ اندروید **کاملاً مستقل** است: کل اپ وب داخل APK جاسازی شده و از یک origin امن (`WebViewAssetLoader`) روی خود گوشی اجرا می‌شود — یعنی جستجو، پخش، دانلود و حافظه آفلاین OPFS همه روی دستگاه کاربرند. نصب کن و پخش کن — هیچ‌وقت آدرس سرور پرسیده نمی‌شود.
-
-بیلد کامل (خروجی استاتیک وب ← جاسازی در assets ← APK امضاشده) با یک اسکریپت:
-
-```bash
-./build-apk.sh
-# خروجی: download/JixOne-v1.3.0.apk
-```
-
-پیش‌نیازها: Node.js، JDK 17+، اندروید SDK (platform 34 + build-tools 34)، Gradle 8.7+.
-
-- **پیشرفته:** تنظیمات ← *سرور اختصاصی* به کاربر حرفه‌ای اجازه می‌دهد اپ را به سرور وب شخصی خودش وصل کند.
-- تنظیمات امضا در `app/build.gradle.kts` از قبل انجام شده و به `android/jixone.keystore` نیاز دارد (**در ریپو نیست — حتماً بکاپ خصوصی نگه دار**، برای امضای آپدیت‌های بعدی با همان هویت الزامی است). بدون آن، `gradle assembleDebug` هنوز یک APK قابل نصب می‌سازد، ولی امضایش با بیلدهای release فرق دارد، پس نسخه‌ی نصب‌شده‌ی release باید اول حذف شود.
+اپ وب (Next.js) و APK وب‌ویویی آن همچنان در همین ریپو هستند (`src/` و `android/`) و مثل قبل کار می‌کنند؛ برای گوش‌دادن روزمره اما نسخه‌ی نیتیو توصیه می‌شود.
 
 ### سلب مسئولیت
 
-JixOne یک کلاینت برای محتوای عمومی یوتیوب است و خودش هیچ مدیایی را میزبانی نمی‌کند. لطفاً از آن مطابق قوانین یوتیوب و قوانین کپی‌رایت محل زندگی‌ات استفاده کن. این پروژه برای استفاده شخصی و غیرتجاری است. تصاویر تم‌های ایرانی از منابع استوک شخص ثالث هستند — پیش از انتشار عمومی برنامه، پروانه‌ی استفاده‌شان را بررسی کن.
+جیکس‌وان فقط یک کلاینت برای محتوای عمومی یوتیوب است و هیچ فایل صوتی میزبانی نمی‌کند — همه‌ی پخش مستقیماً از یوتیوب انجام می‌شود. استفاده‌ی شما تابع قوانین یوتیوب و قوانین حق نشر محل زندگی‌تان است. اپ نیتیو بر پایه‌ی [Metrolist](https://github.com/Metrolist/Metrolist) ساخته شده و مجوز و اشاره‌ی آن در `native/` حفظ شده است.

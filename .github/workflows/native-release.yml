@@ -4,7 +4,9 @@ name: Native APK (JixOne)
 # Trigger: push a tag starting with "n" (e.g. n2.0.0), a push to the
 # native-outertune branch (compile test), or run manually from main.
 # The in-app updater reads releases whose tag starts with "n" from
-# jixa11/JixOne and expects an asset named JixOne-<version>.apk.
+# jixa11/JixOne and expects assets named JixOne-<version>-<abi>.apk plus
+# JixOne-<version>-universal.apk (any JixOne-*.apk without an ABI suffix is
+# treated as universal by every shipped updater version).
 on:
   push:
     branches:
@@ -86,10 +88,11 @@ jobs:
               cp "$RELDIR/app-gms-${abi}-release.apk" "out/JixOne-${VERSION}-${abi}.apk"
             fi
           done
-          # Universal APK (name varies by AGP version)
+          # Universal APK (name varies by AGP version) — explicitly suffixed
+          # "-universal" so users can tell it apart from the per-CPU builds.
           UNIVERSAL="$(ls "$RELDIR/app-gms-release.apk" "$RELDIR/app-gms-universal-release.apk" 2>/dev/null | head -1 || true)"
           if [ -n "$UNIVERSAL" ]; then
-            cp "$UNIVERSAL" "out/JixOne-${VERSION}.apk"
+            cp "$UNIVERSAL" "out/JixOne-${VERSION}-universal.apk"
           else
             echo "FATAL: no universal release APK found"; ls -la "$RELDIR"; exit 1
           fi
@@ -97,7 +100,7 @@ jobs:
           # Zip-wrapped copy: in some regions .apk downloads get mangled by
           # proxies/accelerators; a .zip survives better and its CRC check
           # makes corruption obvious at extraction time.
-          (cd out && zip -q "JixOne-${VERSION}-apk.zip" "JixOne-${VERSION}.apk")
+          (cd out && zip -q "JixOne-${VERSION}-apk.zip" "JixOne-${VERSION}-universal.apk")
           # Checksums so anyone can verify their download
           (cd out && for f in JixOne-*.apk; do sha256sum "$f" > "$f.sha256"; done)
           ls -la out/

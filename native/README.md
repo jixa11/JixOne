@@ -17,7 +17,7 @@ See `NOTICE.md` for attribution and `../docs/SIGNING.md` for the signing key.
 - Brand default theme color matched to the app icon
 - **Copy playlist**: duplicate any playlist with all songs and their order
 - In-app updater pointed at this repository: releases tagged `n*`
-  (e.g. `n2.0.0`) with a `JixOne-<version>.apk` asset
+  (e.g. `n2.0.2`) with `JixOne-<version>-<abi>.apk` + `JixOne-<version>-universal.apk` assets
 - Farsi UI (upstream translations), first-run RTL experience
 
 ## Build

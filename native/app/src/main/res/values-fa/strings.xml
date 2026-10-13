@@ -60,6 +60,7 @@
     <string name="remove_download">لغو دانلود</string>
     <string name="import_playlist">واردکردن فهرست‌ پخش</string>
     <string name="add_to_playlist">اضافه‌کردن به فهرست‌ پخش</string>
+    <string name="copy_playlist">کپی فهرست پخش</string>
     <string name="view_artist">مشاهده‌ هنرمند</string>
     <string name="view_album">مشاهده‌ مجموعه</string>
     <string name="refetch">نوسازی</string>
@@ -163,6 +164,17 @@
     <string name="dark_theme_on">روشن</string>
     <string name="dark_theme_off">خاموش</string>
     <string name="dark_theme_follow_system">پیروی از سیستم</string>
+    <string name="check_for_updates">بررسی به‌روزرسانی</string>
+    <string name="update_checking">در حال بررسی به‌روزرسانی…</string>
+    <string name="update_up_to_date">جیکس‌وان به‌روز است</string>
+    <string name="update_available">نسخهٔ جدید %1$s موجود است — برای دانلود بزنید</string>
+    <string name="update_check_failed">بررسی به‌روزرسانی ناموفق بود. اتصال اینترنت را چک کنید.</string>
+    <string name="jixone_theme">تم جیکس‌وان</string>
+    <string name="jixone_theme_default">پیش‌فرض (رنگ پویا)</string>
+    <string name="jixone_theme_carpet">فرش ایرانی</string>
+    <string name="jixone_theme_tile">کاشی اصفهان</string>
+    <string name="jixone_theme_derafsh">درفش کاویانی</string>
+    <string name="jixone_theme_cyrus">کوروش هخامنشی</string>
     <string name="pure_black">مشکی خالص</string>
     <string name="default_open_tab">زبانه باز پیش‌فرض</string>
     <string name="customize_navigation_tabs">سفارشی‌کردن زبانه‌های ناوبری</string>

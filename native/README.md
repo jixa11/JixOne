@@ -1,31 +1,40 @@
-# JixOne Native (Android)
+# JixOne (native)
 
-> نسخهٔ نیتیو اپ JixOne — بر پایهٔ **OuterTune** (کاتالوگ YouTube Music)، با تم‌های ایرانی اختصاصی، کپی پلی‌لیست و آیکون جدید JixOne.
-> The native Android edition of JixOne — built on the **OuterTune** codebase (GPL-3.0, see `LICENSE`), carrying JixOne's signature Persian themes, playlist copy and new icon.
+The native Android build of JixOne — a fork of [Metrolist](https://github.com/metrolistgroup/metrolist), GPL-3.0.
 
-**Package:** `com.jixone.app` · **Version:** 1.6.0 (installs over the previous JixOne app; debug builds use `com.jixone.app.debug` and live side-by-side)
+This replaces the WebView build in `../android`, which could not do real
+background playback, an account-bound InnerTube session, or reliable
+downloads. All three are things a native Media3 player gets right by
+construction.
 
----
+See `NOTICE.md` for attribution and `../docs/SIGNING.md` for the signing key.
 
-## What's inside (changes over upstream OuterTune)
+## What JixOne adds on top of upstream
 
-| Feature | Where |
-| --- | --- |
-| 4 signature Persian themes — فرش ایرانی، کاشی اصفهان، درفش کاویانی، کوروش هخامنشی | `app/src/main/java/com/dd3boh/outertune/ui/theme/JixOneThemes.kt` + picker in **Settings → Appearance → JixOne theme** (فارسی + English) |
-| **Copy playlist** — کپی کامل پلی‌لیست با حفظ ترتیب آهنگ‌ها | playlist menu (long-press a playlist) → *Copy playlist* |
-| New minimal launcher icon — نت با سر لوزی کاشی روی سرمه‌ای، تیرک فیروزه‌ای | `app/src/main/res/drawable/launcher_foreground.xml` (+ monochrome / themed icons) |
-| Rebranding — JixOne name, `com.jixone.app`, APK name `JixOne-1.6.0-…` | `app/build.gradle.kts`, `res/values/app_name.xml` |
-
-Upstream: [OuterTune](https://github.com/OuterTune/OuterTune) — all upstream features are included: play/pause/next/previous/shuffle/repeat, queue management, playlist create/edit/delete, song & playlist downloads (offline), liked songs + account sync with YouTube Music, lyrics, sleep timer, M3U import/export, full Persian UI (`values-fa`), and more.
+- JixOne identity: name, neon J-Note icon, `com.jixone.native` package id
+- Persian theme palettes in Settings → Appearance → Theme:
+  کاشی اصفهان (turquoise), فرش ایرانی (carpet gold), درفش کاویانی (violet), کوروش (blue)
+- Brand default theme color matched to the app icon
+- **Copy playlist**: duplicate any playlist with all songs and their order
+- In-app updater pointed at this repository: releases tagged `n*`
+  (e.g. `n2.0.0`) with a `JixOne-<version>.apk` asset
+- Farsi UI (upstream translations), first-run RTL experience
 
 ## Build
 
 ```bash
 cd native
-./gradlew assembleCoreDebug        # → app/build/outputs/apk/core/debug/JixOne-…apk (installable)
-./gradlew assembleCoreRelease      # unsigned release (add your keystore via keystore.properties)
+echo "sdk.dir=$ANDROID_HOME" > local.properties
+./gradlew assembleGmsDebug      # or assembleGmsRelease
 ```
 
-Or just push a tag `n*` (e.g. `n1.6.0`) — GitHub Actions builds the APK (`.github/workflows/native-release.yml`).
+Flavours come from upstream: `foss` (no Cast), `gms` (Cast), `izzy`.
+The CI workflow (`.github/workflows/native-release.yml` at the repo root)
+builds the `gms` flavour; pushing a tag like `n2.0.0` attaches the APK to a
+GitHub release.
 
-Requires JDK 21 + Android SDK (compileSdk 37).
+## Releases
+
+Tags starting with `n` (native) build the Android app: `n2.0.0` → release
+"JixOne 2.0.0 (native)" with `JixOne-2.0.0.apk` attached. The legacy `v*`
+tags belong to the WebView-era builds and are ignored by the in-app updater.

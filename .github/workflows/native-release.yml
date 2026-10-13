@@ -1,7 +1,9 @@
 name: Native APK (JixOne)
 
-# Builds the native (OuterTune-based) JixOne Android app.
-# Trigger: push a tag starting with "n" (e.g. n1.6.0), or run manually.
+# Builds the native (Metrolist-based) JixOne Android app.
+# Trigger: push a tag starting with "n" (e.g. n2.0.0), or run manually.
+# The in-app updater reads releases whose tag starts with "n" from
+# jixa11/JixOne and expects an asset named JixOne-<version>.apk.
 on:
   push:
     tags:
@@ -25,32 +27,46 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
-          cache: gradle
 
-      - name: Accept SDK licenses
-        run: yes | /usr/local/lib/android/sdk/cmdline-tools/latest/bin/sdkmanager --licenses
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
 
-      - name: Build debug APK (installable for testing)
-        run: ./gradlew assembleCoreDebug --stacktrace -DskipFormatKtlint
+      - name: Build debug APK (compile test)
+        run: ./gradlew --console=plain assembleGmsDebug --warning-mode summary
 
-      - name: Build release APK (unsigned)
-        run: ./gradlew assembleCoreRelease --stacktrace -DskipFormatKtlint
+      - name: Build release APK (debug-signed without keystore, installable)
+        run: ./gradlew --console=plain assembleGmsRelease --warning-mode summary
 
-      - name: Upload debug APK
+      - name: Collect APKs
+        run: |
+          set -e
+          if [[ "$GITHUB_REF_NAME" == n* ]]; then
+            VERSION="${GITHUB_REF_NAME#n}"
+          else
+            VERSION="dev-$(date +%Y%m%d)"
+          fi
+          mkdir -p out
+          cp app/build/outputs/apk/gms/release/app-gms-release.apk "out/JixOne-${VERSION}.apk" 2>/dev/null \
+            || cp app/build/outputs/apk/gms/release/app-gms-release-unsigned.apk "out/JixOne-${VERSION}.apk"
+          cp app/build/outputs/apk/gms/debug/*.apk out/ || true
+          ls -la out/
+
+      - name: Upload debug APK (artifact)
         uses: actions/upload-artifact@v4
         with:
           name: JixOne-native-debug
-          path: native/app/build/outputs/apk/core/debug/*.apk
+          path: native/out/*debug*.apk
 
-      - name: Upload release APK
+      - name: Upload release APK (artifact)
         uses: actions/upload-artifact@v4
         with:
-          name: JixOne-native-release-unsigned
-          path: native/app/build/outputs/apk/core/release/*.apk
+          name: JixOne-native-release
+          path: native/out/JixOne-*.apk
 
-      - name: Attach APKs to release (tag builds)
+      - name: Attach APK to release (tag builds)
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          files: |
-            native/app/build/outputs/apk/core/debug/*.apk
+          name: JixOne ${{ github.ref_name }} (native)
+          generate_release_notes: false
+          files: native/out/JixOne-*.apk

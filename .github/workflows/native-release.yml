@@ -74,7 +74,11 @@ jobs:
       - name: Collect APKs
         run: |
           set -e
-          if [[ "$GITHUB_REF_NAME" == n* ]]; then
+          # Tag builds (n4.0.1) name the files after the version. Branch runs
+          # must NOT match here: the branch "native-outertune" also starts
+          # with "n", which used to strip its "n" and produce the nonsense
+          # version "ative-outertune". Match tags via GITHUB_REF_TYPE.
+          if [[ "$GITHUB_REF_TYPE" == "tag" && "$GITHUB_REF_NAME" == n* ]]; then
             VERSION="${GITHUB_REF_NAME#n}"
           else
             VERSION="dev-$(date +%Y%m%d)"

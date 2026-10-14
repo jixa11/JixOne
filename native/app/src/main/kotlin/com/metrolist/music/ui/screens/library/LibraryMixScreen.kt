@@ -1172,6 +1172,8 @@ private fun JixQuickCard(
     modifier: Modifier = Modifier,
 ) {
     val shape = RoundedCornerShape(16.dp)
+    // read in composable context — drawBehind's lambda is a draw scope
+    val dashedColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -1184,7 +1186,7 @@ private fun JixQuickCard(
                     Modifier
                         .drawBehind {
                             drawRoundRect(
-                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f),
+                                color = dashedColor,
                                 cornerRadius = CornerRadius(16.dp.toPx()),
                                 style = Stroke(
                                     width = 1.dp.toPx(),

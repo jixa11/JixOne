@@ -104,6 +104,15 @@ private data class CommunityLink(
     val url: String
 )
 
+/* JixOne — the upstream attribution (Metrolist, GPL-3.0) is intentionally
+   NOT part of the About page's visible branding; it lives in the
+   "Open-source licenses" dialog, NOTICE.md and the source tree. */
+
+private val communityLinks = listOf(
+    CommunityLink(R.string.credits_view_repo, R.drawable.github, "https://github.com/jixa11/JixOne"),
+    CommunityLink(R.string.credits_license_name, R.drawable.info, "https://github.com/jixa11/JixOne/blob/main/native/LICENSE"),
+)
+
 @Composable
 private fun DeveloperSocials(
     uriHandler: androidx.compose.ui.platform.UriHandler

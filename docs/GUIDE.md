@@ -60,6 +60,10 @@ The APK on the Releases page is **verified valid** — checked with Google's own
 
 ## What's new · تازه‌ها
 
+### 4.0.0 — the web app's own skeleton
+
+Navigation rebuilt to match the web app: 3 bottom tabs (Search · Explore · Library, no Home), settings in the top-corner gear, the Lucide icon set everywhere, web quick-cards in Library, and an About page that shows only JixOne branding (open-source credits live in the "Open-source licenses" dialog).
+
 ### 3.0.0 — the web app's soul, the native app's engine
 
 **The two JixOnes are now one.** This release takes the look you loved from the old web app and puts it on top of the working native engine, front-end only — the player backend is untouched.

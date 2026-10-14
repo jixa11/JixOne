@@ -609,7 +609,7 @@ private fun NewMiniPlayerPlayButton(
                             } else if (playbackState == Player.STATE_ENDED) {
                                 R.drawable.replay
                             } else {
-                                R.drawable.play
+                                R.drawable.jix_play
                             },
                         ),
                     contentDescription = null,
@@ -863,7 +863,7 @@ private fun LegacyMiniPlayer(
                 enabled = canSkipNext && !isListenTogetherGuest,
                 onClick = if (isListenTogetherGuest) ({}) else ({ playerConnection.seekToNext() }),
             ) {
-                Icon(painter = painterResource(R.drawable.skip_next), contentDescription = null)
+                Icon(painter = painterResource(R.drawable.jix_skip_forward), contentDescription = null)
             }
         }
 
@@ -878,7 +878,7 @@ private fun LegacyMiniPlayer(
                 Icon(
                     painter =
                         painterResource(
-                            if (offsetXAnimatable.value > 0) R.drawable.skip_previous else R.drawable.skip_next,
+                            if (offsetXAnimatable.value > 0) R.drawable.jix_skip_back else R.drawable.jix_skip_forward,
                         ),
                     contentDescription = null,
                     tint =
@@ -928,8 +928,8 @@ private fun LegacyPlayPauseButton(
                     when {
                         isListenTogetherGuest -> if (isMuted) R.drawable.volume_off else R.drawable.volume_up
                         playbackState == Player.STATE_ENDED -> R.drawable.replay
-                        effectiveIsPlaying -> R.drawable.pause
-                        else -> R.drawable.play
+                        effectiveIsPlaying -> R.drawable.jix_pause
+                        else -> R.drawable.jix_play
                     },
                 ),
             contentDescription = null,

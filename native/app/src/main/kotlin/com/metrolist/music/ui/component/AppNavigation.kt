@@ -5,17 +5,28 @@
 
 package com.metrolist.music.ui.component
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationRail
 import androidx.compose.material3.NavigationRailItem
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -23,6 +34,7 @@ import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
@@ -32,9 +44,11 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalViewConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.ui.unit.sp
 import com.metrolist.music.ui.screens.Screens
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
@@ -136,6 +150,13 @@ fun AppNavigationRail(
     }
 }
 
+/**
+ * JixOne bottom navigation — a faithful port of the web app's MobileNav
+ * (src/components/Sidebar.tsx): a full-width glass bar with a hairline top
+ * border, evenly spaced items, the Lucide icon set, and the web's active
+ * treatment: a small ACCENT PILL above the icon + bold accent label.
+ * Nothing like the Material 3 pill-indicator bar Metrolist uses.
+ */
 @Composable
 fun AppNavigationBar(
     navigationItems: List<Screens>,
@@ -147,102 +168,140 @@ fun AppNavigationBar(
     onSearchLongClick: (() -> Unit)? = null,
     onHomeLongHold: (() -> Unit)? = null,
 ) {
-    val containerColor = if (pureBlack) Color.Black else MaterialTheme.colorScheme.surfaceContainer
-    val contentColor = if (pureBlack) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
     val haptics = LocalHapticFeedback.current
     val viewConfiguration = LocalViewConfiguration.current
 
-    // JixOne: the web nav's active treatment — accent-soft pill behind the
-    // icon (web .seg /accent-soft 14%) with the accent carrying icon + label.
-    val itemColors = NavigationBarItemDefaults.colors(
-        indicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.16f),
-        selectedIconColor = MaterialTheme.colorScheme.primary,
-        selectedTextColor = MaterialTheme.colorScheme.primary,
-        unselectedIconColor = contentColor,
-        unselectedTextColor = contentColor,
-    )
-
-    // JixOne: floating pill navigation bar — rounded, inset from the screen
-    // edges and softly elevated, instead of a flat full-width bar. Slightly
-    // translucent so the ambient mesh glows through (web glass look).
-    NavigationBar(
-        modifier = modifier
-            .padding(start = 14.dp, end = 14.dp, bottom = 4.dp)
-            .shadow(
-                elevation = 14.dp,
-                shape = RoundedCornerShape(32.dp),
-                ambientColor = Color.Black.copy(alpha = 0.45f),
-                spotColor = Color.Black.copy(alpha = 0.55f),
-            )
-            .clip(RoundedCornerShape(32.dp)),
-        containerColor = if (pureBlack) containerColor else containerColor.copy(alpha = 0.92f),
-        contentColor = contentColor
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        // web .glass — backdrop blur isn't available to a plain Surface, so
+        // the bar sits at 92% surfaceContainer like the web's translucency
+        color = if (pureBlack) Color.Black else MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.92f),
+        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        shadowElevation = 0.dp,
     ) {
-        navigationItems.forEach { screen ->
-            val isSelected = remember(currentRoute, screen.route) {
-                isRouteSelected(currentRoute, screen.route, navigationItems)
-            }
-            val currentIsSelected by rememberUpdatedState(isSelected)
-            val iconRes = remember(isSelected, screen) {
-                if (isSelected) screen.iconIdActive else screen.iconIdInactive
-            }
+        Column {
+            // hairline top border, like the web nav's border-t border-line
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(1.dp)
+                    .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
+            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                navigationItems.forEach { screen ->
+                    val isSelected = remember(currentRoute, screen.route) {
+                        isRouteSelected(currentRoute, screen.route, navigationItems)
+                    }
+                    val currentIsSelected by rememberUpdatedState(isSelected)
+                    val iconRes = remember(isSelected, screen) {
+                        if (isSelected) screen.iconIdActive else screen.iconIdInactive
+                    }
 
-            val isSearchItem = screen == Screens.Search && onSearchLongClick != null
-            val isHomeHoldItem = screen == Screens.Home && onHomeLongHold != null
-            val interactionSource = remember { MutableInteractionSource() }
+                    val targetContentColor =
+                        if (isSelected) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.onSurfaceVariant
+                    val contentColor by animateColorAsState(
+                        targetValue = targetContentColor,
+                        animationSpec = tween(durationMillis = 150),
+                        label = "navItemColor",
+                    )
+                    val pillAlpha by animateFloatAsState(
+                        targetValue = if (isSelected) 1f else 0f,
+                        animationSpec = tween(durationMillis = 200),
+                        label = "navPillAlpha",
+                    )
 
-            // Long press detection using InteractionSource
-            if (isSearchItem || isHomeHoldItem) {
-                LaunchedEffect(interactionSource) {
-                    var isLongClick = false
-                    interactionSource.interactions.collectLatest { interaction ->
-                        when (interaction) {
-                            is PressInteraction.Press -> {
-                                isLongClick = false
-                                delay(if (isHomeHoldItem) 15_000L else viewConfiguration.longPressTimeoutMillis)
-                                isLongClick = true
-                                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                                if (isHomeHoldItem) onHomeLongHold.invoke() else onSearchLongClick?.invoke()
-                            }
-                            is PressInteraction.Release -> {
-                                if (!isLongClick) {
-                                    onItemClick(screen, currentIsSelected)
+                    val isSearchItem = screen == Screens.Search && onSearchLongClick != null
+                    val isHomeHoldItem = screen == Screens.Home && onHomeLongHold != null
+                    val interactionSource = remember { MutableInteractionSource() }
+
+                    // Long press detection using InteractionSource (kept from
+                    // upstream: search long-press = song recognition, home
+                    // long-hold = account switcher)
+                    if (isSearchItem || isHomeHoldItem) {
+                        LaunchedEffect(interactionSource) {
+                            var isLongClick = false
+                            interactionSource.interactions.collectLatest { interaction ->
+                                when (interaction) {
+                                    is PressInteraction.Press -> {
+                                        isLongClick = false
+                                        delay(if (isHomeHoldItem) 15_000L else viewConfiguration.longPressTimeoutMillis)
+                                        isLongClick = true
+                                        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                                        if (isHomeHoldItem) onHomeLongHold.invoke() else onSearchLongClick?.invoke()
+                                    }
+                                    is PressInteraction.Release -> {
+                                        if (!isLongClick) {
+                                            onItemClick(screen, currentIsSelected)
+                                        }
+                                    }
+                                    is PressInteraction.Cancel -> {
+                                        isLongClick = false
+                                    }
                                 }
-                            }
-                            is PressInteraction.Cancel -> {
-                                isLongClick = false
                             }
                         }
                     }
-                }
-            }
 
-            NavigationBarItem(
-                selected = isSelected,
-                onClick = {
-                    if (!isSearchItem && !isHomeHoldItem) {
-                        onItemClick(screen, currentIsSelected)
-                    }
-                    // Long presses are handled via InteractionSource
-                },
-                interactionSource = interactionSource,
-                colors = itemColors,
-                icon = {
-                    Icon(
-                        painter = painterResource(id = iconRes),
-                        contentDescription = stringResource(screen.titleId)
-                    )
-                },
-                label = if (!slimNav) {
-                    {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable(
+                                interactionSource = interactionSource,
+                                indication = null,
+                            ) {
+                                // Special items (search long-press / home
+                                // long-hold) are driven by the InteractionSource
+                                // below; their normal click fires on Release.
+                                if (!isSearchItem && !isHomeHoldItem) {
+                                    onItemClick(screen, currentIsSelected)
+                                }
+                            }
+                            .padding(vertical = 6.dp),
+                    ) {
+                        // the web's active indicator: accent pill ABOVE the icon
+                        Box(
+                            modifier = Modifier
+                                .height(3.dp)
+                                .width(24.dp)
+                                .clip(RoundedCornerShape(2.dp))
+                                .shadow(
+                                    elevation = 6.dp,
+                                    shape = RoundedCornerShape(2.dp),
+                                    ambientColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
+                                    spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
+                                )
+                                .background(
+                                    MaterialTheme.colorScheme.primary.copy(alpha = pillAlpha)
+                                ),
+                        )
+                        Spacer(Modifier.height(6.dp))
+                        Icon(
+                            painter = painterResource(id = iconRes),
+                            contentDescription = stringResource(screen.titleId),
+                            tint = contentColor,
+                            modifier = Modifier.size(22.dp),
+                        )
+                        Spacer(Modifier.height(3.dp))
                         Text(
                             text = stringResource(screen.titleId),
+                            fontSize = 10.5.sp,
+                            lineHeight = 13.sp,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                            color = contentColor,
+                            textAlign = TextAlign.Center,
                             maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
+                            overflow = TextOverflow.Ellipsis,
                         )
                     }
-                } else null
-            )
+                }
+            }
         }
     }
 }

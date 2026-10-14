@@ -853,12 +853,13 @@ class MainActivity : FragmentActivity() {
                 val (forceBottomNav) = rememberPreference(ForceBottomNavBarKey, defaultValue = false)
                 val (slimNav) = rememberPreference(SlimNavBarKey, defaultValue = false)
                 val (useNewMiniPlayerDesign) = rememberPreference(UseNewMiniPlayerDesignKey, defaultValue = true)
-                val (defaultOpenTabInt) = rememberPreference(DefaultOpenTabKey, defaultValue = NavigationTab.HOME.name)
+                val (defaultOpenTabInt) = rememberPreference(DefaultOpenTabKey, defaultValue = NavigationTab.EXPLORE.name)
                 val defaultOpenTab = remember(defaultOpenTabInt) {
                     try {
                         NavigationTab.valueOf(defaultOpenTabInt)
                     } catch (_: IllegalArgumentException) {
-                        NavigationTab.HOME
+                        // covers the old HOME value from previous versions too
+                        NavigationTab.EXPLORE
                     }
                 }
                 val tabOpenedFromShortcut =
@@ -1113,7 +1114,7 @@ class MainActivity : FragmentActivity() {
                 val currentTitleRes =
                     remember(navBackStackEntry) {
                         when (navBackStackEntry?.destination?.route) {
-                            Screens.Home.route -> R.string.home
+                            Screens.Home.route -> R.string.explore
                             Screens.Search.route -> R.string.search
                             Screens.Library.route -> R.string.filter_library
                             Screens.ListenTogether.route -> R.string.together
@@ -1174,27 +1175,37 @@ class MainActivity : FragmentActivity() {
                                             )
                                         },
                                         actions = {
+                                            // JixOne web TopBar: history, stats,
+                                            // listen-together + the SETTINGS GEAR
+                                            // (the web app keeps settings out of
+                                            // the bottom nav, in the top corner)
                                             if (showHistoryButton) {
                                                 IconButton(onClick = { navController.navigate("history") }) {
                                                     Icon(
-                                                        painter = painterResource(R.drawable.history),
+                                                        painter = painterResource(R.drawable.jix_clock),
                                                         contentDescription = stringResource(R.string.history),
                                                     )
                                                 }
                                             }
                                             IconButton(onClick = { navController.navigate("stats") }) {
                                                 Icon(
-                                                    painter = painterResource(R.drawable.stats),
+                                                    painter = painterResource(R.drawable.jix_activity),
                                                     contentDescription = stringResource(R.string.stats),
                                                 )
                                             }
                                             if (listenTogetherInTopBar) {
                                                 IconButton(onClick = { navController.navigate("listen_together_from_topbar") }) {
                                                     Icon(
-                                                        painter = painterResource(R.drawable.group_outlined),
+                                                        painter = painterResource(R.drawable.jix_users),
                                                         contentDescription = stringResource(R.string.together),
                                                     )
                                                 }
+                                            }
+                                            IconButton(onClick = { navController.navigate("settings") }) {
+                                                Icon(
+                                                    painter = painterResource(R.drawable.jix_settings),
+                                                    contentDescription = stringResource(R.string.settings),
+                                                )
                                             }
                                             IconButton(onClick = { showAccountDialog = true }) {
                                                 BadgedBox(badge = {
@@ -1453,7 +1464,7 @@ class MainActivity : FragmentActivity() {
                                     navController = navController,
                                     startDestination =
                                         when (tabOpenedFromShortcut ?: defaultOpenTab) {
-                                            NavigationTab.HOME -> Screens.Home
+                                            NavigationTab.EXPLORE -> Screens.Home
                                             NavigationTab.SEARCH -> Screens.Search
                                             NavigationTab.LIBRARY -> Screens.Library
                                         }.route,

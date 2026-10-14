@@ -171,4 +171,12 @@
     <string name="prevent_duplicate_tracks_in_queue">جلوگیری از قطعه های کراری در صف پخش</string>
     <string name="playlist_position_beginning">شروع لیست پخش</string>
     <string name="playlist_position_end">پایان لیست پخش</string>
+    <string name="explore">اکسپلور</string>
+    <string name="explore_sub">دنیای موزیک رو کاوش کن — چارت‌ها، حال‌وهوا و ترندها</string>
+    <string name="liked_songs">آهنگ‌های مورد علاقه</string>
+    <string name="recent_played">اخیراً پخش‌شده</string>
+    <string name="new_playlist">پلی‌لیست جدید</string>
+    <string name="downloads_label">دانلودها</string>
+    <string name="open_source_licenses">مجوزهای متن‌باز</string>
+    <string name="oss_body">جیکس‌وان یک نرم‌افزار آزاد است (GPL-3.0).\n\nاین اپ بر پایه‌ی پروژه‌ی متن‌باز مترولیست ساخته شده و از آیکون‌های لوسید (مجوز ISC) استفاده می‌کند. متن کامل مجوزها و سپاسگزاری‌ها در github.com/jixa11/JixOne موجود است.</string>
 </resources>

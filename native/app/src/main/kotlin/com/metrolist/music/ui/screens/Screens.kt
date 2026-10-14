@@ -17,17 +17,22 @@ sealed class Screens(
     @DrawableRes val iconIdActive: Int,
     val route: String,
 ) {
+    // JixOne web parity: the mobile nav is Search -> Explore -> Library
+    // (no Home tab, no settings tab — settings lives in the top-bar gear,
+    // exactly like the web app's MobileNav). The "Home" object below KEEPS
+    // its "home" route so deep links and the nav graph stay untouched, but
+    // its visible identity is the web app's Explore tab (Compass icon).
     object Home : Screens(
-        titleId = R.string.home,
-        iconIdInactive = R.drawable.home_outlined,
-        iconIdActive = R.drawable.home_filled,
+        titleId = R.string.explore,
+        iconIdInactive = R.drawable.jix_compass,
+        iconIdActive = R.drawable.jix_compass,
         route = "home"
     )
 
     object Search : Screens(
         titleId = R.string.search,
-        iconIdInactive = R.drawable.search,
-        iconIdActive = R.drawable.search,
+        iconIdInactive = R.drawable.jix_search,
+        iconIdActive = R.drawable.jix_search,
         route = "search_input"
     )
 
@@ -40,12 +45,14 @@ sealed class Screens(
 
     object Library : Screens(
         titleId = R.string.filter_library,
-        iconIdInactive = R.drawable.library_music_outlined,
-        iconIdActive = R.drawable.library_music_filled,
+        iconIdInactive = R.drawable.jix_library,
+        iconIdActive = R.drawable.jix_library,
         route = "library"
     )
 
     companion object {
-        val MainScreens = listOf(Home, Search, ListenTogether, Library)
+        // Web MobileNav order: Search first, then Explore, then Library.
+        // ListenTogether only appears here when moved out of the top bar.
+        val MainScreens = listOf(Search, Home, ListenTogether, Library)
     }
 }

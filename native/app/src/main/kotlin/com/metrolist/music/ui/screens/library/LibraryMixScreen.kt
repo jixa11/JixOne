@@ -5,20 +5,37 @@
 
 package com.metrolist.music.ui.screens.library
 
+import androidx.annotation.DrawableRes
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
@@ -469,6 +486,20 @@ fun LibraryMixScreen(
                         headerContent()
                     }
 
+                    // JixOne web LibraryView quick cards — New playlist / Liked /
+                    // Recently played / Downloads, above the library content
+                    if (normalizedQuery.isBlank()) {
+                        item(
+                            key = "jix_quick_cards",
+                            contentType = CONTENT_TYPE_HEADER,
+                        ) {
+                            JixLibraryQuickCards(
+                                navController = navController,
+                                onCreatePlaylist = { showCreatePlaylistDialog = true },
+                            )
+                        }
+                    }
+
                     if (showLikedPlaylist) {
                         item(
                             key = "likedPlaylist",
@@ -797,6 +828,48 @@ fun LibraryMixScreen(
                         headerContent()
                     }
 
+                    // JixOne web LibraryView quick cards — flow as individual
+                    // grid cells: 2x2 on phones, 4-across on tablets (the web's
+                    // grid-cols-2 / sm:grid-cols-4 behaviour)
+                    if (normalizedQuery.isBlank()) {
+                        item(key = "jix_quick_new", contentType = CONTENT_TYPE_HEADER) {
+                            JixQuickCard(
+                                label = stringResource(R.string.new_playlist),
+                                icon = R.drawable.jix_plus,
+                                iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                iconBackground = JixCardBackground.DASHED,
+                                onClick = { showCreatePlaylistDialog = true },
+                            )
+                        }
+                        item(key = "jix_quick_liked", contentType = CONTENT_TYPE_HEADER) {
+                            JixQuickCard(
+                                label = stringResource(R.string.liked_songs),
+                                icon = R.drawable.jix_heart_filled,
+                                iconTint = Color.White,
+                                iconBackground = JixCardBackground.NEON,
+                                onClick = { navController.navigate("auto_playlist/liked") },
+                            )
+                        }
+                        item(key = "jix_quick_recent", contentType = CONTENT_TYPE_HEADER) {
+                            JixQuickCard(
+                                label = stringResource(R.string.recent_played),
+                                icon = R.drawable.jix_clock,
+                                iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                iconBackground = JixCardBackground.SOFT,
+                                onClick = { navController.navigate("history") },
+                            )
+                        }
+                        item(key = "jix_quick_downloads", contentType = CONTENT_TYPE_HEADER) {
+                            JixQuickCard(
+                                label = stringResource(R.string.downloads_label),
+                                icon = R.drawable.jix_download,
+                                iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                iconBackground = JixCardBackground.SOFT,
+                                onClick = { navController.navigate("auto_playlist/downloaded") },
+                            )
+                        }
+                    }
+
                     if (showLikedPlaylist) {
                         item(
                             key = "likedPlaylist",
@@ -1064,7 +1137,7 @@ fun LibraryMixScreen(
                 .padding(16.dp)
         ) {
             Icon(
-                painter = painterResource(R.drawable.add),
+                painter = painterResource(R.drawable.jix_plus),
                 contentDescription = stringResource(R.string.create_playlist),
             )
         }
@@ -1077,5 +1150,152 @@ fun LibraryMixScreen(
                     .align(Alignment.TopCenter)
                     .padding(LocalPlayerAwareWindowInsets.current.asPaddingValues()),
         )
+    }
+}
+
+
+/** Icon-square treatment for the web quick cards. */
+private enum class JixCardBackground { DASHED, NEON, SOFT }
+
+/**
+ * One web LibraryView quick card (src/components/views/LibraryView.tsx):
+ * a 56dp rounded surface with a 40dp icon square + label — "New playlist"
+ * carries the dashed outline, "Liked" the neon gradient square.
+ */
+@Composable
+private fun JixQuickCard(
+    label: String,
+    @DrawableRes icon: Int,
+    iconTint: Color,
+    iconBackground: JixCardBackground,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val shape = RoundedCornerShape(16.dp)
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        modifier = modifier
+            .fillMaxWidth()
+            .height(56.dp)
+            .then(
+                if (iconBackground == JixCardBackground.DASHED) {
+                    // web: border-dashed border-line bg-surface
+                    Modifier
+                        .drawBehind {
+                            drawRoundRect(
+                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f),
+                                cornerRadius = CornerRadius(16.dp.toPx()),
+                                style = Stroke(
+                                    width = 1.dp.toPx(),
+                                    pathEffect = PathEffect.dashPathEffect(
+                                        floatArrayOf(6.dp.toPx(), 4.dp.toPx()),
+                                    ),
+                                ),
+                            )
+                        }
+                } else {
+                    Modifier.background(
+                        MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.55f),
+                        shape,
+                    )
+                },
+            )
+            .clip(shape)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 10.dp, vertical = 8.dp),
+    ) {
+        val iconShape = RoundedCornerShape(12.dp)
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .size(40.dp)
+                .then(
+                    when (iconBackground) {
+                        JixCardBackground.NEON ->
+                            Modifier.background(
+                                Brush.linearGradient(
+                                    listOf(
+                                        MaterialTheme.colorScheme.primary,
+                                        MaterialTheme.colorScheme.tertiary,
+                                    ),
+                                ),
+                                iconShape,
+                            )
+                        else ->
+                            Modifier.background(
+                                MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.7f),
+                                iconShape,
+                            )
+                    },
+                ),
+        ) {
+            Icon(
+                painter = painterResource(icon),
+                contentDescription = null,
+                tint = iconTint,
+                modifier = Modifier.size(18.dp),
+            )
+        }
+        Text(
+            text = label,
+            fontSize = 12.sp,
+            lineHeight = 15.sp,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+/** The four web quick cards laid out 2x2 (list view; grid view uses cells). */
+@Composable
+private fun JixLibraryQuickCards(
+    navController: NavController,
+    onCreatePlaylist: () -> Unit,
+) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 4.dp),
+    ) {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            JixQuickCard(
+                label = stringResource(R.string.new_playlist),
+                icon = R.drawable.jix_plus,
+                iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
+                iconBackground = JixCardBackground.DASHED,
+                onClick = onCreatePlaylist,
+                modifier = Modifier.weight(1f),
+            )
+            JixQuickCard(
+                label = stringResource(R.string.liked_songs),
+                icon = R.drawable.jix_heart_filled,
+                iconTint = Color.White,
+                iconBackground = JixCardBackground.NEON,
+                onClick = { navController.navigate("auto_playlist/liked") },
+                modifier = Modifier.weight(1f),
+            )
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            JixQuickCard(
+                label = stringResource(R.string.recent_played),
+                icon = R.drawable.jix_clock,
+                iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
+                iconBackground = JixCardBackground.SOFT,
+                onClick = { navController.navigate("history") },
+                modifier = Modifier.weight(1f),
+            )
+            JixQuickCard(
+                label = stringResource(R.string.downloads_label),
+                icon = R.drawable.jix_download,
+                iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
+                iconBackground = JixCardBackground.SOFT,
+                onClick = { navController.navigate("auto_playlist/downloaded") },
+                modifier = Modifier.weight(1f),
+            )
+        }
     }
 }

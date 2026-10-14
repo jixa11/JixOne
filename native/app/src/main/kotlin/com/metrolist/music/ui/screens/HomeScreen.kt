@@ -1193,52 +1193,43 @@ fun HomeScreen(
                 contentPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues(),
             ) {
                 item(key = "jixone_header") {
-                    // JixOne branded header — the first thing on the home screen,
-                    // with the theme's own accent gradient so it belongs to every
-                    // theme (matching the web app's branded home).
-                    Column(
+                    // Web ExploreView header (src/components/views/ExploreView.tsx):
+                    // the Compass icon in the theme accent + the big black
+                    // "Explore" title + its subtitle — the landing identity of
+                    // the web app, on the native engine.
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(
                                 start = 20.dp,
                                 end = 20.dp,
-                                top = 12.dp,
+                                top = 14.dp,
                             ),
                     ) {
-                        Text(
-                            text = "JixOne",
-                            style = TextStyle(
-                                fontSize = 32.sp,
-                                fontWeight = FontWeight.Bold,
-                                brush = Brush.linearGradient(
-                                    listOf(
-                                        MaterialTheme.colorScheme.primary,
-                                        MaterialTheme.colorScheme.tertiary,
-                                    )
-                                ),
-                            ),
-                        )
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = stringResource(R.string.jixone_tagline),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        Spacer(modifier = Modifier.height(6.dp))
-                        Box(
+                        Icon(
+                            painter = painterResource(R.drawable.jix_compass),
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier
-                                .width(64.dp)
-                                .height(4.dp)
-                                .clip(RoundedCornerShape(2.dp))
-                                .background(
-                                    Brush.linearGradient(
-                                        listOf(
-                                            MaterialTheme.colorScheme.primary,
-                                            MaterialTheme.colorScheme.tertiary,
-                                        )
-                                    )
-                                ),
+                                .size(28.dp)
+                                .padding(1.dp),
                         )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Column {
+                            Text(
+                                text = stringResource(R.string.explore),
+                                style = TextStyle(
+                                    fontSize = 30.sp,
+                                    fontWeight = FontWeight.Black,
+                                ),
+                            )
+                            Text(
+                                text = stringResource(R.string.explore_sub),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
                     }
                 }
                 item {

@@ -26,6 +26,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
@@ -43,6 +44,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.material3.toShape
@@ -102,91 +104,6 @@ private data class CommunityLink(
     val url: String
 )
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
-private val leadDeveloper = Contributor(
-    name = "Mo Agamy",
-    roleRes = R.string.credits_lead_developer,
-    githubHandle = "mostafaalagamy",
-    polygon = MaterialShapes.Cookie9Sided,
-    favoriteSongVideoId = "Mh2JWGWvy_Y"
-)
-
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
-private val collaborators = listOf(
-    Contributor(name = "Adriel O'Connel", roleRes = R.string.credits_collaborator, githubHandle = "adrielGGmotion", sponsorUrl = "https://github.com/sponsors/adrielGGmotion", polygon = MaterialShapes.Cookie4Sided, favoriteSongVideoId = "m2zUrruKjDQ"),
-    Contributor(name = "Nyx", roleRes = R.string.credits_collaborator, githubHandle = "nyxiereal", sponsorUrl = "https://github.com/sponsors/nyxiereal", polygon = MaterialShapes.Cookie12Sided, favoriteSongVideoId = "zselaN6zPXw"),
-)
-
-private val communityLinks = listOf(
-    CommunityLink(R.string.credits_view_repo, R.drawable.github, "https://github.com/jixa11/JixOne"),
-    CommunityLink(R.string.credits_license_name, R.drawable.info, "https://github.com/jixa11/JixOne/blob/main/native/LICENSE"),
-    // Upstream attribution — JixOne native is a Metrolist fork (GPL-3.0)
-    CommunityLink(R.string.credits_upstream, R.drawable.github, "https://github.com/MetrolistGroup/Metrolist"),
-    CommunityLink(R.string.credits_telegram, R.drawable.telegram, "https://t.me/metrolistapp")
-)
-
-/* JixOne — the upstream Metrolist team is credited below, but this app's
-   identity is JixOne (see NOTICE.md for the fork attribution). */
-
-private fun handleEasterEggClick(
-    clickCount: Int,
-    favoriteSongVideoId: String?,
-    coroutineScope: CoroutineScope,
-    snackbarHostState: SnackbarHostState,
-    playerConnection: PlayerConnection?,
-    wannaPlayStr: String,
-    yeahStr: String,
-    onCountUpdate: (Int) -> Unit
-) {
-    if (favoriteSongVideoId != null) {
-        val newCount = clickCount + 1
-        onCountUpdate(newCount)
-        if (newCount >= 3) {
-            onCountUpdate(0)
-            coroutineScope.launch {
-                val result = snackbarHostState.showSnackbar(
-                    message = wannaPlayStr,
-                    actionLabel = yeahStr,
-                    duration = SnackbarDuration.Short
-                )
-                if (result == SnackbarResult.ActionPerformed) {
-                    playerConnection?.playQueue(YouTubeQueue(WatchEndpoint(videoId = favoriteSongVideoId)))
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun ContributorAvatar(
-    avatarUrl: String,
-    sizeDp: Int,
-    modifier: Modifier = Modifier,
-    shape: Shape = CircleShape,
-    contentDescription: String? = null,
-    onClick: (() -> Unit)? = null
-) {
-    val fallback = painterResource(R.drawable.small_icon)
-    Surface(
-        onClick = onClick ?: {},
-        enabled = onClick != null,
-        modifier = modifier.size(sizeDp.dp),
-        shape = shape,
-        color = MaterialTheme.colorScheme.surfaceContainerHighest,
-        tonalElevation = 4.dp,
-    ) {
-        AsyncImage(
-            model = avatarUrl,
-            contentDescription = contentDescription,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxSize(),
-            placeholder = fallback,
-            fallback = fallback,
-            error = fallback,
-        )
-    }
-}
-
 @Composable
 private fun DeveloperSocials(
     uriHandler: androidx.compose.ui.platform.UriHandler
@@ -207,12 +124,6 @@ private fun DeveloperSocials(
         ) {
             Icon(painterResource(R.drawable.download), contentDescription = null)
         }
-        FilledTonalButton(
-            onClick = { uriHandler.openUri("https://github.com/MetrolistGroup/Metrolist") },
-            modifier = Modifier.weight(1f).height(48.dp)
-        ) {
-            Icon(painterResource(R.drawable.favorite), contentDescription = null)
-        }
     }
 }
 
@@ -225,9 +136,7 @@ fun AboutScreen(
     val playerConnection = LocalPlayerConnection.current
     val coroutineScope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
-    val wannaPlayStr = stringResource(R.string.wanna_play_favorite_song)
-    val yeahStr = stringResource(R.string.yeah)
-    
+
     val windowInsets = LocalPlayerAwareWindowInsets.current
 
     Column(
@@ -331,7 +240,7 @@ fun AboutScreen(
 
         Spacer(Modifier.height(24.dp))
 
-        // Project card — repo, releases, upstream
+        // Project card — repo + releases
         ElevatedCard(
             shape = RoundedCornerShape(32.dp),
             modifier = Modifier.fillMaxWidth()
@@ -340,83 +249,11 @@ fun AboutScreen(
                 modifier = Modifier.padding(24.dp),
             ) {
                 DeveloperSocials(uriHandler)
-                Spacer(Modifier.height(16.dp))
-                Text(
-                    text = stringResource(R.string.jixone_upstream_note),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
             }
         }
 
         Spacer(Modifier.height(32.dp))
         
-        // Upstream credits — the Metrolist team (JixOne native is based on
-        // their work; kept visible as GPL-3.0 attribution)
-        Material3SettingsGroup(
-            title = stringResource(R.string.credits_upstream_section),
-            items = (listOf(leadDeveloper) + collaborators).map { contributor ->
-                Material3SettingsItem(
-                    leadingContent = {
-                        var clickCount by remember(contributor.name) { mutableIntStateOf(0) }
-                        ContributorAvatar(
-                            avatarUrl = contributor.avatarUrl,
-                            sizeDp = 48,
-                            shape = contributor.polygon?.toShape() ?: CircleShape,
-                            contentDescription = contributor.name,
-                            onClick = {
-                                handleEasterEggClick(
-                                    clickCount = clickCount,
-                                    favoriteSongVideoId = contributor.favoriteSongVideoId,
-                                    coroutineScope = coroutineScope,
-                                    snackbarHostState = snackbarHostState,
-                                    playerConnection = playerConnection,
-                                    wannaPlayStr = wannaPlayStr,
-                                    yeahStr = yeahStr,
-                                    onCountUpdate = { clickCount = it }
-                                )
-                            }
-                        )
-                    },
-                    title = { Text(text = contributor.name, fontWeight = FontWeight.SemiBold) },
-                    description = { Text(stringResource(contributor.roleRes)) },
-                    trailingContent = {
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            if (contributor.sponsorUrl != null) {
-                                Surface(
-                                    onClick = { uriHandler.openUri(contributor.sponsorUrl) },
-                                    shape = CircleShape,
-                                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-                                    modifier = Modifier.size(36.dp)
-                                ) {
-                                    Box(contentAlignment = Alignment.Center) {
-                                        Icon(
-                                            painter = painterResource(R.drawable.buymeacoffee),
-                                            contentDescription = null,
-                                            modifier = Modifier.size(20.dp),
-                                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                    }
-                                }
-                            }
-                            Icon(
-                                painter = painterResource(R.drawable.github),
-                                contentDescription = null,
-                                modifier = Modifier.size(24.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    },
-                    onClick = { uriHandler.openUri(contributor.githubUrl) }
-                )
-            }
-        )
-
-        Spacer(Modifier.height(32.dp))
-
         // Community & Info using standard Group
         Material3SettingsGroup(
             title = stringResource(R.string.community_and_info),
@@ -430,6 +267,34 @@ fun AboutScreen(
                     onClick = { uriHandler.openUri(link.url) }
                 )
             }
+        )
+
+        Spacer(Modifier.height(16.dp))
+
+        // Open-source licenses — where the upstream (Metrolist, GPL-3.0) and
+        // Lucide (ISC) attributions live. One quiet row instead of a branded
+        // credits section: this page is JixOne's identity.
+        var showOssDialog by remember { mutableStateOf(false) }
+        if (showOssDialog) {
+            AlertDialog(
+                onDismissRequest = { showOssDialog = false },
+                title = { Text(stringResource(R.string.open_source_licenses)) },
+                text = { Text(stringResource(R.string.oss_body)) },
+                confirmButton = {
+                    TextButton(onClick = { showOssDialog = false }) {
+                        Text(stringResource(R.string.close))
+                    }
+                },
+            )
+        }
+        Material3SettingsGroup(
+            items = listOf(
+                Material3SettingsItem(
+                    icon = painterResource(R.drawable.jix_list_music),
+                    title = { Text(stringResource(R.string.open_source_licenses), fontWeight = FontWeight.SemiBold) },
+                    onClick = { showOssDialog = true },
+                ),
+            )
         )
 
         Spacer(Modifier.height(48.dp))

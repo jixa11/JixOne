@@ -1626,7 +1626,7 @@ fun BottomSheetPlayer(
                                         .weight(backButtonWeight),
                             ) {
                                 Icon(
-                                    painter = painterResource(R.drawable.skip_previous),
+                                    painter = painterResource(R.drawable.jix_skip_back),
                                     contentDescription = null,
                                     modifier = Modifier.size(32.dp),
                                 )
@@ -1676,7 +1676,7 @@ fun BottomSheetPlayer(
                                                 if (isListenTogetherGuest) {
                                                     if (isMuted) R.drawable.volume_off else R.drawable.volume_up
                                                 } else {
-                                                    if (effectiveIsPlaying) R.drawable.pause else R.drawable.play
+                                                    if (effectiveIsPlaying) R.drawable.jix_pause else R.drawable.jix_play
                                                 },
                                             ),
                                         contentDescription =
@@ -1718,7 +1718,7 @@ fun BottomSheetPlayer(
                                         .weight(nextButtonWeight),
                             ) {
                                 Icon(
-                                    painter = painterResource(R.drawable.skip_next),
+                                    painter = painterResource(R.drawable.jix_skip_forward),
                                     contentDescription = null,
                                     modifier = Modifier.size(32.dp),
                                 )
@@ -1736,8 +1736,8 @@ fun BottomSheetPlayer(
                                 ResizableIconButton(
                                     icon =
                                         when (repeatMode) {
-                                            Player.REPEAT_MODE_OFF, Player.REPEAT_MODE_ALL -> R.drawable.repeat
-                                            Player.REPEAT_MODE_ONE -> R.drawable.repeat_one
+                                            Player.REPEAT_MODE_OFF, Player.REPEAT_MODE_ALL -> R.drawable.jix_repeat
+                                            Player.REPEAT_MODE_ONE -> R.drawable.jix_repeat_one
                                             else -> throw IllegalStateException()
                                         },
                                     color = TextBackgroundColor,
@@ -1758,7 +1758,7 @@ fun BottomSheetPlayer(
 
                             Box(modifier = Modifier.weight(1f)) {
                                 ResizableIconButton(
-                                    icon = R.drawable.skip_previous,
+                                    icon = R.drawable.jix_skip_back,
                                     enabled = canSkipPrevious && !isListenTogetherGuest,
                                     color = TextBackgroundColor,
                                     modifier =
@@ -1808,9 +1808,9 @@ fun BottomSheetPlayer(
                                             ) {
                                                 R.drawable.replay
                                             } else if (effectiveIsPlaying) {
-                                                R.drawable.pause
+                                                R.drawable.jix_pause
                                             } else {
-                                                R.drawable.play
+                                                R.drawable.jix_play
                                             },
                                         ),
                                     contentDescription = null,
@@ -1826,7 +1826,7 @@ fun BottomSheetPlayer(
 
                             Box(modifier = Modifier.weight(1f)) {
                                 ResizableIconButton(
-                                    icon = R.drawable.skip_next,
+                                    icon = R.drawable.jix_skip_forward,
                                     enabled = canSkipNext && !isListenTogetherGuest,
                                     color = TextBackgroundColor,
                                     modifier =

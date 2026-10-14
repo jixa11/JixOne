@@ -40,10 +40,14 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.media3.common.PlaybackException
+import com.metrolist.innertubex.extraction.StreamResolveException
 import com.metrolist.music.BuildConfig
+import com.metrolist.music.LocalNavController
 import com.metrolist.music.LocalPlayerConnection
 import com.metrolist.music.R
+import com.metrolist.music.constants.InnerTubeCookieKey
 import com.metrolist.music.models.MediaMetadata
+import com.metrolist.music.utils.rememberPreference
 import java.time.Instant
 
 @Composable
@@ -75,10 +79,32 @@ fun PlaybackError(
                     it.contains("canceled", ignoreCase = true) ||
                     it.contains("cancellat", ignoreCase = true))
         }
+
+    // YouTube bot-gate: anonymous stream requests from VPN/datacenter IPs get
+    // "Sign in to confirm you're not a bot" on every client, which the
+    // extractor reports as UNAVAILABLE/NO_PLAYABLE_STREAM. Signed-in requests
+    // (cookie auth) are not gated this way — so when this happens while the
+    // user is NOT logged in, offer the in-app Google login instead of a
+    // misleading "unavailable" dead end.
+    val navController = LocalNavController.current
+    val innerTubeCookie by rememberPreference(InnerTubeCookieKey, "")
+    val isSignedIn = innerTubeCookie.isNotBlank()
+    val streamResolveException =
+        remember(causes) { causes.filterIsInstance<StreamResolveException>().firstOrNull() }
+    val isAnonymousBlock =
+        !isSignedIn &&
+            streamResolveException != null &&
+            streamResolveException.reason in
+                setOf(
+                    StreamResolveException.Reason.UNAVAILABLE,
+                    StreamResolveException.Reason.NO_PLAYABLE_STREAM,
+                    StreamResolveException.Reason.UNKNOWN,
+                )
     val guidance =
         when {
             isExplicitRestricted -> stringResource(R.string.error_explicit_login_recommended)
             isJobCancelled -> stringResource(R.string.error_job_cancelled)
+            isAnonymousBlock -> stringResource(R.string.error_bot_gate_hint)
             else -> null
         }
     val errorMessage =
@@ -195,7 +221,7 @@ fun PlaybackError(
             OutlinedButton(
                 onClick = {
                     val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                    clipboard.setPrimaryClip(ClipData.newPlainText("Metrolist Playback Error", errorReport))
+                    clipboard.setPrimaryClip(ClipData.newPlainText("JixOne Playback Error", errorReport))
                 },
                 shape = RoundedCornerShape(20.dp),
             ) {
@@ -206,6 +232,26 @@ fun PlaybackError(
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(text = stringResource(R.string.copy))
+            }
+        }
+
+        if (isAnonymousBlock) {
+            Spacer(modifier = Modifier.height(12.dp))
+            Button(
+                onClick = { navController.navigate("login") },
+                shape = RoundedCornerShape(20.dp),
+                colors =
+                    ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                    ),
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.jix_users),
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp),
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(text = stringResource(R.string.login))
             }
         }
     }
@@ -229,7 +275,7 @@ private fun buildPlaybackErrorReport(
     reportedAt: Instant,
 ): String =
     buildString {
-        appendLine("Metrolist Playback Error Report")
+        appendLine("JixOne Playback Error Report")
         appendLine("================================")
         appendLine("Time: $reportedAt")
         appendLine("App version: ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})")

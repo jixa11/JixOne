@@ -535,6 +535,7 @@
     <string name="error_offline_playback">You’re offline. Connect to the internet, or play a track downloaded for offline use.</string>
     <string name="error_explicit_login_recommended">Explicit playback works better with a logged-in account.</string>
     <string name="error_job_cancelled">The video is not available for playback. Try again or skip to the next song.</string>
+    <string name="error_bot_gate_hint">YouTube is blocking anonymous playback from your current IP (VPN). Sign in with your Google account to restore playback.</string>
     <string name="error_episode_save">Failed to save episode</string>
     <string name="error_episode_remove">Failed to remove episode</string>
     <string name="error_podcast_subscribe">Failed to subscribe to podcast</string>

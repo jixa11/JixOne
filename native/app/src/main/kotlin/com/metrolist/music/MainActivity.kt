@@ -409,6 +409,13 @@ class MainActivity : FragmentActivity() {
         // Initialize Listen Together manager
         listenTogetherManager.initialize()
 
+        // JixOne: kick a YouTube full-sync shortly after start when signed in,
+        // so the account's playlists arrive without waiting for a Library visit.
+        // tryAutoSync itself enforces login + enabled + connectivity + cooldown.
+        if (savedInstanceState == null) {
+            lifecycleScope.launch { syncUtils.tryAutoSync() }
+        }
+
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
             val locale =
                 dataStore[AppLanguageKey]

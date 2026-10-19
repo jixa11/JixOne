@@ -48,6 +48,7 @@ import com.metrolist.music.extensions.matchesNormalizedQuery
 import com.metrolist.music.extensions.normalizeForSearch
 import com.metrolist.music.extensions.toEnum
 import com.metrolist.music.playback.DownloadUtil
+import com.metrolist.music.db.entities.Song
 import com.metrolist.music.utils.PodcastRefreshTrigger
 import com.metrolist.music.utils.SyncUtils
 import com.metrolist.music.utils.dataStore
@@ -67,7 +68,9 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.time.DayOfWeek
 import java.time.Duration
+import java.time.LocalDate
 import java.time.LocalDateTime
 import javax.inject.Inject
 
@@ -367,6 +370,30 @@ constructor(
             syncUtils.performFullSyncSuspend()
             _isRefreshing.value = false
         }
+    }
+
+    /** Live full-sync state for the Library sync banner. */
+    val syncUiStateFlow: StateFlow<SyncUtils.SyncUiState>
+        get() = syncUtils.syncUiState
+
+    /**
+     * Recently played songs for the Library shelf, newest first, one entry per
+     * song. Powered by the listen-history `event` table.
+     */
+    val recentSongs: StateFlow<List<Song>> = run {
+        val today = LocalDate.now()
+        val thisMonday = today.with(DayOfWeek.MONDAY)
+        val lastMonday = thisMonday.minusDays(7)
+        database
+            .historyEvents(
+                tomorrowStart = today.plusDays(1).atStartOfDay(),
+                todayStart = today.atStartOfDay(),
+                yesterdayStart = today.minusDays(1).atStartOfDay(),
+                thisMondayStart = thisMonday.atStartOfDay(),
+                lastMondayStart = lastMonday.atStartOfDay(),
+            )
+            .map { events -> events.map { it.song }.distinctBy { it.id }.take(15) }
+            .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
     }
 
     val topValue =

@@ -27,15 +27,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.PathEffect
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
@@ -77,6 +70,13 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import com.metrolist.music.LocalPlayerAwareWindowInsets
 import com.metrolist.music.LocalPlayerConnection
 import com.metrolist.music.R
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.ui.layout.ContentScale
+import coil3.compose.AsyncImage
+import com.metrolist.music.constants.AccountNameKey
 import com.metrolist.music.constants.CONTENT_TYPE_HEADER
 import com.metrolist.music.constants.CONTENT_TYPE_PLAYLIST
 import com.metrolist.music.constants.GridItemSize
@@ -95,7 +95,6 @@ import com.metrolist.music.constants.YtmSyncKey
 import com.metrolist.music.db.entities.Album
 import com.metrolist.music.db.entities.Artist
 import com.metrolist.music.db.entities.Playlist
-import com.metrolist.music.db.entities.PlaylistEntity
 import com.metrolist.music.db.entities.Song
 import com.metrolist.music.extensions.matchesNormalizedQuery
 import com.metrolist.music.extensions.normalizeForSearch
@@ -119,6 +118,7 @@ import com.metrolist.music.ui.menu.AlbumMenu
 import com.metrolist.music.ui.menu.ArtistMenu
 import com.metrolist.music.ui.menu.PlaylistMenu
 import com.metrolist.music.ui.menu.SongMenu
+import com.metrolist.music.utils.SyncUtils
 import com.metrolist.music.utils.rememberEnumPreference
 import com.metrolist.music.utils.rememberPreference
 import com.metrolist.music.viewmodels.LibraryMixViewModel
@@ -126,7 +126,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.text.Collator
 import java.time.LocalDateTime
-import java.util.UUID
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -179,76 +178,17 @@ fun LibraryMixScreen(
     }
 
     val topSize by viewModel.topValue.collectAsStateWithLifecycle(initialValue = 50)
-    val likedPlaylist =
-        Playlist(
-            playlist =
-                PlaylistEntity(
-                    id = UUID.randomUUID().toString(),
-                    name = stringResource(R.string.liked),
-                ),
-            songCount = 0,
-            songThumbnails = emptyList(),
-        )
-
-    val downloadPlaylist =
-        Playlist(
-            playlist =
-                PlaylistEntity(
-                    id = UUID.randomUUID().toString(),
-                    name = stringResource(R.string.offline),
-                ),
-            songCount = 0,
-            songThumbnails = emptyList(),
-        )
-
-    val topPlaylist =
-        Playlist(
-            playlist =
-                PlaylistEntity(
-                    id = UUID.randomUUID().toString(),
-                    name = stringResource(R.string.my_top) + " $topSize",
-                ),
-            songCount = 0,
-            songThumbnails = emptyList(),
-        )
-
-    val cachedPlaylist =
-        Playlist(
-            playlist =
-                PlaylistEntity(
-                    id = UUID.randomUUID().toString(),
-                    name = stringResource(R.string.cached_playlist),
-                ),
-            songCount = 0,
-            songThumbnails = emptyList(),
-        )
-
-    val uploadedPlaylist =
-        Playlist(
-            playlist =
-                PlaylistEntity(
-                    id = UUID.randomUUID().toString(),
-                    name = stringResource(R.string.uploaded_playlist),
-                ),
-            songCount = 0,
-            songThumbnails = emptyList(),
-        )
-
     val (showLiked) = rememberPreference(ShowLikedPlaylistKey, true)
     val (showDownloaded) = rememberPreference(ShowDownloadedPlaylistKey, true)
     val (showTop) = rememberPreference(ShowTopPlaylistKey, true)
     val (showCached) = rememberPreference(ShowCachedPlaylistKey, true)
     val (showUploaded) = rememberPreference(ShowUploadedPlaylistKey, true)
+
+    // JixOne 4.1: live sync state + account + recently played for the shelf
+    val syncState by viewModel.syncUiStateFlow.collectAsStateWithLifecycle()
+    val recentSongs by viewModel.recentSongs.collectAsStateWithLifecycle()
+    val (accountName) = rememberPreference(AccountNameKey, "")
     
-    val showLikedPlaylist = showLiked && matchesNormalizedQuery(normalizedQuery, likedPlaylist.playlist.name)
-    val showDownloadedPlaylist =
-        showDownloaded && matchesNormalizedQuery(normalizedQuery, downloadPlaylist.playlist.name)
-    val showTopPlaylists = showTop && matchesNormalizedQuery(normalizedQuery, topPlaylist.playlist.name)
-    val showUploadedPlaylists =
-        showUploaded && matchesNormalizedQuery(normalizedQuery, uploadedPlaylist.playlist.name)
-    val showCachedPlaylists = showCached && matchesNormalizedQuery(normalizedQuery, cachedPlaylist.playlist.name)
-
-
     val albums = viewModel.albums.collectAsStateWithLifecycle()
     val artist = viewModel.artists.collectAsStateWithLifecycle()
     val songs = viewModel.songs.collectAsStateWithLifecycle()
@@ -402,52 +342,65 @@ fun LibraryMixScreen(
             keyboardController = keyboardController,
             modifier = Modifier.padding(start = 16.dp),
         ) {
-            SortHeader(
-                sortType = sortType,
-                sortDescending = sortDescending,
-                onSortTypeChange = onSortTypeChange,
-                onSortDescendingChange = onSortDescendingChange,
-                sortTypeText = { sortType ->
-                    when (sortType) {
-                        MixSortType.CREATE_DATE -> R.string.sort_by_create_date
-                        MixSortType.LAST_UPDATED -> R.string.sort_by_last_updated
-                        MixSortType.NAME -> R.string.sort_by_name
+            Column {
+                // JixOne 4.1: page identity row — bold Library title + actions
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = stringResource(R.string.filter_library),
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                    Spacer(Modifier.weight(1f))
+
+                    IconButton(
+                        onClick = { isSearchActive = true },
+                        modifier = Modifier.padding(start = 8.dp).size(40.dp),
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.jix_search),
+                            contentDescription = stringResource(R.string.search),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
-                },
-            )
 
-            Spacer(Modifier.weight(1f))
-
-            IconButton(
-                onClick = { isSearchActive = true },
-                modifier = Modifier.padding(start = 8.dp).size(40.dp),
-            ) {
-                Icon(
-                    painter = painterResource(R.drawable.search),
-                    contentDescription = stringResource(R.string.search),
-                )
-            }
-
-            IconButton(
-                onClick = {
-                    onViewTypeChange(viewType.toggle())
-                },
-                modifier = Modifier.padding(end = 8.dp).size(40.dp),
-            ) {
-                Icon(
-                    painter =
-                    painterResource(
-                        when (viewType) {
-                            LibraryViewType.LIST -> R.drawable.list
-                            LibraryViewType.GRID -> R.drawable.grid_view
+                    IconButton(
+                        onClick = {
+                            onViewTypeChange(viewType.toggle())
                         },
-                    ),
-                    contentDescription = stringResource(
-                        when (viewType) {
-                            LibraryViewType.LIST -> R.string.switch_to_grid_view
-                            LibraryViewType.GRID -> R.string.switch_to_list_view
-                        },
-                    ),
+                        modifier = Modifier.padding(end = 8.dp).size(40.dp),
+                    ) {
+                        Icon(
+                            painter =
+                            painterResource(
+                                when (viewType) {
+                                    LibraryViewType.LIST -> R.drawable.list
+                                    LibraryViewType.GRID -> R.drawable.grid_view
+                                },
+                            ),
+                            contentDescription = stringResource(
+                                when (viewType) {
+                                    LibraryViewType.LIST -> R.string.switch_to_grid_view
+                                    LibraryViewType.GRID -> R.string.switch_to_list_view
+                                },
+                            ),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+
+                SortHeader(
+                    sortType = sortType,
+                    sortDescending = sortDescending,
+                    onSortTypeChange = onSortTypeChange,
+                    onSortDescendingChange = onSortDescendingChange,
+                    sortTypeText = { sortType ->
+                        when (sortType) {
+                            MixSortType.CREATE_DATE -> R.string.sort_by_create_date
+                            MixSortType.LAST_UPDATED -> R.string.sort_by_last_updated
+                            MixSortType.NAME -> R.string.sort_by_name
+                        }
+                    },
                 )
             }
         }
@@ -486,108 +439,61 @@ fun LibraryMixScreen(
                         headerContent()
                     }
 
-                    // JixOne web LibraryView quick cards — New playlist / Liked /
-                    // Recently played / Downloads, above the library content
+                    // JixOne 4.1 Library — sync chip, recently played shelf and
+                    // quick access tiles, above the library content
                     if (normalizedQuery.isBlank()) {
                         item(
-                            key = "jix_quick_cards",
+                            key = "jix_sync_chip",
                             contentType = CONTENT_TYPE_HEADER,
                         ) {
-                            JixLibraryQuickCards(
-                                navController = navController,
-                                onCreatePlaylist = { showCreatePlaylistDialog = true },
+                            JixSyncChip(
+                                accountName = accountName,
+                                syncState = syncState,
+                                onSync = { viewModel.refresh() },
+                                onLogin = { navController.navigate("login") },
                             )
                         }
-                    }
 
-                    if (showLikedPlaylist) {
-                        item(
-                            key = "likedPlaylist",
-                            contentType = { CONTENT_TYPE_PLAYLIST },
-                        ) {
-                            PlaylistListItem(
-                                playlist = likedPlaylist,
-                                autoPlaylist = true,
-                                modifier =
-                                    Modifier
-                                        .fillMaxWidth()
-                                        .clickable {
-                                            navController.navigate("auto_playlist/liked")
-                                        }.animateItem(),
-                            )
+                        if (recentSongs.isNotEmpty()) {
+                            item(
+                                key = "jix_recent_shelf",
+                                contentType = CONTENT_TYPE_HEADER,
+                            ) {
+                                val queueTitle = stringResource(R.string.recent_played)
+                                JixRecentShelf(
+                                    recentSongs = recentSongs,
+                                    queueTitle = queueTitle,
+                                    onPlay = { index ->
+                                        playerConnection.playQueue(
+                                            ListQueue(
+                                                title = queueTitle,
+                                                items = recentSongs.map { it.toMediaItem() },
+                                                startIndex = index,
+                                            ),
+                                        )
+                                    },
+                                    onSeeAll = { navController.navigate("history") },
+                                )
+                            }
                         }
-                    }
 
-                    if (showDownloadedPlaylist) {
                         item(
-                            key = "downloadedPlaylist",
-                            contentType = { CONTENT_TYPE_PLAYLIST },
+                            key = "jix_quick_tiles",
+                            contentType = CONTENT_TYPE_HEADER,
                         ) {
-                            PlaylistListItem(
-                                playlist = downloadPlaylist,
-                                autoPlaylist = true,
-                                modifier =
-                                    Modifier
-                                        .fillMaxWidth()
-                                        .clickable {
-                                            navController.navigate("auto_playlist/downloaded")
-                                        }
-                                        .animateItem(),
-                            )
-                        }
-                    }
-
-                    if (showCachedPlaylists) {
-                        item(
-                            key = "cachedPlaylist",
-                            contentType = { CONTENT_TYPE_PLAYLIST },
-                        ) {
-                            PlaylistListItem(
-                                playlist = cachedPlaylist,
-                                autoPlaylist = true,
-                                modifier =
-                                Modifier
-                                    .fillMaxWidth()
-                                    .clickable {
-                                        navController.navigate("cache_playlist/cached")
-                                    }
-                                    .animateItem(),
-                            )
-                        }
-                    }
-
-                    if (showTopPlaylists) {
-                        item(
-                            key = "TopPlaylist",
-                            contentType = { CONTENT_TYPE_PLAYLIST },
-                        ) {
-                            PlaylistListItem(
-                                playlist = topPlaylist,
-                                autoPlaylist = true,
-                                modifier =
-                                    Modifier
-                                        .fillMaxWidth()
-                                        .clickable {
-                                            navController.navigate("top_playlist/$topSize")
-                                        }.animateItem(),
-                            )
-                        }
-                    }
-
-                    if (showUploadedPlaylists) {
-                        item(
-                            key = "uploadedPlaylist",
-                            contentType = { CONTENT_TYPE_PLAYLIST },
-                        ) {
-                            PlaylistListItem(
-                                playlist = uploadedPlaylist,
-                                autoPlaylist = true,
-                                modifier =
-                                    Modifier
-                                        .fillMaxWidth()
-                                        .clickable {
-                                            navController.navigate("auto_playlist/uploaded")
-                                        }.animateItem(),
+                            JixQuickTiles(
+                                showLiked = showLiked,
+                                showDownloaded = showDownloaded,
+                                showTop = showTop,
+                                showCached = showCached,
+                                showUploaded = showUploaded,
+                                topSize = topSize,
+                                onLiked = { navController.navigate("auto_playlist/liked") },
+                                onDownloads = { navController.navigate("auto_playlist/downloaded") },
+                                onTop = { navController.navigate("top_playlist/$topSize") },
+                                onCached = { navController.navigate("cache_playlist/cached") },
+                                onUploaded = { navController.navigate("auto_playlist/uploaded") },
+                                onHistory = { navController.navigate("history") },
                             )
                         }
                     }
@@ -787,15 +693,7 @@ fun LibraryMixScreen(
                         }
                     }
 
-                    if (
-                        filteredItems.isEmpty() &&
-                        !showLikedPlaylist &&
-                        !showDownloadedPlaylist &&
-                        !showCachedPlaylists &&
-                        !showTopPlaylists &&
-                        !showUploadedPlaylists &&
-                        searchQuery.isNotBlank()
-                    ) {
+                    if (filteredItems.isEmpty() && searchQuery.isNotBlank()) {
                         item(key = "empty_search_result") {
                             LibrarySearchEmptyPlaceholder(modifier = Modifier.animateItem())
                         }
@@ -828,149 +726,64 @@ fun LibraryMixScreen(
                         headerContent()
                     }
 
-                    // JixOne web LibraryView quick cards — flow as individual
-                    // grid cells: 2x2 on phones, 4-across on tablets (the web's
-                    // grid-cols-2 / sm:grid-cols-4 behaviour)
+                    // JixOne 4.1 Library — sync chip, recently played shelf and
+                    // quick access tiles, flowing full-span above the grid
                     if (normalizedQuery.isBlank()) {
-                        item(key = "jix_quick_new", contentType = CONTENT_TYPE_HEADER) {
-                            JixQuickCard(
-                                label = stringResource(R.string.new_playlist),
-                                icon = R.drawable.jix_plus,
-                                iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                iconBackground = JixCardBackground.DASHED,
-                                onClick = { showCreatePlaylistDialog = true },
-                            )
-                        }
-                        item(key = "jix_quick_liked", contentType = CONTENT_TYPE_HEADER) {
-                            JixQuickCard(
-                                label = stringResource(R.string.liked_songs),
-                                icon = R.drawable.jix_heart_filled,
-                                iconTint = Color.White,
-                                iconBackground = JixCardBackground.NEON,
-                                onClick = { navController.navigate("auto_playlist/liked") },
-                            )
-                        }
-                        item(key = "jix_quick_recent", contentType = CONTENT_TYPE_HEADER) {
-                            JixQuickCard(
-                                label = stringResource(R.string.recent_played),
-                                icon = R.drawable.jix_clock,
-                                iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                iconBackground = JixCardBackground.SOFT,
-                                onClick = { navController.navigate("history") },
-                            )
-                        }
-                        item(key = "jix_quick_downloads", contentType = CONTENT_TYPE_HEADER) {
-                            JixQuickCard(
-                                label = stringResource(R.string.downloads_label),
-                                icon = R.drawable.jix_download,
-                                iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                iconBackground = JixCardBackground.SOFT,
-                                onClick = { navController.navigate("auto_playlist/downloaded") },
-                            )
-                        }
-                    }
-
-                    if (showLikedPlaylist) {
                         item(
-                            key = "likedPlaylist",
-                            contentType = { CONTENT_TYPE_PLAYLIST },
+                            key = "jix_sync_chip",
+                            span = { GridItemSpan(maxLineSpan) },
+                            contentType = CONTENT_TYPE_HEADER,
                         ) {
-                            PlaylistGridItem(
-                                playlist = likedPlaylist,
-                                fillMaxWidth = true,
-                                autoPlaylist = true,
-                                modifier =
-                                    Modifier
-                                        .fillMaxWidth()
-                                        .combinedClickable(
-                                            onClick = {
-                                                navController.navigate("auto_playlist/liked")
-                                            },
-                                        ).animateItem(),
+                            JixSyncChip(
+                                accountName = accountName,
+                                syncState = syncState,
+                                onSync = { viewModel.refresh() },
+                                onLogin = { navController.navigate("login") },
                             )
                         }
-                    }
 
-                    if (showDownloadedPlaylist) {
-                        item(
-                            key = "downloadedPlaylist",
-                            contentType = { CONTENT_TYPE_PLAYLIST },
-                        ) {
-                            PlaylistGridItem(
-                                playlist = downloadPlaylist,
-                                fillMaxWidth = true,
-                                autoPlaylist = true,
-                                modifier =
-                                    Modifier
-                                        .fillMaxWidth()
-                                        .combinedClickable(
-                                            onClick = {
-                                                navController.navigate("auto_playlist/downloaded")
-                                            },
+                        if (recentSongs.isNotEmpty()) {
+                            item(
+                                key = "jix_recent_shelf",
+                                span = { GridItemSpan(maxLineSpan) },
+                                contentType = CONTENT_TYPE_HEADER,
+                            ) {
+                                val queueTitle = stringResource(R.string.recent_played)
+                                JixRecentShelf(
+                                    recentSongs = recentSongs,
+                                    queueTitle = queueTitle,
+                                    onPlay = { index ->
+                                        playerConnection.playQueue(
+                                            ListQueue(
+                                                title = queueTitle,
+                                                items = recentSongs.map { it.toMediaItem() },
+                                                startIndex = index,
+                                            ),
                                         )
-                                        .animateItem(),
-                            )
+                                    },
+                                    onSeeAll = { navController.navigate("history") },
+                                )
+                            }
                         }
-                    }
 
-                    if (showCachedPlaylists) {
                         item(
-                            key = "cachedPlaylist",
-                            contentType = { CONTENT_TYPE_PLAYLIST },
+                            key = "jix_quick_tiles",
+                            span = { GridItemSpan(maxLineSpan) },
+                            contentType = CONTENT_TYPE_HEADER,
                         ) {
-                            PlaylistGridItem(
-                                playlist = cachedPlaylist,
-                                fillMaxWidth = true,
-                                autoPlaylist = true,
-                                modifier =
-                                Modifier
-                                    .fillMaxWidth()
-                                    .combinedClickable(
-                                        onClick = {
-                                            navController.navigate("cache_playlist/cached")
-                                        },
-                                    )
-                                    .animateItem(),
-                            )
-                        }
-                    }
-
-                    if (showTopPlaylists) {
-                        item(
-                            key = "TopPlaylist",
-                            contentType = { CONTENT_TYPE_PLAYLIST },
-                        ) {
-                            PlaylistGridItem(
-                                playlist = topPlaylist,
-                                fillMaxWidth = true,
-                                autoPlaylist = true,
-                                modifier =
-                                    Modifier
-                                        .fillMaxWidth()
-                                        .combinedClickable(
-                                            onClick = {
-                                                navController.navigate("top_playlist/$topSize")
-                                            },
-                                        ).animateItem(),
-                            )
-                        }
-                    }
-
-                    if (showUploadedPlaylists) {
-                        item(
-                            key = "uploadedPlaylist",
-                            contentType = { CONTENT_TYPE_PLAYLIST },
-                        ) {
-                            PlaylistGridItem(
-                                playlist = uploadedPlaylist,
-                                fillMaxWidth = true,
-                                autoPlaylist = true,
-                                modifier =
-                                    Modifier
-                                        .fillMaxWidth()
-                                        .clickable {
-                                            navController.navigate("auto_playlist/uploaded")
-                                        }.animateItem(),
+                            JixQuickTiles(
+                                showLiked = showLiked,
+                                showDownloaded = showDownloaded,
+                                showTop = showTop,
+                                showCached = showCached,
+                                showUploaded = showUploaded,
+                                topSize = topSize,
+                                onLiked = { navController.navigate("auto_playlist/liked") },
+                                onDownloads = { navController.navigate("auto_playlist/downloaded") },
+                                onTop = { navController.navigate("top_playlist/$topSize") },
+                                onCached = { navController.navigate("cache_playlist/cached") },
+                                onUploaded = { navController.navigate("auto_playlist/uploaded") },
+                                onHistory = { navController.navigate("history") },
                             )
                         }
                     }
@@ -1105,15 +918,7 @@ fun LibraryMixScreen(
                         }
                     }
 
-                    if (
-                        filteredItems.isEmpty() &&
-                        !showLikedPlaylist &&
-                        !showDownloadedPlaylist &&
-                        !showCachedPlaylists &&
-                        !showTopPlaylists &&
-                        !showUploadedPlaylists &&
-                        searchQuery.isNotBlank()
-                    ) {
+                    if (filteredItems.isEmpty() && searchQuery.isNotBlank()) {
                         item(
                             key = "empty_search_result",
                             span = { GridItemSpan(maxLineSpan) },
@@ -1154,96 +959,240 @@ fun LibraryMixScreen(
 }
 
 
-/** Icon-square treatment for the web quick cards. */
-private enum class JixCardBackground { DASHED, NEON, SOFT }
+// ---------------------------------------------------------------------------
+// JixOne 4.1 Library — sync chip, quick tiles, recently played shelf
+// ---------------------------------------------------------------------------
 
 /**
- * One web LibraryView quick card (src/components/views/LibraryView.tsx):
- * a 56dp rounded surface with a 40dp icon square + label — "New playlist"
- * carries the dashed outline, "Liked" the neon gradient square.
+ * Account / live sync status pill. Signed in: idle -> tap to sync, running,
+ * synced, failed -> tap to retry. Signed out: a sign-in hint that opens the
+ * login screen. Makes YouTube playlist import visible instead of silent.
  */
 @Composable
-private fun JixQuickCard(
+private fun JixSyncChip(
+    accountName: String,
+    syncState: SyncUtils.SyncUiState,
+    onSync: () -> Unit,
+    onLogin: () -> Unit,
+) {
+    val shape = RoundedCornerShape(20.dp)
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp)
+            .clip(shape)
+            .background(MaterialTheme.colorScheme.surfaceContainerLow, shape)
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f), shape)
+            .clickable(onClick = if (accountName.isBlank()) onLogin else onSync)
+            .padding(horizontal = 14.dp, vertical = 10.dp),
+    ) {
+        when {
+            accountName.isBlank() -> {
+                Icon(
+                    painter = painterResource(R.drawable.jix_refresh),
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(18.dp),
+                )
+                Text(
+                    text = stringResource(R.string.sync_sign_in_hint),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+
+            syncState is SyncUtils.SyncUiState.Running -> {
+                CircularProgressIndicator(
+                    strokeWidth = 2.dp,
+                    modifier = Modifier.size(16.dp),
+                )
+                Text(
+                    text = stringResource(R.string.syncing_library),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
+            syncState is SyncUtils.SyncUiState.Succeeded -> {
+                Icon(
+                    painter = painterResource(R.drawable.jix_check),
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(18.dp),
+                )
+                Text(
+                    text = stringResource(R.string.synced_with_youtube),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+
+            syncState is SyncUtils.SyncUiState.Failed -> {
+                Icon(
+                    painter = painterResource(R.drawable.jix_alert),
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.size(18.dp),
+                )
+                Text(
+                    text = stringResource(R.string.sync_failed_retry),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+
+            else -> {
+                Icon(
+                    painter = painterResource(R.drawable.jix_refresh),
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(18.dp),
+                )
+                Text(
+                    text = stringResource(R.string.sync_now),
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+                Spacer(Modifier.weight(1f))
+                Text(
+                    text = accountName,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Horizontal shelf of recently played songs with real album art and a
+ * "See all" shortcut into the full history screen.
+ */
+@Composable
+private fun JixRecentShelf(
+    recentSongs: List<Song>,
+    queueTitle: String,
+    onPlay: (Int) -> Unit,
+    onSeeAll: () -> Unit,
+) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 4.dp),
+        ) {
+            Text(
+                text = stringResource(R.string.recent_played),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Spacer(Modifier.weight(1f))
+            Text(
+                text = stringResource(R.string.see_all),
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(12.dp))
+                    .clickable(onClick = onSeeAll)
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
+            )
+        }
+        LazyRow(
+            contentPadding = PaddingValues(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            items(recentSongs, key = { it.id }) { song ->
+                Column(
+                    horizontalAlignment = Alignment.Start,
+                    modifier = Modifier
+                        .width(112.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .clickable { onPlay(recentSongs.indexOfFirst { it.id == song.id }) },
+                ) {
+                    AsyncImage(
+                        model = song.thumbnailUrl,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(112.dp)
+                            .clip(RoundedCornerShape(12.dp)),
+                    )
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        text = song.title,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(
+                        text = song.orderedArtists.joinToString { it.name },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+        }
+    }
+}
+
+/** One compact quick-access tile: tonal icon square + label. */
+@Composable
+private fun JixQuickTile(
     label: String,
     @DrawableRes icon: Int,
-    iconTint: Color,
-    iconBackground: JixCardBackground,
+    accent: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val shape = RoundedCornerShape(16.dp)
-    // read in composable context — drawBehind's lambda is a draw scope
-    val dashedColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
         modifier = modifier
-            .fillMaxWidth()
-            .height(56.dp)
-            .then(
-                if (iconBackground == JixCardBackground.DASHED) {
-                    // web: border-dashed border-line bg-surface
-                    Modifier
-                        .drawBehind {
-                            drawRoundRect(
-                                color = dashedColor,
-                                cornerRadius = CornerRadius(16.dp.toPx()),
-                                style = Stroke(
-                                    width = 1.dp.toPx(),
-                                    pathEffect = PathEffect.dashPathEffect(
-                                        floatArrayOf(6.dp.toPx(), 4.dp.toPx()),
-                                    ),
-                                ),
-                            )
-                        }
-                } else {
-                    Modifier.background(
-                        MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.55f),
-                        shape,
-                    )
-                },
-            )
-            .clip(shape)
+            .width(84.dp)
+            .clip(RoundedCornerShape(18.dp))
             .clickable(onClick = onClick)
-            .padding(horizontal = 10.dp, vertical = 8.dp),
+            .padding(vertical = 8.dp),
     ) {
-        val iconShape = RoundedCornerShape(12.dp)
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier
-                .size(40.dp)
-                .then(
-                    when (iconBackground) {
-                        JixCardBackground.NEON ->
-                            Modifier.background(
-                                Brush.linearGradient(
-                                    listOf(
-                                        MaterialTheme.colorScheme.primary,
-                                        MaterialTheme.colorScheme.tertiary,
-                                    ),
-                                ),
-                                iconShape,
-                            )
-                        else ->
-                            Modifier.background(
-                                MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.7f),
-                                iconShape,
-                            )
-                    },
+                .size(48.dp)
+                .background(
+                    if (accent) MaterialTheme.colorScheme.primaryContainer
+                    else MaterialTheme.colorScheme.surfaceContainerHigh,
+                    RoundedCornerShape(16.dp),
                 ),
         ) {
             Icon(
                 painter = painterResource(icon),
                 contentDescription = null,
-                tint = iconTint,
-                modifier = Modifier.size(18.dp),
+                tint = if (accent) MaterialTheme.colorScheme.onPrimaryContainer
+                else MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(22.dp),
             )
         }
+        Spacer(Modifier.height(6.dp))
         Text(
             text = label,
-            fontSize = 12.sp,
-            lineHeight = 15.sp,
-            fontWeight = FontWeight.Bold,
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.Medium,
             color = MaterialTheme.colorScheme.onSurface,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
@@ -1251,53 +1200,86 @@ private fun JixQuickCard(
     }
 }
 
-/** The four web quick cards laid out 2x2 (list view; grid view uses cells). */
+/**
+ * The quick-access row: Liked / Downloads / History / My top / Cached /
+ * Uploaded — compact functional tiles, gated by the Library preferences.
+ */
 @Composable
-private fun JixLibraryQuickCards(
-    navController: NavController,
-    onCreatePlaylist: () -> Unit,
+private fun JixQuickTiles(
+    showLiked: Boolean,
+    showDownloaded: Boolean,
+    showTop: Boolean,
+    showCached: Boolean,
+    showUploaded: Boolean,
+    topSize: Int,
+    onLiked: () -> Unit,
+    onDownloads: () -> Unit,
+    onTop: () -> Unit,
+    onCached: () -> Unit,
+    onUploaded: () -> Unit,
+    onHistory: () -> Unit,
 ) {
-    Column(
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 4.dp),
+    LazyRow(
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            JixQuickCard(
-                label = stringResource(R.string.new_playlist),
-                icon = R.drawable.jix_plus,
-                iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
-                iconBackground = JixCardBackground.DASHED,
-                onClick = onCreatePlaylist,
-                modifier = Modifier.weight(1f),
-            )
-            JixQuickCard(
-                label = stringResource(R.string.liked_songs),
-                icon = R.drawable.jix_heart_filled,
-                iconTint = Color.White,
-                iconBackground = JixCardBackground.NEON,
-                onClick = { navController.navigate("auto_playlist/liked") },
-                modifier = Modifier.weight(1f),
+        if (showLiked) {
+            item(key = "tile_liked") {
+                JixQuickTile(
+                    label = stringResource(R.string.liked_songs),
+                    icon = R.drawable.jix_heart_filled,
+                    accent = true,
+                    onClick = onLiked,
+                )
+            }
+        }
+        if (showDownloaded) {
+            item(key = "tile_downloads") {
+                JixQuickTile(
+                    label = stringResource(R.string.downloads_label),
+                    icon = R.drawable.jix_download,
+                    accent = false,
+                    onClick = onDownloads,
+                )
+            }
+        }
+        item(key = "tile_history") {
+            JixQuickTile(
+                label = stringResource(R.string.history),
+                icon = R.drawable.jix_clock,
+                accent = false,
+                onClick = onHistory,
             )
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            JixQuickCard(
-                label = stringResource(R.string.recent_played),
-                icon = R.drawable.jix_clock,
-                iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
-                iconBackground = JixCardBackground.SOFT,
-                onClick = { navController.navigate("history") },
-                modifier = Modifier.weight(1f),
-            )
-            JixQuickCard(
-                label = stringResource(R.string.downloads_label),
-                icon = R.drawable.jix_download,
-                iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
-                iconBackground = JixCardBackground.SOFT,
-                onClick = { navController.navigate("auto_playlist/downloaded") },
-                modifier = Modifier.weight(1f),
-            )
+        if (showTop) {
+            item(key = "tile_top") {
+                JixQuickTile(
+                    label = stringResource(R.string.my_top) + " $topSize",
+                    icon = R.drawable.jix_trending,
+                    accent = false,
+                    onClick = onTop,
+                )
+            }
+        }
+        if (showCached) {
+            item(key = "tile_cached") {
+                JixQuickTile(
+                    label = stringResource(R.string.cached_playlist),
+                    icon = R.drawable.jix_database,
+                    accent = false,
+                    onClick = onCached,
+                )
+            }
+        }
+        if (showUploaded) {
+            item(key = "tile_uploaded") {
+                JixQuickTile(
+                    label = stringResource(R.string.uploaded_playlist),
+                    icon = R.drawable.jix_upload,
+                    accent = false,
+                    onClick = onUploaded,
+                )
+            }
         }
     }
 }

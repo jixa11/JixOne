@@ -71,6 +71,7 @@ import com.metrolist.music.constants.AccountNameKey
 import com.metrolist.music.constants.DataSyncIdKey
 import com.metrolist.music.constants.InnerTubeAuthUserKey
 import com.metrolist.music.constants.InnerTubeCookieKey
+import com.metrolist.music.constants.LastFullSyncKey
 import com.metrolist.music.constants.VisitorDataKey
 import com.metrolist.music.ui.component.IconButton
 import com.metrolist.music.ui.utils.backToMain
@@ -197,6 +198,11 @@ fun LoginScreen(
                         settings[AccountNameKey] = accountInfo.name
                         settings[AccountEmailKey] = accountInfo.email.orEmpty()
                         settings[AccountChannelHandleKey] = accountInfo.channelHandle.orEmpty()
+                        // Fresh session: clear the full-sync cooldown so the very
+                        // first sync after login (app start / Library open) imports
+                        // the account's YouTube playlists immediately instead of
+                        // being silently blocked by a stale timestamp.
+                        settings[LastFullSyncKey] = 0L
                     }
                 }
             check(saved) { "Failed to persist account data" }

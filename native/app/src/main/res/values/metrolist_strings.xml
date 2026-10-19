@@ -1020,4 +1020,10 @@
     <string name="downloads_label">Downloads</string>
     <string name="open_source_licenses">Open-source licenses</string>
     <string name="oss_body">JixOne is free software (GPL-3.0).\n\nThis app builds on the open-source Metrolist project and uses Lucide icons (ISC license). Full license texts and attribution are available at github.com/jixa11/JixOne.</string>
+    <string name="sync_now">Sync now</string>
+    <string name="syncing_library">Syncing with YouTube…</string>
+    <string name="synced_with_youtube">Synced with YouTube</string>
+    <string name="sync_failed_retry">Sync failed — tap to retry</string>
+    <string name="sync_sign_in_hint">Sign in to sync your YouTube playlists</string>
+    <string name="see_all">See all</string>
 </resources>

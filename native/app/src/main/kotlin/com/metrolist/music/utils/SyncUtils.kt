@@ -21,6 +21,9 @@ import com.metrolist.music.constants.InnerTubeCookieKey
 import com.metrolist.music.constants.LastFMUseSendLikes
 import com.metrolist.music.constants.LastFullSyncKey
 import com.metrolist.music.constants.SYNC_COOLDOWN
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import com.metrolist.music.db.MusicDatabase
 import com.metrolist.music.db.entities.ArtistEntity
 import com.metrolist.music.db.entities.PlaylistEntity
@@ -234,6 +237,20 @@ class SyncUtils @Inject constructor(
     private val syncExecutionMutex = Mutex()
     private val queuedOperationKeys = ConcurrentHashMap.newKeySet<String>()
 
+    /**
+     * UI-facing full-sync state, so screens can show a live sync chip
+     * (running / synced / failed) instead of failing silently.
+     */
+    sealed interface SyncUiState {
+        data object Idle : SyncUiState
+        data object Running : SyncUiState
+        data class Succeeded(val atEpochSecond: Long) : SyncUiState
+        data class Failed(val reason: String?) : SyncUiState
+    }
+
+    private val _syncUiState = MutableStateFlow<SyncUiState>(SyncUiState.Idle)
+    val syncUiState: StateFlow<SyncUiState> = _syncUiState.asStateFlow()
+
     private var lastfmSendLikes = false
     @Volatile private var cachedLastSyncEpoch: Long = 0L
     private val playlistsBeingModified = ConcurrentHashMap<String, AtomicInteger>()
@@ -246,6 +263,7 @@ class SyncUtils @Inject constructor(
         private const val DB_OPERATION_DELAY_MS = 50L
         private const val DB_QUERY_BATCH_SIZE = 500
         private const val PLAYLIST_EDIT_THROTTLE_MS = 500L
+        private const val RETRY_GRACE_SECONDS = 120L
         private const val SNAPSHOT_LIKED_SONGS = "sync_snapshot_liked_songs"
         private const val SNAPSHOT_LIBRARY_SONGS = "sync_snapshot_library_songs"
         private const val SNAPSHOT_LIKED_ALBUMS = "sync_snapshot_liked_albums"
@@ -478,11 +496,18 @@ class SyncUtils @Inject constructor(
 
             enqueue(SyncOperation.FullSync)
 
-            val now = LocalDateTime.now().toEpochSecond(ZoneOffset.UTC)
-            cachedLastSyncEpoch = now
-            context.safeDataStoreEdit { settings ->
-                settings[LastFullSyncKey] = now
-            }
+            // Cooldown is now stamped when a sync *completes* (see executeFullSync),
+            // not when it is enqueued — a failed first sync after login must not
+            // block the retry for half an hour with no visible feedback.
+            cachedLastSyncEpoch = LocalDateTime.now().toEpochSecond(ZoneOffset.UTC)
+        }
+    }
+
+    /** Manual, cooldown-free sync used by the Library sync chip and pull-to-refresh. */
+    fun syncNow(callback: (() -> Unit)? = null) {
+        syncScope.launch {
+            performFullSyncSuspend()
+            callback?.invoke()
         }
     }
 
@@ -673,6 +698,7 @@ class SyncUtils @Inject constructor(
             return@withContext
         }
 
+        _syncUiState.value = SyncUiState.Running
 
         try {
             // Sync in sequence to avoid overwhelming the API and database
@@ -704,10 +730,23 @@ class SyncUtils @Inject constructor(
             delay(DB_OPERATION_DELAY_MS)
 
             Timber.d("Full sync completed successfully")
+            val now = LocalDateTime.now().toEpochSecond(ZoneOffset.UTC)
+            context.safeDataStoreEdit { settings ->
+                settings[LastFullSyncKey] = now
+            }
+            _syncUiState.value = SyncUiState.Succeeded(now)
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
             Timber.e(e, "Error during full sync")
+            // Retryable soon: ~2 minutes instead of the full cooldown, so a
+            // VPN hiccup or bot-gate at first login doesn't hide playlists all day.
+            val now = LocalDateTime.now().toEpochSecond(ZoneOffset.UTC)
+            context.safeDataStoreEdit { settings ->
+                settings[LastFullSyncKey] = now - SYNC_COOLDOWN + RETRY_GRACE_SECONDS
+            }
+            cachedLastSyncEpoch = 0L
+            _syncUiState.value = SyncUiState.Failed(e.message ?: e.javaClass.simpleName)
         }
     }
 

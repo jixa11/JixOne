@@ -184,4 +184,10 @@
     <string name="error_explicit_login_recommended">پخش آهنگ‌های دارای هشدار بزرگسال با حساب واردشده بهتر کار می‌کند.</string>
     <string name="error_job_cancelled">این ویدیو برای پخش در دسترس نیست. دوباره تلاش کنید یا سراغ آهنگ بعدی بروید.</string>
     <string name="error_bot_gate_hint">یوتیوب پخشِ ناشناس از IP فعلی شما (VPN) را مسدود کرده است. برای درست شدن پخش، با حساب گوگل در همین برنامه وارد شوید.</string>
+    <string name="sync_now">همگام‌سازی</string>
+    <string name="syncing_library">در حال همگام‌سازی با یوتیوب…</string>
+    <string name="synced_with_youtube">با یوتیوب همگام شد</string>
+    <string name="sync_failed_retry">همگام‌سازی ناموفق — برای تلاش دوباره بزن</string>
+    <string name="sync_sign_in_hint">برای همگام‌سازی پلی‌لیست‌های یوتیوب، وارد شوید</string>
+    <string name="see_all">همه</string>
 </resources>

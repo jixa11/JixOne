@@ -170,6 +170,7 @@ import com.metrolist.music.utils.joinToArtistString
 import com.metrolist.music.utils.ArtistNameAliases
 import com.metrolist.music.utils.makeTimeString
 import com.metrolist.music.utils.rememberEnumPreference
+import com.metrolist.music.constants.OnboardingInterestsKey
 import com.metrolist.music.utils.rememberPreference
 import com.metrolist.music.viewmodels.CommunityPlaylistItem
 import com.metrolist.music.viewmodels.HomeViewModel
@@ -516,6 +517,13 @@ fun HomeScreen(
     val speedDialItems by viewModel.speedDialItems.collectAsStateWithLifecycle()
     val pinnedSpeedDialItems by viewModel.pinnedSpeedDialItems.collectAsStateWithLifecycle()
     val selectedChip by viewModel.selectedChip.collectAsStateWithLifecycle()
+    val forYouItems by viewModel.forYouItems.collectAsStateWithLifecycle()
+    val (onboardingInterests) = rememberPreference(OnboardingInterestsKey, "")
+    LaunchedEffect(onboardingInterests) {
+        if (onboardingInterests.isNotBlank()) {
+            viewModel.loadForYou(onboardingInterests)
+        }
+    }
 
     // Official podcast API data
     val savedPodcastShows by viewModel.savedPodcastShows.collectAsStateWithLifecycle()
@@ -1045,8 +1053,18 @@ fun HomeScreen(
                         )
                         Spacer(modifier = Modifier.width(10.dp))
                         Column {
+                            // JixOne 5.0: Spotify-style time-aware greeting
+                            val hour = remember {
+                                java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)
+                            }
+                            val greetingRes = when (hour) {
+                                in 5..11 -> R.string.greeting_morning
+                                in 12..16 -> R.string.greeting_afternoon
+                                in 17..21 -> R.string.greeting_evening
+                                else -> R.string.greeting_night
+                            }
                             Text(
-                                text = stringResource(R.string.explore),
+                                text = stringResource(greetingRes),
                                 style = TextStyle(
                                     fontSize = 30.sp,
                                     fontWeight = FontWeight.Black,
@@ -1068,6 +1086,60 @@ fun HomeScreen(
                             viewModel.toggleChip(it)
                         },
                     )
+                }
+
+                // JixOne 5.0: "For you" — playlists from the onboarding picks
+                if (selectedChip == null && forYouItems.isNotEmpty()) {
+                    item(key = "for_you_title") {
+                        NavigationTitle(
+                            title = stringResource(R.string.for_you),
+                            modifier = Modifier.animateItem(),
+                        )
+                    }
+                    item(key = "for_you_row") {
+                        LazyRow(
+                            contentPadding = PaddingValues(horizontal = 12.dp),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
+                            items(
+                                items = forYouItems,
+                                key = { "for_you_${it.id}" },
+                            ) { playlist ->
+                                Box(modifier = Modifier.width(150.dp)) {
+                                    ytGridItem(playlist)
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // JixOne 5.0: new releases — explorePage carries them but they
+                // were never rendered before
+                if (selectedChip == null) {
+                    explorePage?.newReleaseAlbums?.takeIf { it.isNotEmpty() }?.let { albums ->
+                        item(key = "new_releases_title") {
+                            NavigationTitle(
+                                title = stringResource(R.string.new_release_albums),
+                                onClick = { navController.navigate("new_release") },
+                                modifier = Modifier.animateItem(),
+                            )
+                        }
+                        item(key = "new_releases_row") {
+                            LazyRow(
+                                contentPadding = PaddingValues(horizontal = 12.dp),
+                                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            ) {
+                                items(
+                                    items = albums,
+                                    key = { "new_release_${it.id}" },
+                                ) { album ->
+                                    Box(modifier = Modifier.width(150.dp)) {
+                                        ytGridItem(album)
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
 
                 if (isLoading && homePage?.chips.isNullOrEmpty()) {
@@ -2337,6 +2409,7 @@ fun HomeScreen(
                                                         "youtube_browse/${it.endpoint.browseId}?params=${it.endpoint.params}",
                                                     )
                                                 },
+                                                stripeColor = it.stripeColor,
                                                 modifier =
                                                     Modifier
                                                         .padding(6.dp)

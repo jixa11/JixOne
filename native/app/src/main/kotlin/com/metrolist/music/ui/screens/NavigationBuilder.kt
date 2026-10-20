@@ -408,6 +408,10 @@ fun NavGraphBuilder.navigationBuilder(
         AboutScreen(navController)
     }
 
+    composable("onboarding") {
+        OnboardingScreen(navController)
+    }
+
     composable("login") {
         LoginScreen(navController)
     }

@@ -45,6 +45,16 @@ fun LibraryScreen() {
                     filterType = if (filterType == it) LibraryFilter.LIBRARY else it
                 },
                 modifier = Modifier.weight(1f),
+                iconOf = { filter ->
+                    when (filter) {
+                        LibraryFilter.PLAYLISTS -> R.drawable.jix_list_music
+                        LibraryFilter.SONGS -> R.drawable.jix_music
+                        LibraryFilter.ALBUMS -> R.drawable.jix_disc
+                        LibraryFilter.ARTISTS -> R.drawable.jix_user
+                        LibraryFilter.PODCASTS -> R.drawable.jix_podcast
+                        else -> null
+                    }
+                },
             )
         }
     }

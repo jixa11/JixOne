@@ -164,6 +164,7 @@ import com.metrolist.music.constants.MiniPlayerBottomSpacing
 import com.metrolist.music.constants.MiniPlayerHeight
 import com.metrolist.music.constants.NavigationBarAnimationSpec
 import com.metrolist.music.constants.NavigationBarHeight
+import com.metrolist.music.constants.OnboardingCompletedKey
 import com.metrolist.music.constants.PauseListenHistoryKey
 import com.metrolist.music.constants.PauseSearchHistoryKey
 import com.metrolist.music.constants.PreferredLyricsProvider
@@ -1102,6 +1103,27 @@ class MainActivity : FragmentActivity() {
                         handleWidgetTargetIntent(intent, navController)
                         handleRecognitionIntent(intent, navController)
                         handleDeepLinkIntent(intent, navController)
+                    }
+                }
+
+                // JixOne 5.0: first-install onboarding (Spotify-style interests
+                // picker). Fresh installs only — an existing library means this
+                // is an update, so we mark it done and never show it again.
+                var onboardingNeeded by remember { mutableStateOf<Boolean?>(null) }
+                LaunchedEffect(Unit) {
+                    val completed = context.dataStore.data.first()[OnboardingCompletedKey] ?: false
+                    if (completed) {
+                        onboardingNeeded = false
+                    } else if (database.hasSongs()) {
+                        context.safeDataStoreEdit { it[OnboardingCompletedKey] = true }
+                        onboardingNeeded = false
+                    } else {
+                        onboardingNeeded = true
+                    }
+                }
+                LaunchedEffect(onboardingNeeded) {
+                    if (onboardingNeeded == true) {
+                        navController.navigate("onboarding")
                     }
                 }
 

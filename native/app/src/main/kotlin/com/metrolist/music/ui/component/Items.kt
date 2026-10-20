@@ -321,7 +321,9 @@ inline fun ListItem(
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Bold,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                overflow = TextOverflow.Ellipsis,
+                // JixOne 5.0: long titles scroll once instead of staying cut off
+                modifier = Modifier.basicMarquee(iterations = 1, initialDelayMillis = 2500)
             )
 
             if (subtitle != null) {

@@ -114,6 +114,10 @@ class HomeViewModel @Inject constructor(
     val homePage = MutableStateFlow<HomePage?>(null)
     val explorePage = MutableStateFlow<ExplorePage?>(null)
     val communityPlaylists = MutableStateFlow<List<CommunityPlaylistItem>?>(null)
+
+    // JixOne 5.0: personalized "For you" shelf from onboarding interests
+    val forYouItems = MutableStateFlow<List<PlaylistItem>>(emptyList())
+    private var forYouLoadedFor: String? = null
     val selectedChip = MutableStateFlow<HomePage.Chip?>(null)
     private val previousHomePage = MutableStateFlow<HomePage?>(null)
 
@@ -681,6 +685,35 @@ class HomeViewModel @Inject constructor(
     @Suppress("UNCHECKED_CAST")
     private fun <T : Any> List<T>.filterOutNulls(): List<T> =
         (this as List<T?>).filterNotNull()
+
+    /**
+     * JixOne 5.0: builds the personalized "For you" shelf from the moods the
+     * user picked during onboarding — first playlists of each mood, mixed.
+     */
+    fun loadForYou(interestsRaw: String) {
+        if (interestsRaw.isBlank()) return
+        if (forYouLoadedFor == interestsRaw && forYouItems.value.isNotEmpty()) return
+        forYouLoadedFor = interestsRaw
+
+        viewModelScope.launch(Dispatchers.IO) {
+            val entries = interestsRaw.split('\u0002')
+                .filter { it.isNotBlank() }
+                .mapNotNull { entry ->
+                    val parts = entry.split('\u0001')
+                    if (parts.size == 3) Triple(parts[0], parts[1], parts[2]) else null
+                }
+                .take(4)
+
+            val playlists = entries.mapNotNull { (browseId, params, _) ->
+                YouTube.browse(browseId, params.ifBlank { null }).getOrNull()
+            }.flatMap { result ->
+                result.items.filterIsInstance<PlaylistItem>()
+            }.distinctBy { it.id }
+                .take(12)
+
+            forYouItems.value = playlists
+        }
+    }
 
     fun refresh() {
         if (isRefreshing.value) return

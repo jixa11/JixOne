@@ -88,6 +88,7 @@ fun MoodAndGenresScreen(
                                     onClick = {
                                         navController.navigate("youtube_browse/${it.endpoint.browseId}?params=${it.endpoint.params}")
                                     },
+                                    stripeColor = it.stripeColor,
                                     modifier =
                                     Modifier
                                         .weight(1f)
@@ -126,20 +127,38 @@ fun MoodAndGenresButton(
     title: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    stripeColor: Long = 0L,
 ) {
+    val stripe = if (stripeColor != 0L) {
+        androidx.compose.ui.graphics.Color(stripeColor)
+    } else {
+        MaterialTheme.colorScheme.primary
+    }
+    // JixOne 5.0: colorful gradient tile — the stripe color washes from the
+    // left edge into the surface, like YTM's mood chips but softer.
     Box(
         contentAlignment = Alignment.CenterStart,
         modifier =
         modifier
             .height(MoodAndGenresButtonHeight)
-            .clip(RoundedCornerShape(6.dp))
-            .background(MaterialTheme.colorScheme.surfaceContainer)
+            .clip(RoundedCornerShape(16.dp))
+            .background(
+                androidx.compose.ui.graphics.Brush.horizontalGradient(
+                    listOf(
+                        stripe.copy(alpha = 0.55f),
+                        stripe.copy(alpha = 0.16f),
+                        MaterialTheme.colorScheme.surfaceContainer,
+                    )
+                )
+            )
             .clickable(onClick = onClick)
             .padding(horizontal = 12.dp),
     ) {
         Text(
             text = title,
-            style = MaterialTheme.typography.labelLarge,
+            style = MaterialTheme.typography.labelLarge.copy(
+                fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
+            ),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )

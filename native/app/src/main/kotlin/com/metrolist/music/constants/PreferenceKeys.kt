@@ -85,6 +85,12 @@ const val SYSTEM_DEFAULT = "SYSTEM_DEFAULT"
 val AppLanguageKey = stringPreferencesKey("appLanguage")
 /** JixOne 5.0: app UI language — "system" (default) | "en" | "fa" */
 val UiLanguageKey = stringPreferencesKey("uiLanguage")
+
+/** JixOne 5.0: first-install onboarding completed */
+val OnboardingCompletedKey = booleanPreferencesKey("onboardingCompleted")
+
+/** JixOne 5.0: selected moods/genres from onboarding ("browseId\u0001params\u0001title" entries) */
+val OnboardingInterestsKey = stringPreferencesKey("onboardingInterests")
 val ContentLanguageKey = stringPreferencesKey("contentLanguage")
 val ContentCountryKey = stringPreferencesKey("contentCountry")
 val EnableZemerKey = booleanPreferencesKey("enableZemer")

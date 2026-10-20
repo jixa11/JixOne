@@ -2043,4 +2043,8 @@ interface DatabaseDao {
 
     @Delete
     fun delete(podcast: PodcastEntity)
+
+    // JixOne 5.0: fresh-install detection for the onboarding gate
+    @Query("SELECT EXISTS(SELECT 1 FROM song LIMIT 1)")
+    suspend fun hasSongs(): Boolean
 }

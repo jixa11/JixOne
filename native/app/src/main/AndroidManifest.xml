@@ -28,7 +28,6 @@
         <package android:name="com.google.android.projection.gearhead" />
     </queries>
     <application
-        android:localeConfig="@xml/locales_config"
         android:name=".App"
         android:allowBackup="true"
         android:appCategory="audio"

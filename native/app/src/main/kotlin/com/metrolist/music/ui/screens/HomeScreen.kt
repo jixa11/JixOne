@@ -85,6 +85,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
@@ -657,7 +658,7 @@ fun HomeScreen(
             is Song -> {
                 JixShelfCard(
                     title = it.song.title,
-                    subtitle = it.song.artists.joinToString(", ") { artist -> artist.name },
+                    subtitle = it.artists.joinToString(", ") { artist -> artist.name },
                     thumbnailUrl = it.song.thumbnailUrl,
                     isActive = it.id == mediaMetadata?.id,
                     isPlaying = isPlaying,
@@ -696,7 +697,7 @@ fun HomeScreen(
             is Album -> {
                 JixShelfCard(
                     title = it.album.title,
-                    subtitle = it.album.artists.firstOrNull()?.name,
+                    subtitle = it.artists.firstOrNull()?.name,
                     thumbnailUrl = it.album.thumbnailUrl,
                     isActive = it.album.id == mediaMetadata?.album?.id,
                     isPlaying = isPlaying,

@@ -150,6 +150,7 @@ object SearchPage {
                             )
                         },
                     duration = PageHelper.extractDuration(metadataRuns),
+                    viewsText = PageHelper.extractViewsText(metadataRuns),
                     musicVideoType = renderer.musicVideoType,
                     thumbnail = renderer.thumbnail?.getThumbnailUrl() ?: return null,
                     explicit =

@@ -158,6 +158,7 @@ data class HomePage(
                             ?.firstOrNull()
                             ?.text
                             ?.parseTime(),
+                    viewsText = PageHelper.extractViewsText(secondaryLine.flatten()),
                     thumbnail = renderer.thumbnail?.getThumbnailUrl() ?: return null,
                     explicit = renderer.badges?.find {
                         it.musicInlineBadgeRenderer?.icon?.iconType == "MUSIC_EXPLICIT_BADGE"
@@ -212,6 +213,7 @@ data class HomePage(
                                 )
                             },
                             duration = null,
+                            viewsText = PageHelper.extractViewsText(subtitleRuns),
                             thumbnail = renderer.thumbnailRenderer.getThumbnailUrl()
                                 ?: return null,
                             explicit = renderer.subtitleBadges?.any {

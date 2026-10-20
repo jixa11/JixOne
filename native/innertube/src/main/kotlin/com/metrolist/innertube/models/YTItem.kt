@@ -26,6 +26,8 @@ data class SongItem(
     val artists: List<Artist>,
     val album: Album? = null,
     val duration: Int? = null,
+    /** "1.2M views" / "12 هزار بازدید" when the list response carries it */
+    val viewsText: String? = null,
     val musicVideoType: String? = null,
     val chartPosition: Int? = null,
     val chartChange: String? = null,

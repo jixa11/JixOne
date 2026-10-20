@@ -43,6 +43,7 @@ data class RelatedPage(
                         ?.firstOrNull()
                         ?.text ?: return null,
                 artists = PageHelper.extractArtists(secondaryLineRuns?.firstOrNull()),
+                viewsText = PageHelper.extractViewsText(secondaryLineRuns?.flatten()),
                 album =
                     renderer.flexColumns.getOrNull(2)?.musicResponsiveListItemFlexColumnRenderer?.text?.runs?.firstOrNull()?.let {
                         Album(

@@ -119,6 +119,7 @@ data class ArtistPage(
                     ?.text ?: return null,
                 artists = artists,
                 album = album,
+                viewsText = PageHelper.extractViewsText(subtitleLine),
                 duration =
                     durationFromSubtitle
                         ?: renderer.fixedColumns
@@ -153,6 +154,7 @@ data class ArtistPage(
                                 ?.firstOrNull()
                                 ?.text ?: return null,
                         artists = PageHelper.extractArtists(subtitleRuns),
+                        viewsText = PageHelper.extractViewsText(subtitleRuns),
                         album = null,
                         duration =
                             subtitleGroups

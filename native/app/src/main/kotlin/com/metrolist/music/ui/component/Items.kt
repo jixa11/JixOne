@@ -50,6 +50,7 @@ import androidx.compose.runtime.MutableState
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
@@ -508,10 +509,11 @@ fun SongListItem(
     isActive: Boolean = false,
     isPlaying: Boolean = false,
     isSwipeable: Boolean = true,
+    onDelete: (() -> Unit)? = null,
     trailingContent: @Composable RowScope.() -> Unit = {},
 ) {
     val artistNameAliases = LocalArtistNameAliases.current
-    val swipeEnabled by rememberPreference(SwipeToSongKey, defaultValue = false)
+    val swipeEnabled by rememberPreference(SwipeToSongKey, defaultValue = true)
 
     val content: @Composable () -> Unit = {
          ListItem(
@@ -565,6 +567,7 @@ fun SongListItem(
     if (isSwipeable && swipeEnabled) {
         SwipeToSongBox(
             mediaItem = song.toMediaItem(),
+            onDelete = onDelete,
             modifier = Modifier.fillMaxWidth()
         ) {
             content()
@@ -1126,6 +1129,7 @@ fun YouTubeListItem(
     isActive: Boolean = false,
     isPlaying: Boolean = false,
     isSwipeable: Boolean = true,
+    onDelete: (() -> Unit)? = null,
     trailingContent: @Composable RowScope.() -> Unit = {},
     badges: @Composable RowScope.() -> Unit = {
         val database = LocalDatabase.current
@@ -1151,7 +1155,7 @@ fun YouTubeListItem(
         }
     },
 ) {
-    val swipeEnabled by rememberPreference(SwipeToSongKey, defaultValue = false)
+    val swipeEnabled by rememberPreference(SwipeToSongKey, defaultValue = true)
     val artistNameAliases = LocalArtistNameAliases.current
     val artistSeparator = " ${stringResource(R.string.and)} "
 
@@ -1169,6 +1173,7 @@ fun YouTubeListItem(
                         item.artists.joinToArtistString(artistSeparator) {
                             ArtistNameAliases.resolve(artistNameAliases, it.id, it.name)
                         },
+                        item.viewsText,
                         makeTimeString(item.duration?.times(1000L)),
                     )
 
@@ -1220,6 +1225,7 @@ fun YouTubeListItem(
     if (item is SongItem && isSwipeable && swipeEnabled) {
         SwipeToSongBox(
             mediaItem = item.copy(thumbnail = item.thumbnail.resize(1080, 1080)).toMediaItem(),
+            onDelete = onDelete,
             modifier = Modifier.fillMaxWidth()
         ) {
             content()
@@ -1279,7 +1285,7 @@ fun YouTubeGridItem(
          val artistNameAliases = LocalArtistNameAliases.current
          val artistSeparator = " ${stringResource(R.string.and)} "
          val subtitle = when (item) {
-             is SongItem -> joinByBullet(item.artists.joinToArtistString(artistSeparator) { ArtistNameAliases.resolve(artistNameAliases, it.id, it.name) }, makeTimeString(item.duration?.times(1000L)))
+             is SongItem -> joinByBullet(item.artists.joinToArtistString(artistSeparator) { ArtistNameAliases.resolve(artistNameAliases, it.id, it.name) }, item.viewsText, makeTimeString(item.duration?.times(1000L)))
              is AlbumItem -> joinByBullet(item.artists?.joinToArtistString(artistSeparator) { ArtistNameAliases.resolve(artistNameAliases, it.id, it.name) }, item.year?.toString())
             is ArtistItem -> null
             is PlaylistItem -> joinByBullet(item.author?.let { ArtistNameAliases.resolve(artistNameAliases, it.id, it.name) }, item.songCountText)
@@ -1820,16 +1826,20 @@ fun BoxScope.AlbumPlayButton(
 fun SwipeToSongBox(
     modifier: Modifier = Modifier,
     mediaItem: MediaItem,
+    onDelete: (() -> Unit)? = null,
     content: @Composable BoxScope.() -> Unit
 ) {
     val ctx = LocalContext.current
     val player = LocalPlayerConnection.current
     val scope = rememberCoroutineScope()
     val offset = remember { mutableFloatStateOf(0f) }
+    var fired by remember { mutableStateOf(false) }
     val threshold = 300f
 
     val dragState = rememberDraggableState { delta ->
-        offset.floatValue = (offset.floatValue + delta).coerceIn(-threshold, threshold)
+        // JixOne 5.0: left swipe only exists where removal is allowed
+        val maxLeft = if (onDelete != null) -threshold else 0f
+        offset.floatValue = (offset.floatValue + delta).coerceIn(maxLeft, threshold)
     }
 
     Box(
@@ -1838,17 +1848,23 @@ fun SwipeToSongBox(
             .draggable(
                 orientation = Orientation.Horizontal,
                 state = dragState,
+                onDragStarted = { fired = false },
                 onDragStopped = {
                     when {
                         offset.floatValue >= threshold -> {
-                            player?.playNext(listOf(mediaItem))
-                            Toast.makeText(ctx, R.string.play_next, Toast.LENGTH_SHORT).show()
+                            if (!fired) {
+                                fired = true
+                                player?.playNext(listOf(mediaItem))
+                                Toast.makeText(ctx, R.string.play_next, Toast.LENGTH_SHORT).show()
+                            }
                             reset(offset, scope)
                         }
 
-                        offset.floatValue <= -threshold -> {
-                            player?.addToQueue(listOf(mediaItem))
-                            Toast.makeText(ctx, R.string.add_to_queue, Toast.LENGTH_SHORT).show()
+                        offset.floatValue <= -threshold && onDelete != null -> {
+                            if (!fired) {
+                                fired = true
+                                onDelete()
+                            }
                             reset(offset, scope)
                         }
 
@@ -1866,9 +1882,9 @@ fun SwipeToSongBox(
                     Alignment.CenterStart
                 ) else
                 Quadruple(
-                    R.drawable.queue_music,
-                    MaterialTheme.colorScheme.primary,
-                    MaterialTheme.colorScheme.onPrimary,
+                    R.drawable.jix_trash,
+                    MaterialTheme.colorScheme.errorContainer,
+                    MaterialTheme.colorScheme.onErrorContainer,
                     Alignment.CenterEnd
                 )
 

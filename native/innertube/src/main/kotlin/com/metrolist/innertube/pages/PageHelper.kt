@@ -157,4 +157,18 @@ object PageHelper {
         }
 
     private fun String.isDurationText(): Boolean = matches(Regex("""\d{1,2}[:.,]\d{2}(?:[:.,]\d{2})?"""))
+
+    private val viewsRegex = Regex(
+        """^[\d\u06F0-\u06F9\u0660-\u0669][\d\u06F0-\u06F9\u0660-\u0669.,\u066B\u066C]*\s*(?:[KMB]|میلیون|میلیارد|هزار|million|billion|thousand)?\s*(?:views?|plays?|بازدید|پخش)$""",
+        RegexOption.IGNORE_CASE,
+    )
+
+    /**
+     * JixOne 5.0: pulls the "N views / N plays / N بازدید" run out of a song
+     * row's secondary line so lists can surface popularity like Spotify/YTM.
+     */
+    fun extractViewsText(runs: List<Run>?): String? =
+        runs.orEmpty().firstNotNullOfOrNull { run ->
+            run.text.trim().takeIf { it.matches(viewsRegex) }
+        }
 }

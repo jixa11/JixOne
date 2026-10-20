@@ -104,6 +104,7 @@ data class ArtistItemsPage(
                         artists = artists,
                         album = null,
                         duration = null,
+                        viewsText = PageHelper.extractViewsText(renderer.subtitle?.runs),
                         musicVideoType = renderer.musicVideoType,
                         thumbnail = renderer.thumbnailRenderer.getThumbnailUrl() ?: return null,
                         endpoint = renderer.navigationEndpoint.watchEndpoint

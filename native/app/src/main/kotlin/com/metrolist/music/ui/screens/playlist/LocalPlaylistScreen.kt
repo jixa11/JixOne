@@ -114,7 +114,6 @@ import com.metrolist.music.constants.PlaylistEditLockKey
 import com.metrolist.music.constants.PlaylistSongSortDescendingKey
 import com.metrolist.music.constants.PlaylistSongSortType
 import com.metrolist.music.constants.PlaylistSongSortTypeKey
-import com.metrolist.music.constants.SwipeToRemoveSongKey
 import com.metrolist.music.db.entities.Playlist
 import com.metrolist.music.db.entities.PlaylistSong
 import com.metrolist.music.db.entities.PlaylistSongMap
@@ -579,27 +578,6 @@ fun LocalPlaylistScreen(
                         }
                     }
 
-                    val swipeRemoveEnabled by rememberPreference(SwipeToRemoveSongKey, defaultValue = false)
-                    val dismissBoxState =
-                        rememberSwipeToDismissBoxState(
-                            positionalThreshold = { totalDistance -> totalDistance },
-                        )
-                    var processedDismiss by remember { mutableStateOf(false) }
-                    LaunchedEffect(dismissBoxState.currentValue) {
-                        val dv = dismissBoxState.currentValue
-                        if (swipeRemoveEnabled && !processedDismiss && (
-                                dv == SwipeToDismissBoxValue.StartToEnd ||
-                                    dv == SwipeToDismissBoxValue.EndToStart
-                            )
-                        ) {
-                            processedDismiss = true
-                            deleteFromPlaylist()
-                        }
-                        if (dv == SwipeToDismissBoxValue.Settled) {
-                            processedDismiss = false
-                        }
-                    }
-
                     val onCheckedChange: (Boolean) -> Unit = {
                         if (it) {
                             selection.add(song.map.id)
@@ -614,6 +592,11 @@ fun LocalPlaylistScreen(
                             isActive = song.song.id == mediaMetadata?.id,
                             isPlaying = isPlaying,
                             showInLibraryIcon = true,
+                            onDelete = if (editable && !locked && !inSelectMode) {
+                                { deleteFromPlaylist() }
+                            } else {
+                                null
+                            },
                             trailingContent = {
                                 if (inSelectMode) {
                                     Checkbox(
@@ -701,18 +684,8 @@ fun LocalPlaylistScreen(
                         )
                     }
 
-                    if (locked || inSelectMode || !swipeRemoveEnabled) {
-                        Box(modifier = Modifier.animateItem()) {
-                            content()
-                        }
-                    } else {
-                        SwipeToDismissBox(
-                            state = dismissBoxState,
-                            backgroundContent = {},
-                            modifier = Modifier.animateItem(),
-                        ) {
-                            content()
-                        }
+                    Box(modifier = Modifier.animateItem()) {
+                        content()
                     }
                 }
             }

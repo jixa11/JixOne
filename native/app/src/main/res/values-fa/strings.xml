@@ -280,4 +280,27 @@
     <string name="not_logged_in">وارد حساب نشدی</string>
     <string name="login_failed">ورود به اکانت، با خطا مواجه شد</string>
     <string name="queue">صف</string>
+    <string name="pause">توقف</string>
+    <string name="theme_desc">شخصی‌سازی تم برنامه</string>
+    <string name="theme_colors">تم و رنگ‌ها</string>
+    <string name="theme_mode">حالت تم</string>
+    <string name="color_palette">پالت رنگی</string>
+    <string name="use_system_colors">استفاده از رنگ‌های سیستم</string>
+    <string name="persistent_queue_desc">آخرین صف پخش هنگام باز شدن برنامه بازیابی شود</string>
+    <string name="auto_load_more">بارگذاری خودکار آهنگ بیشتر</string>
+    <string name="auto_load_more_desc">با رسیدن به انتهای صف، در صورت امکان آهنگ بیشتری اضافه شود</string>
+    <string name="auto_skip_next_on_error">رد کردن خودکار آهنگ خراب</string>
+    <string name="auto_skip_next_on_error_desc">تضمین پخش بی‌وقفه</string>
+    <string name="stop_music_on_task_clear">توقف موسیقی هنگام بستن برنامه</string>
+    <string name="listen_history">تاریخچه گوش دادن</string>
+    <string name="search_history">تاریخچه جستجو</string>
+    <string name="use_login_for_browse">استفاده از حساب برای مرور محتوا</string>
+    <string name="use_login_for_browse_desc">روی محتوای نمایش‌داده‌شده اثر می‌گذارد</string>
+    <string name="disable_screenshot">غیرفعال کردن اسکرین‌شات</string>
+    <string name="disable_screenshot_desc">اسکرین‌شات و نمایش برنامه در Recents غیرفعال می‌شود</string>
+    <string name="enable_lrclib">فعال‌سازی منبع ترانه LrcLib</string>
+    <string name="hide_explicit">پنهان کردن محتوای بزرگسال</string>
+    <string name="dismiss">بستن</string>
+    <string name="options">گزینه‌ها</string>
+    <string name="preview">پیش‌نمایش</string>
 </resources>

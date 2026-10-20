@@ -5,23 +5,21 @@
 
 package com.metrolist.music.ui.screens.settings
 
+import android.app.Activity
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.os.Build
 import android.provider.Settings
 import android.widget.Toast
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsetsSides
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -32,7 +30,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
@@ -45,17 +42,21 @@ import com.metrolist.music.BuildConfig
 import com.metrolist.music.LocalChangelogState
 import com.metrolist.music.LocalPlayerAwareWindowInsets
 import com.metrolist.music.R
+import com.metrolist.music.constants.UiLanguageKey
 import com.metrolist.music.ui.component.IconButton
 import com.metrolist.music.ui.component.Material3SettingsGroup
 import com.metrolist.music.ui.component.Material3SettingsItem
 import com.metrolist.music.ui.component.ReleaseNotesCard
 import com.metrolist.music.ui.utils.backToMain
 import com.metrolist.music.utils.Updater
+import com.metrolist.music.utils.rememberPreference
+import com.metrolist.music.utils.safeDataStoreEdit
 
 /**
- * JixOne modern settings — the web app's clean grouped settings on the
- * native engine: a compact hero header, one soft card per group, tonal
- * icon chips in rotating theme hues, and a description under every row.
+ * JixOne 5.0 settings — rebuilt on the YouTube Music model: a clean set of
+ * sections (Interface / Playback & content / Data / Extras / System), the
+ * app's own 12-theme picker behind Appearance, an in-app language switch
+ * that works instantly (fa/en), and Lucide icons throughout.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -76,16 +77,13 @@ fun SettingsScreen(
             false
         }
     }
-
-    val primary = MaterialTheme.colorScheme.primary
-    val tertiary = MaterialTheme.colorScheme.tertiary
-    val secondary = MaterialTheme.colorScheme.secondary
+    val (uiLanguage, onUiLanguageChange) = rememberPreference(UiLanguageKey, "system")
 
     Column(
         Modifier
             .windowInsetsPadding(LocalPlayerAwareWindowInsets.current.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom))
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 14.dp)
+            .padding(horizontal = 16.dp)
     ) {
         Spacer(
             Modifier.windowInsetsPadding(
@@ -95,123 +93,122 @@ fun SettingsScreen(
             )
         )
 
-        // ---------- hero header ----------
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 10.dp, bottom = 14.dp, start = 4.dp),
-        ) {
-            Icon(
-                painter = painterResource(R.drawable.small_icon),
-                contentDescription = null,
-                tint = Color.Unspecified,
-                modifier = Modifier.size(42.dp),
-            )
-            Spacer(Modifier.width(12.dp))
-            Column {
-                Text(
-                    text = stringResource(R.string.settings),
-                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                )
-                Text(
-                    text = stringResource(R.string.app_name) + " " + BuildConfig.VERSION_NAME,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
-
-        // ---------- look & feel ----------
+        // ── Interface ────────────────────────────────────────────────
         Material3SettingsGroup(
+            title = stringResource(R.string.settings_section_ui),
             items = listOf(
                 Material3SettingsItem(
-                    icon = painterResource(R.drawable.jix_palette),
-                    iconTint = primary,
+                    icon = painterResource(R.drawable.palette),
                     title = { Text(stringResource(R.string.appearance)) },
-                    description = { Text(stringResource(R.string.settings_desc_appearance)) },
+                    description = { Text(stringResource(R.string.appearance_desc)) },
                     onClick = { navController.navigate("settings/appearance") }
                 ),
                 Material3SettingsItem(
-                    icon = painterResource(R.drawable.jix_headphones),
-                    iconTint = tertiary,
+                    icon = painterResource(R.drawable.translate),
+                    title = { Text(stringResource(R.string.app_language)) },
+                    trailingContent = {
+                        UiLanguageSwitch(
+                            value = uiLanguage,
+                            onChange = { lang ->
+                                if (lang != uiLanguage) {
+                                    onUiLanguageChange(lang)
+                                    (context as? Activity)?.recreate()
+                                }
+                            },
+                        )
+                    },
+                ),
+            )
+        )
+
+        Spacer(modifier = Modifier.height(14.dp))
+
+        // ── Playback & content ───────────────────────────────────────
+        Material3SettingsGroup(
+            title = stringResource(R.string.settings_section_player_content),
+            items = listOf(
+                Material3SettingsItem(
+                    icon = painterResource(R.drawable.play),
                     title = { Text(stringResource(R.string.player_and_audio)) },
-                    description = { Text(stringResource(R.string.settings_desc_player)) },
                     onClick = { navController.navigate("settings/player") }
                 ),
                 Material3SettingsItem(
-                    icon = painterResource(R.drawable.jix_globe),
-                    iconTint = secondary,
+                    icon = painterResource(R.drawable.globe),
                     title = { Text(stringResource(R.string.content)) },
-                    description = { Text(stringResource(R.string.settings_desc_content)) },
                     onClick = { navController.navigate("settings/content") }
                 ),
-                Material3SettingsItem(
-                    icon = painterResource(R.drawable.jix_sparkles),
-                    iconTint = primary,
-                    title = { Text(stringResource(R.string.ai_lyrics_translation)) },
-                    description = { Text(stringResource(R.string.settings_desc_ai)) },
-                    onClick = { navController.navigate("settings/ai") }
-                ),
-            ),
+            )
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(14.dp))
 
-        // ---------- account & data ----------
-        if (hasAndroidAuto) {
-            Material3SettingsGroup(
-                items = listOf(
-                    Material3SettingsItem(
-                        icon = painterResource(R.drawable.jix_car),
-                        iconTint = tertiary,
-                        title = { Text(stringResource(R.string.android_auto)) },
-                        description = { Text(stringResource(R.string.settings_desc_auto)) },
-                        onClick = { navController.navigate("settings/android_auto") }
-                    ),
-                ),
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-        }
-
+        // ── Data ─────────────────────────────────────────────────────
         Material3SettingsGroup(
+            title = stringResource(R.string.settings_section_storage),
             items = listOf(
                 Material3SettingsItem(
-                    icon = painterResource(R.drawable.jix_shield),
-                    iconTint = secondary,
-                    title = { Text(stringResource(R.string.privacy)) },
-                    description = { Text(stringResource(R.string.settings_desc_privacy)) },
-                    onClick = { navController.navigate("settings/privacy") }
-                ),
-                Material3SettingsItem(
-                    icon = painterResource(R.drawable.jix_folder),
-                    iconTint = tertiary,
+                    icon = painterResource(R.drawable.download),
                     title = { Text(stringResource(R.string.storage)) },
-                    description = { Text(stringResource(R.string.settings_desc_storage)) },
                     onClick = { navController.navigate("settings/storage") }
                 ),
                 Material3SettingsItem(
-                    icon = painterResource(R.drawable.jix_backup),
-                    iconTint = primary,
+                    icon = painterResource(R.drawable.upload),
                     title = { Text(stringResource(R.string.backup_restore)) },
-                    description = { Text(stringResource(R.string.settings_desc_backup)) },
                     onClick = { navController.navigate("settings/backup_restore") }
                 ),
-            ),
+            )
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(14.dp))
 
-        // ---------- system ----------
+        // ── Extras ───────────────────────────────────────────────────
         Material3SettingsGroup(
+            title = stringResource(R.string.settings_section_extras),
             items = buildList {
+                add(
+                    Material3SettingsItem(
+                        icon = painterResource(R.drawable.jix_sparkles),
+                        title = { Text(stringResource(R.string.ai_lyrics_translation)) },
+                        onClick = { navController.navigate("settings/ai") }
+                    )
+                )
+                add(
+                    Material3SettingsItem(
+                        icon = painterResource(R.drawable.link),
+                        title = { Text(stringResource(R.string.integrations)) },
+                        onClick = { navController.navigate("settings/integrations") }
+                    )
+                )
+                if (hasAndroidAuto) {
+                    add(
+                        Material3SettingsItem(
+                            icon = painterResource(R.drawable.ic_android_auto),
+                            title = { Text(stringResource(R.string.android_auto)) },
+                            onClick = { navController.navigate("settings/android_auto") }
+                        )
+                    )
+                }
+            }
+        )
+
+        Spacer(modifier = Modifier.height(14.dp))
+
+        // ── System ───────────────────────────────────────────────────
+        Material3SettingsGroup(
+            title = stringResource(R.string.settings_section_system),
+            items = buildList {
+                add(
+                    Material3SettingsItem(
+                        icon = painterResource(R.drawable.security),
+                        title = { Text(stringResource(R.string.privacy)) },
+                        onClick = { navController.navigate("settings/privacy") }
+                    )
+                )
                 if (isAndroid12OrLater) {
                     add(
                         Material3SettingsItem(
-                            icon = painterResource(R.drawable.jix_link),
-                            iconTint = secondary,
+                            icon = painterResource(R.drawable.link),
                             title = { Text(stringResource(R.string.default_links)) },
-                            description = { Text(stringResource(R.string.settings_desc_links)) },
                             onClick = {
                                 try {
                                     val intent = Intent(
@@ -234,30 +231,23 @@ fun SettingsScreen(
                 if (BuildConfig.UPDATER_AVAILABLE) {
                     add(
                         Material3SettingsItem(
-                            icon = painterResource(R.drawable.jix_update),
-                            iconTint = primary,
+                            icon = painterResource(R.drawable.update),
                             title = { Text(stringResource(R.string.updater)) },
-                            description = { Text(stringResource(R.string.settings_desc_updater)) },
                             onClick = { navController.navigate("settings/updater") }
                         )
                     )
                 }
-                val showChangelog = LocalChangelogState.current
                 add(
                     Material3SettingsItem(
-                        icon = painterResource(R.drawable.jix_newspaper),
-                        iconTint = tertiary,
+                        icon = painterResource(R.drawable.newspaper),
                         title = { Text(stringResource(R.string.changelog)) },
-                        description = { Text(stringResource(R.string.settings_desc_changelog)) },
-                        onClick = { showChangelog.value = true }
+                        onClick = { LocalChangelogState.current.value = true }
                     )
                 )
                 add(
                     Material3SettingsItem(
-                        icon = painterResource(R.drawable.jix_info),
-                        iconTint = secondary,
+                        icon = painterResource(R.drawable.info),
                         title = { Text(stringResource(R.string.about)) },
-                        description = { Text(stringResource(R.string.settings_desc_about)) },
                         onClick = { navController.navigate("settings/about") }
                     )
                 )
@@ -268,8 +258,7 @@ fun SettingsScreen(
                     if (downloadUrl != null) {
                         add(
                             Material3SettingsItem(
-                                icon = painterResource(R.drawable.jix_update),
-                                iconTint = MaterialTheme.colorScheme.error,
+                                icon = painterResource(R.drawable.update),
                                 title = {
                                     Text(
                                         text = stringResource(R.string.new_version_available),
@@ -283,20 +272,21 @@ fun SettingsScreen(
                                     )
                                 },
                                 showBadge = true,
+                                isHighlighted = true,
                                 onClick = { uriHandler.openUri(downloadUrl) }
                             )
                         )
                     }
                 }
-            },
+            }
         )
 
         if (BuildConfig.UPDATER_AVAILABLE && latestVersionName != BuildConfig.BASE_VERSION_NAME) {
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(14.dp))
             ReleaseNotesCard()
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(20.dp))
     }
 
     TopAppBar(
@@ -307,10 +297,58 @@ fun SettingsScreen(
                 onLongClick = navController::backToMain
             ) {
                 Icon(
-                    painterResource(R.drawable.jix_arrow_left),
+                    painterResource(R.drawable.arrow_back),
                     contentDescription = null
                 )
             }
         }
     )
+}
+
+/**
+ * The web app's segmented English | فارسی switch — compact pills on the
+ * trailing side of the language row; applies instantly via activity recreate.
+ */
+@Composable
+private fun UiLanguageSwitch(
+    value: String,
+    onChange: (String) -> Unit,
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .clip(RoundedCornerShape(12.dp))
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+            .padding(3.dp),
+    ) {
+        listOf(
+            "system" to stringResource(R.string.lang_system),
+            "en" to "English",
+            "fa" to "فارسی",
+        ).forEach { (key, label) ->
+            val selected = value == key
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelMedium.copy(
+                    fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+                ),
+                color = if (selected) {
+                    MaterialTheme.colorScheme.onPrimary
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                },
+                modifier = Modifier
+                    .clip(RoundedCornerShape(9.dp))
+                    .background(
+                        if (selected) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            androidx.compose.ui.graphics.Color.Transparent
+                        }
+                    )
+                    .clickable { onChange(key) }
+                    .padding(horizontal = 10.dp, vertical = 5.dp),
+            )
+        }
+    }
 }

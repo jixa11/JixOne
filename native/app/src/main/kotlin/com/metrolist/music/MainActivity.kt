@@ -10,6 +10,7 @@ import android.annotation.SuppressLint
 import android.app.ForegroundServiceStartNotAllowedException
 import android.app.PendingIntent
 import android.content.ComponentName
+import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
 import android.content.pm.PackageManager
@@ -217,6 +218,7 @@ import com.metrolist.music.utils.SearchRoutes
 import com.metrolist.music.utils.SyncUtils
 import com.metrolist.music.utils.ArtistNameAliases
 import com.metrolist.music.utils.Updater
+import com.metrolist.music.utils.applyUiLanguage
 import com.metrolist.music.utils.dataStore
 import com.metrolist.music.utils.safeDataStoreEdit
 import com.metrolist.music.utils.get
@@ -250,6 +252,11 @@ private data class AvailableUpdate(
 @Suppress("DEPRECATION", "ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
 @AndroidEntryPoint
 class MainActivity : FragmentActivity() {
+
+    /** JixOne 5.0: in-app UI language (fa/en) — applies before anything renders. */
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(newBase.applyUiLanguage())
+    }
     companion object {
         private const val ACTION_SEARCH = "com.metrolist.music.action.SEARCH"
         private const val ACTION_LIBRARY = "com.metrolist.music.action.LIBRARY"
@@ -415,15 +422,6 @@ class MainActivity : FragmentActivity() {
         // tryAutoSync itself enforces login + enabled + connectivity + cooldown.
         if (savedInstanceState == null) {
             lifecycleScope.launch { syncUtils.tryAutoSync() }
-        }
-
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
-            val locale =
-                dataStore[AppLanguageKey]
-                    ?.takeUnless { it == SYSTEM_DEFAULT }
-                    ?.let { Locale.forLanguageTag(it) }
-                    ?: Locale.getDefault()
-            setAppLocale(this, locale)
         }
 
         lifecycleScope.launch {

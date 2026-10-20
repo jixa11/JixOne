@@ -1022,4 +1022,22 @@
     <string name="settings_desc_changelog">What changed in this version</string>
     <string name="settings_desc_about">About JixOne and credits</string>
     <string name="settings_desc_links">Open supported links</string>
+    <string name="settings_section_extras">Extras</string>
+    <string name="lang_system">System</string>
+    <string name="appearance_desc">Themes, colors, player and app look</string>
+    <string name="onboarding_welcome_title">Welcome to JixOne</string>
+    <string name="onboarding_welcome_sub">A couple of quick picks and your music world is ready</string>
+    <string name="onboarding_language_title">Pick your language</string>
+    <string name="onboarding_interests_title">What do you love?</string>
+    <string name="onboarding_interests_sub">Pick the moods and genres you vibe with — your Explore page is built around them</string>
+    <string name="onboarding_selected_count">%d selected</string>
+    <string name="onboarding_continue">Continue</string>
+    <string name="onboarding_finish">Start listening</string>
+    <string name="onboarding_skip">Skip</string>
+    <string name="onboarding_loading_moods">Loading moods and genres…</string>
+    <string name="greeting_morning">Good morning</string>
+    <string name="greeting_afternoon">Good afternoon</string>
+    <string name="greeting_evening">Good evening</string>
+    <string name="greeting_night">Good night</string>
+    <string name="for_you">For you</string>
 </resources>

@@ -83,6 +83,8 @@ enum class SliderStyle {
 
 const val SYSTEM_DEFAULT = "SYSTEM_DEFAULT"
 val AppLanguageKey = stringPreferencesKey("appLanguage")
+/** JixOne 5.0: app UI language — "system" (default) | "en" | "fa" */
+val UiLanguageKey = stringPreferencesKey("uiLanguage")
 val ContentLanguageKey = stringPreferencesKey("contentLanguage")
 val ContentCountryKey = stringPreferencesKey("contentCountry")
 val EnableZemerKey = booleanPreferencesKey("enableZemer")

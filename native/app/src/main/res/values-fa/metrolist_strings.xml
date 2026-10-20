@@ -184,7 +184,6 @@
     <string name="error_explicit_login_recommended">پخش آهنگ‌های دارای هشدار بزرگسال با حساب واردشده بهتر کار می‌کند.</string>
     <string name="error_job_cancelled">این ویدیو برای پخش در دسترس نیست. دوباره تلاش کنید یا سراغ آهنگ بعدی بروید.</string>
     <string name="error_bot_gate_hint">یوتیوب پخشِ ناشناس از IP فعلی شما (VPN) را مسدود کرده است. برای درست شدن پخش، با حساب گوگل در همین برنامه وارد شوید.</string>
-<<<<<<< HEAD
     <string name="sync_now">همگام‌سازی</string>
     <string name="syncing_library">در حال همگام‌سازی با یوتیوب…</string>
     <string name="synced_with_youtube">با یوتیوب همگام شد</string>
@@ -888,31 +887,6 @@
     <string name="stream_source_web_creator_desc">کلاینت وب سازندگان.</string>
     <string name="top_result">بهترین نتیجه</string>
     <string name="other">سایر</string>
-    <string name="pause">توقف</string>
-    <string name="theme_desc">شخصی‌سازی تم برنامه</string>
-    <string name="theme_colors">تم و رنگ‌ها</string>
-    <string name="theme_mode">حالت تم</string>
-    <string name="color_palette">پالت رنگی</string>
-    <string name="use_system_colors">استفاده از رنگ‌های سیستم</string>
-    <string name="persistent_queue_desc">صف آخر با باز شدن برنامه بازیابی شود</string>
-    <string name="auto_load_more">بارگذاری خودکار آهنگ بیشتر</string>
-    <string name="auto_load_more_desc">در صورت امکان، هنگام رسیدن به انتهای صف آهنگ بیشتری اضافه شود</string>
-    <string name="auto_skip_next_on_error">پرش خودکار به آهنگ بعدی هنگام خطا</string>
-    <string name="auto_skip_next_on_error_desc">تجربه پخش پیوسته شما حفظ شود</string>
-    <string name="stop_music_on_task_clear">توقف موسیقی با بستن برنامه‌ها</string>
-    <string name="listen_history">تاریخچه شنیدن</string>
-    <string name="search_history">تاریخچه جستجو</string>
-    <string name="use_login_for_browse">استفاده از ورود برای مرور محتوا</string>
-    <string name="use_login_for_browse_desc">روی محتوای نمایشی تأثیر می‌گذارد؛ مثلاً با حساب پریمیوم، آلبوم‌های مخصوص پریمیوم دیده می‌شود</string>
-    <string name="disable_screenshot">غیرفعال‌سازی اسکرین‌شات</string>
-    <string name="disable_screenshot_desc">با روشن‌بودن این گزینه، اسکرین‌شات و نمایش برنامه در «اخیراً» غیرفعال می‌شود.</string>
-    <string name="enable_lrclib">فعال‌سازی منبع متن LrcLib</string>
-    <string name="hide_explicit">پنهان‌کردن محتوای نامناسب</string>
-    <string name="dismiss">بستن</string>
-    <string name="options">گزینه‌ها</string>
-    <string name="preview">پیش‌نمایش</string>
-=======
->>>>>>> 7966210 (feat(theme): the web app's own 12 themes with hand-tuned color schemes + web-style card grid picker; Metrolist palettes removed)
     <string name="settings_section_extras">امکانات بیشتر</string>
     <string name="lang_system">سیستم</string>
     <string name="appearance_desc">تم‌ها، رنگ‌ها، پلیر و ظاهر برنامه</string>
@@ -924,6 +898,7 @@
     <string name="album">آلبوم</string>
     <string name="genres">سبک‌ها</string>
     <string name="download">دانلود</string>
+=======
     <string name="go_to_album">رفتن به آلبوم</string>
     <string name="go_to_artist">رفتن به هنرمند</string>
     <string name="go_to_playlist">رفتن به پلی‌لیست</string>

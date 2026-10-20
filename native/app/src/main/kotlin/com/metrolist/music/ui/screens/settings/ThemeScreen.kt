@@ -3,6 +3,7 @@ package com.metrolist.music.ui.screens.settings
 import android.content.res.Configuration
 import android.os.Build
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -60,8 +61,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
@@ -70,6 +73,8 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.materialkolor.PaletteStyle
@@ -81,8 +86,10 @@ import com.metrolist.music.constants.PureBlackKey
 import com.metrolist.music.constants.PureBlackMiniPlayerKey
 import com.metrolist.music.constants.SelectedThemeColorKey
 import com.metrolist.music.ui.theme.DefaultThemeColor
+import com.metrolist.music.ui.theme.JixOneThemes
 import com.metrolist.music.ui.theme.MetrolistTheme
 import com.metrolist.music.ui.theme.PersianCarpetSeed
+import com.metrolist.music.ui.theme.jixOneThemeFor
 import com.metrolist.music.ui.theme.persianThemeFor
 import com.metrolist.music.utils.rememberEnumPreference
 import com.metrolist.music.utils.rememberPreference
@@ -92,40 +99,14 @@ data class ThemePalette(
     val seedColor: Color
 )
 
+/**
+ * The ONLY palettes the picker offers (JixOne 5.0): the web app's 12 themes
+ * plus the Android wallpaper "Dynamic" sentinel. All 19 Metrolist seed
+ * colors are gone for good.
+ */
 val PaletteColors = listOf(
     ThemePalette(R.string.palette_dynamic, Color.Transparent), // Sentinel for System/Dynamic colors
-    ThemePalette(R.string.palette_jixone_tile, Color(0xFF33C5D6)), // JixOne: Isfahan tile turquoise
-    ThemePalette(R.string.palette_jixone_carpet, Color(0xFFD9A441)), // JixOne: Persian carpet gold
-    ThemePalette(R.string.palette_jixone_derafsh, Color(0xFF9A5BE0)), // JixOne: Derafsh violet
-    ThemePalette(R.string.palette_jixone_cyrus, Color(0xFF2A5D9F)), // JixOne: Cyrus blue
-    ThemePalette(R.string.palette_neon_crimson, Color(0xFFFF2D55)), // JixOne web: Neon Crimson
-    ThemePalette(R.string.palette_neo_tokyo, Color(0xFF22D3EE)), // JixOne web: Neo Tokyo
-    ThemePalette(R.string.palette_synthwave, Color(0xFFFF2FA0)), // JixOne web: Synthwave
-    ThemePalette(R.string.palette_classic_spotify, Color(0xFF1DB954)), // JixOne web: Classic Spotify
-    ThemePalette(R.string.palette_dubai_sunset, Color(0xFFFF6B35)), // JixOne web: Dubai Sunset
-    ThemePalette(R.string.palette_youtube, Color(0xFFFF0033)), // JixOne web: YouTube
-    ThemePalette(R.string.palette_pure_oled, Color(0xFFE4E4E7)), // JixOne web: Pure OLED (neutral)
-    ThemePalette(R.string.palette_youtube_light, Color(0xFFFF5E3A)), // JixOne web: YouTube Light
-    ThemePalette(R.string.palette_crimson, Color(0xFFEC5464)), // Slightly shifted from DefaultThemeColor (0xFF5F5BF9) to avoid conflict
-    ThemePalette(R.string.palette_rose, Color(0xFFD81B60)),
-    ThemePalette(R.string.palette_purple, Color(0xFF8E24AA)),
-    ThemePalette(R.string.palette_deep_purple, Color(0xFF5E35B1)),
-    ThemePalette(R.string.palette_indigo, Color(0xFF3949AB)),
-    ThemePalette(R.string.palette_blue, Color(0xFF1E88E5)),
-    ThemePalette(R.string.palette_sky_blue, Color(0xFF039BE5)),
-    ThemePalette(R.string.palette_cyan, Color(0xFF00ACC1)),
-    ThemePalette(R.string.palette_teal, Color(0xFF00897B)),
-    ThemePalette(R.string.palette_green, Color(0xFF43A047)),
-    ThemePalette(R.string.palette_light_green, Color(0xFF7CB342)),
-    ThemePalette(R.string.palette_lime, Color(0xFFC0CA33)),
-    ThemePalette(R.string.palette_yellow, Color(0xFFFDD835)),
-    ThemePalette(R.string.palette_amber, Color(0xFFFFB300)),
-    ThemePalette(R.string.palette_orange, Color(0xFFFB8C00)),
-    ThemePalette(R.string.palette_deep_orange, Color(0xFFF4511E)),
-    ThemePalette(R.string.palette_brown, Color(0xFF6D4C41)),
-    ThemePalette(R.string.palette_grey, Color(0xFF757575)),
-    ThemePalette(R.string.palette_blue_grey, Color(0xFF546E7A)),
-)
+) + JixOneThemes.map { ThemePalette(it.nameRes, it.seed) }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -210,15 +191,16 @@ fun PortraitThemeLayout(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(innerPadding),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Spacer(modifier = Modifier.weight(1f))
+        Spacer(modifier = Modifier.height(84.dp))
 
         Box(
             modifier = Modifier
-                .width(120.dp)
-                .height(240.dp),
+                .width(104.dp)
+                .height(200.dp),
             contentAlignment = Alignment.Center
         ) {
             ThemeMockupPortrait(
@@ -228,7 +210,7 @@ fun PortraitThemeLayout(
             )
         }
 
-        Spacer(modifier = Modifier.weight(1f))
+        Spacer(modifier = Modifier.height(20.dp))
 
         ThemeControls(
             darkMode = darkMode,
@@ -239,7 +221,7 @@ fun PortraitThemeLayout(
             onSelectedThemeColorChange = onSelectedThemeColorChange
         )
 
-        Spacer(modifier = Modifier.height(120.dp))
+        Spacer(modifier = Modifier.height(48.dp))
     }
 }
 
@@ -401,27 +383,38 @@ fun ThemeControls(
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurface
                 )
-                
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
-                    contentPadding = PaddingValues(horizontal = 4.dp)
-                ) {
-                    items(PaletteColors) { palette ->
-                        val isDynamicPalette = palette.seedColor == Color.Transparent
-                        val isSelected = if (isDynamicPalette) {
-                            selectedThemeColor == DefaultThemeColor
-                        } else {
-                            selectedThemeColor == palette.seedColor
-                        }
-                        
-                        PaletteItem(
-                            palette = palette,
-                            isSelected = isSelected,
-                            onClick = { 
-                                val colorToSave = if (isDynamicPalette) DefaultThemeColor else palette.seedColor
-                                onSelectedThemeColorChange(colorToSave) 
+
+                // JixOne 5.0: the web app's picker — a 2-column grid of theme
+                // cards (bg + artwork + swatch dots), replacing the Metrolist
+                // swatch strip.
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    PaletteColors.chunked(2).forEach { rowItems ->
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            rowItems.forEach { palette ->
+                                val isDynamicPalette = palette.seedColor == Color.Transparent
+                                val isSelected = if (isDynamicPalette) {
+                                    selectedThemeColor == DefaultThemeColor
+                                } else {
+                                    selectedThemeColor == palette.seedColor
+                                }
+
+                                ThemeCard(
+                                    palette = palette,
+                                    isSelected = isSelected,
+                                    onClick = {
+                                        val colorToSave = if (isDynamicPalette) DefaultThemeColor else palette.seedColor
+                                        onSelectedThemeColorChange(colorToSave)
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                )
                             }
-                        )
+                            if (rowItems.size == 1) {
+                                Spacer(modifier = Modifier.weight(1f))
+                            }
+                        }
                     }
                 }
             }
@@ -560,131 +553,141 @@ fun ModeCircle(
     }
 }
 
+/**
+ * JixOne 5.0: web-style theme card (SettingsView.tsx port) — the theme's
+ * real background color, Persian artwork peeking from the bottom with a
+ * gradient mask, three swatch dots and a check badge when selected.
+ */
 @Composable
-fun PaletteItem(
+fun ThemeCard(
     palette: ThemePalette,
     isSelected: Boolean,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    val isSystemDark = isSystemInDarkTheme()
-    
-    val colorScheme = rememberDynamicColorScheme(
-        seedColor = palette.seedColor,
-        isDark = isSystemDark,
-        style = PaletteStyle.TonalSpot
+    val isDynamic = palette.seedColor == Color.Transparent
+    val def = jixOneThemeFor(palette.seedColor)
+    val previewBg = when {
+        isDynamic -> MaterialTheme.colorScheme.surfaceContainerHighest
+        def != null && def.defaultsLight -> def.lightBg
+        def != null -> def.darkBg
+        else -> palette.seedColor
+    }
+    val onPreview = if (previewBg.luminance() > 0.5f) Color(0xFF18181B) else Color(0xFFFAFAFC)
+    val accent = def?.accent ?: MaterialTheme.colorScheme.primary
+    val accent2 = def?.accent2 ?: MaterialTheme.colorScheme.secondary
+    val highlight = def?.highlight ?: MaterialTheme.colorScheme.tertiary
+    val name = stringResource(palette.nameRes)
+    val cardShape = RoundedCornerShape(20.dp)
+
+    val borderColor by animateColorAsState(
+        targetValue = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.30f),
+        animationSpec = tween(180),
+        label = "themeCardBorder",
     )
-    
-    val cornerRadius by animateDpAsState(
-        targetValue = if (isSelected) 48.dp * 0.25f else 24.dp,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioLowBouncy,
-            stiffness = Spring.StiffnessMedium
-        ),
-        label = "cornerRadius"
-    )
-    
     val borderWidth by animateDpAsState(
-        targetValue = if (isSelected) 3.dp else 0.dp,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessMedium
-        ),
-        label = "borderWidth"
+        targetValue = if (isSelected) 2.dp else 1.dp,
+        animationSpec = tween(180),
+        label = "themeCardBorderWidth",
     )
-    
-    val scale by animateFloatAsState(
-        targetValue = if (isSelected) 1.08f else 1f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessMedium
-        ),
-        label = "scale"
-    )
-    
-    val shape = RoundedCornerShape(cornerRadius)
-    val interactionSource = remember { MutableInteractionSource() }
-    
-    val paletteName = stringResource(palette.nameRes)
-    val contentDesc = stringResource(R.string.cd_palette_item, paletteName)
-    
+
     Box(
-        modifier = Modifier
-            .size(48.dp)
-            .graphicsLayer {
-                scaleX = scale
-                scaleY = scale
-            }
-            .clip(shape)
-            .then(
-                if (borderWidth > 0.dp) {
-                    Modifier.border(
-                        width = borderWidth,
-                        color = MaterialTheme.colorScheme.inversePrimary,
-                        shape = shape
+        modifier = modifier
+            .height(92.dp)
+            .clip(cardShape)
+            .background(previewBg)
+            .border(borderWidth, borderColor, cardShape)
+            .clickable(onClick = onClick)
+            .semantics { contentDescription = name },
+    ) {
+        // Persian artwork in the lower two-thirds, masked like the web picker
+        if (def?.artworkRes != null) {
+            Image(
+                painter = painterResource(def.artworkRes),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                alignment = Alignment.BottomCenter,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(66.dp)
+                    .align(Alignment.BottomCenter),
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(66.dp)
+                    .align(Alignment.BottomCenter)
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(previewBg, previewBg.copy(alpha = 0.15f)),
+                        )
+                    ),
+            )
+        }
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(12.dp),
+        ) {
+            Text(
+                text = name,
+                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
+                color = onPreview,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Spacer(modifier = Modifier.weight(1f))
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                if (isDynamic) {
+                    Icon(
+                        painter = painterResource(R.drawable.jix_palette),
+                        contentDescription = null,
+                        tint = onPreview.copy(alpha = 0.8f),
+                        modifier = Modifier.size(18.dp),
                     )
                 } else {
-                    Modifier
+                    Box(
+                        Modifier
+                            .size(11.dp)
+                            .clip(CircleShape)
+                            .background(accent)
+                            .border(1.dp, onPreview.copy(alpha = 0.45f), CircleShape),
+                    )
+                    Box(
+                        Modifier
+                            .size(11.dp)
+                            .clip(CircleShape)
+                            .background(accent2),
+                    )
+                    Box(
+                        Modifier
+                            .size(11.dp)
+                            .clip(CircleShape)
+                            .background(highlight.copy(alpha = 0.8f)),
+                    )
                 }
-            )
-            .clickable(
-                interactionSource = interactionSource,
-                indication = ripple(),
-                onClick = onClick
-            )
-            .semantics {
-                contentDescription = contentDesc
             }
-    ) {
-        val persianArtwork = persianThemeFor(palette.seedColor)
-        if (persianArtwork != null) {
-            // JixOne Persian themes: the swatch shows the real artwork
-            Image(
-                painter = painterResource(persianArtwork.artworkRes),
-                contentDescription = null,
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop,
-            )
+        }
+
+        if (isSelected) {
             Box(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.30f))
-            )
-        } else if (palette.seedColor == Color.Transparent) {
-            // Draw Dynamic/System icon using Material Design icon
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.surfaceVariant),
-                contentAlignment = Alignment.Center
+                    .align(Alignment.TopEnd)
+                    .padding(8.dp)
+                    .size(22.dp)
+                    .clip(CircleShape)
+                    .background(accent),
+                contentAlignment = Alignment.Center,
             ) {
                 Icon(
-                    painter = painterResource(R.drawable.jix_palette),
+                    painter = painterResource(R.drawable.check),
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(24.dp)
-                )
-            }
-        } else {
-            Canvas(modifier = Modifier.fillMaxSize()) {
-                val width = size.width
-                val height = size.height
-                
-                drawRect(
-                    color = colorScheme.onPrimary,
-                    topLeft = Offset(0f, 0f),
-                    size = Size(width, height / 2)
-                )
-                
-                drawRect(
-                    color = colorScheme.secondary,
-                    topLeft = Offset(0f, height / 2),
-                    size = Size(width / 2, height / 2)
-                )
-                
-                drawRect(
-                    color = colorScheme.tertiary,
-                    topLeft = Offset(width / 2, height / 2),
-                    size = Size(width / 2, height / 2)
+                    tint = if (accent.luminance() > 0.45f) Color(0xFF101014) else Color.White,
+                    modifier = Modifier.size(14.dp),
                 )
             }
         }

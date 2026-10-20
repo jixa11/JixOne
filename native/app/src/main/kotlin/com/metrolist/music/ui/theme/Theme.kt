@@ -107,6 +107,8 @@ fun MetrolistTheme(
     val context = LocalContext.current
     // Persian artwork theme (JixOne): web-app backgrounds + full-bleed art
     val persianTheme = if (showArtwork) persianThemeFor(themeColor) else null
+    // JixOne 5.0: one of the 12 web themes → hand-tuned scheme, not tonal-spot
+    val jixOneDef = jixOneThemeFor(themeColor)
     // Determine if system dynamic colors should be used (Android S+ and default theme color)
     val useSystemDynamicColor = (themeColor == DefaultThemeColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
 
@@ -114,8 +116,13 @@ fun MetrolistTheme(
     val baseColorScheme = if (useSystemDynamicColor) {
         // Use standard Material 3 dynamic color functions for system wallpaper colors
         if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+    } else if (jixOneDef != null) {
+        // The web app's own palette: surfaces from the theme's real background
+        // tone, accents from --accent / --accent-2 / mesh highlight. This is
+        // what kills the "Metrolist with a recolor" feel.
+        remember(jixOneDef, darkTheme) { buildJixOneColorScheme(jixOneDef, darkTheme) }
     } else {
-        // Use materialKolor only when a specific seed color is provided
+        // Fallback (a stored legacy seed from a 4.x install): materialKolor
         rememberDynamicColorScheme(
             seedColor = themeColor, // themeColor is guaranteed non-default here
             isDark = darkTheme,

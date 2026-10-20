@@ -133,7 +133,7 @@ fun SettingsScreen(
                     onClick = { navController.navigate("settings/player") }
                 ),
                 Material3SettingsItem(
-                    icon = painterResource(R.drawable.globe),
+                    icon = painterResource(R.drawable.jix_globe),
                     title = { Text(stringResource(R.string.content)) },
                     onClick = { navController.navigate("settings/content") }
                 ),
@@ -237,11 +237,12 @@ fun SettingsScreen(
                         )
                     )
                 }
+                val changelogState = LocalChangelogState.current
                 add(
                     Material3SettingsItem(
                         icon = painterResource(R.drawable.newspaper),
                         title = { Text(stringResource(R.string.changelog)) },
-                        onClick = { LocalChangelogState.current.value = true }
+                        onClick = { changelogState.value = true }
                     )
                 )
                 add(

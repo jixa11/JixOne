@@ -49,6 +49,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -69,6 +70,7 @@ import com.metrolist.music.ui.theme.MetrolistTheme
 import com.metrolist.music.utils.safeDataStoreEdit
 import com.metrolist.music.utils.rememberPreference
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import androidx.compose.ui.platform.LocalContext
 import com.metrolist.music.utils.dataStore
 import com.metrolist.innertube.YouTube
@@ -95,6 +97,7 @@ fun OnboardingScreen(
     navController: NavController,
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     val (uiLanguage, onUiLanguageChange) = rememberPreference(UiLanguageKey, "system")
     var step by rememberSaveable { mutableStateOf(0) }
     var selected by rememberSaveable { mutableStateOf(listOf<String>()) }
@@ -149,7 +152,9 @@ fun OnboardingScreen(
                 }
                 Spacer(Modifier.weight(1f))
                 TextButton(onClick = {
-                    context.safeDataStoreEdit { it[OnboardingCompletedKey] = true }
+                    scope.launch {
+                        context.safeDataStoreEdit { it[OnboardingCompletedKey] = true }
+                    }
                     finish("")
                 }) {
                     Text(stringResource(R.string.onboarding_skip))
@@ -188,9 +193,11 @@ fun OnboardingScreen(
                             }
                         },
                         onDone = { interests ->
-                            context.safeDataStoreEdit { settings ->
-                                settings[OnboardingInterestsKey] = interests
-                                settings[OnboardingCompletedKey] = true
+                            scope.launch {
+                                context.safeDataStoreEdit { settings ->
+                                    settings[OnboardingInterestsKey] = interests
+                                    settings[OnboardingCompletedKey] = true
+                                }
                             }
                             finish(interests)
                         },

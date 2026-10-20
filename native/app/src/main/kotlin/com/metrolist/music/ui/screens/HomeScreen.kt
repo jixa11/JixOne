@@ -1098,16 +1098,16 @@ fun HomeScreen(
                     }
                     item(key = "for_you_row") {
                         LazyRow(
-                            contentPadding = PaddingValues(horizontal = 12.dp),
-                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            contentPadding =
+                                WindowInsets.systemBars
+                                    .only(WindowInsetsSides.Horizontal)
+                                    .asPaddingValues(),
                         ) {
                             items(
                                 items = forYouItems,
                                 key = { "for_you_${it.id}" },
                             ) { playlist ->
-                                Box(modifier = Modifier.width(150.dp)) {
-                                    ytGridItem(playlist)
-                                }
+                                ytGridItem(playlist)
                             }
                         }
                     }
@@ -1126,16 +1126,16 @@ fun HomeScreen(
                         }
                         item(key = "new_releases_row") {
                             LazyRow(
-                                contentPadding = PaddingValues(horizontal = 12.dp),
-                                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                contentPadding =
+                                    WindowInsets.systemBars
+                                        .only(WindowInsetsSides.Horizontal)
+                                        .asPaddingValues(),
                             ) {
                                 items(
                                     items = albums,
                                     key = { "new_release_${it.id}" },
                                 ) { album ->
-                                    Box(modifier = Modifier.width(150.dp)) {
-                                        ytGridItem(album)
-                                    }
+                                    ytGridItem(album)
                                 }
                             }
                         }

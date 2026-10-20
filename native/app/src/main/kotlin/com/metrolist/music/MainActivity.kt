@@ -1111,11 +1111,11 @@ class MainActivity : FragmentActivity() {
                 // is an update, so we mark it done and never show it again.
                 var onboardingNeeded by remember { mutableStateOf<Boolean?>(null) }
                 LaunchedEffect(Unit) {
-                    val completed = context.dataStore.data.first()[OnboardingCompletedKey] ?: false
+                    val completed = dataStore.data.first()[OnboardingCompletedKey] ?: false
                     if (completed) {
                         onboardingNeeded = false
                     } else if (database.hasSongs()) {
-                        context.safeDataStoreEdit { it[OnboardingCompletedKey] = true }
+                        safeDataStoreEdit { it[OnboardingCompletedKey] = true }
                         onboardingNeeded = false
                     } else {
                         onboardingNeeded = true

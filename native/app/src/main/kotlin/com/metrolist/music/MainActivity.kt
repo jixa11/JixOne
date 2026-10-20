@@ -30,6 +30,7 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -1182,37 +1183,17 @@ class MainActivity : FragmentActivity() {
                                             )
                                         },
                                         actions = {
-                                            // JixOne web TopBar: history, stats,
-                                            // listen-together + the SETTINGS GEAR
-                                            // (the web app keeps settings out of
-                                            // the bottom nav, in the top corner)
+                                            // JixOne: the top bar is clean — ONLY the profile
+                                            // avatar lives here. History / stats / listen-together /
+                                            // settings moved into the profile sheet (the quick
+                                            // action grid), exactly like Spotify's corner menu.
                                             if (showHistoryButton) {
                                                 IconButton(onClick = { navController.navigate("history") }) {
                                                     Icon(
-                                                        painter = painterResource(R.drawable.jix_clock),
+                                                        painter = painterResource(R.drawable.jix_history),
                                                         contentDescription = stringResource(R.string.history),
                                                     )
                                                 }
-                                            }
-                                            IconButton(onClick = { navController.navigate("stats") }) {
-                                                Icon(
-                                                    painter = painterResource(R.drawable.jix_activity),
-                                                    contentDescription = stringResource(R.string.stats),
-                                                )
-                                            }
-                                            if (listenTogetherInTopBar) {
-                                                IconButton(onClick = { navController.navigate("listen_together_from_topbar") }) {
-                                                    Icon(
-                                                        painter = painterResource(R.drawable.jix_users),
-                                                        contentDescription = stringResource(R.string.together),
-                                                    )
-                                                }
-                                            }
-                                            IconButton(onClick = { navController.navigate("settings") }) {
-                                                Icon(
-                                                    painter = painterResource(R.drawable.jix_settings),
-                                                    contentDescription = stringResource(R.string.settings),
-                                                )
                                             }
                                             IconButton(onClick = { showAccountDialog = true }) {
                                                 BadgedBox(badge = {
@@ -1226,14 +1207,19 @@ class MainActivity : FragmentActivity() {
                                                             contentDescription = stringResource(R.string.account),
                                                             modifier =
                                                                 Modifier
-                                                                    .size(24.dp)
-                                                                    .clip(CircleShape),
+                                                                    .size(26.dp)
+                                                                    .clip(CircleShape)
+                                                                    .border(
+                                                                        width = 1.5.dp,
+                                                                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
+                                                                        shape = CircleShape,
+                                                                    ),
                                                         )
                                                     } else {
                                                         Icon(
                                                             painter = painterResource(R.drawable.account),
                                                             contentDescription = stringResource(R.string.account),
-                                                            modifier = Modifier.size(24.dp),
+                                                            modifier = Modifier.size(26.dp),
                                                         )
                                                     }
                                                 }

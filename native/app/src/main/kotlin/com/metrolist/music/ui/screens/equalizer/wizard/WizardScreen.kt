@@ -75,7 +75,7 @@ private fun WizardScreenContent(
                 },
                 navigationIcon = {
                     IconButton(onClick = if (state.canGoBack) onBackClicked else onNavigateBack) {
-                        Icon(painterResource(R.drawable.arrow_back), contentDescription = null)
+                        Icon(painterResource(R.drawable.jix_arrow_left), contentDescription = null)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(

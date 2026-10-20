@@ -1026,4 +1026,19 @@
     <string name="sync_failed_retry">Sync failed — tap to retry</string>
     <string name="sync_sign_in_hint">Sign in to sync your YouTube playlists</string>
     <string name="see_all">See all</string>
+    <string name="yt_account_connected">Connected to YouTube</string>
+    <string name="yt_account_signed_out">Sign in to sync your library</string>
+    <string name="quick_actions">Quick actions</string>
+    <string name="settings_desc_appearance">Themes, colors and artwork</string>
+    <string name="settings_desc_player">Audio quality, sliders and controls</string>
+    <string name="settings_desc_content">Language, region and filters</string>
+    <string name="settings_desc_ai">Translate lyrics with AI</string>
+    <string name="settings_desc_privacy">History and analytics</string>
+    <string name="settings_desc_storage">Downloads, cache and cleanup</string>
+    <string name="settings_desc_backup">Back up and restore your library</string>
+    <string name="settings_desc_auto">Tune the car experience</string>
+    <string name="settings_desc_updater">Check for new versions</string>
+    <string name="settings_desc_changelog">What changed in this version</string>
+    <string name="settings_desc_about">About JixOne and credits</string>
+    <string name="settings_desc_links">Open supported links</string>
 </resources>

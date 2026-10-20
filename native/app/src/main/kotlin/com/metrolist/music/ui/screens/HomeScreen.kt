@@ -141,6 +141,8 @@ import com.metrolist.music.ui.component.AlbumGridItem
 import com.metrolist.music.ui.component.ArtistGridItem
 import com.metrolist.music.ui.component.ChipsRow
 import com.metrolist.music.ui.component.HideOnScrollFAB
+import com.metrolist.music.ui.component.JixShelfCard
+import com.metrolist.music.ui.component.JixShelfItem
 import com.metrolist.music.ui.component.LocalBottomSheetPageState
 import com.metrolist.music.ui.component.LocalMenuState
 import com.metrolist.music.ui.component.NavigationTitle
@@ -218,288 +220,123 @@ fun CommunityPlaylistCard(
     val listenTogetherManager = LocalListenTogetherManager.current
     val isListenTogetherGuest = listenTogetherManager?.let { it.isInRoom && !it.isHost } ?: false
     val scope = rememberCoroutineScope()
-    val isDark = isSystemInDarkTheme()
     val artistNameAliases = LocalArtistNameAliases.current
+    val menuState = LocalMenuState.current
+    val haptic = LocalHapticFeedback.current
 
-    val containerColor =
-        if (isDark) {
-            MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp)
-        } else {
-            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-        }
-
-    val dbPlaylist by database.playlistByBrowseId(item.playlist.id).collectAsStateWithLifecycle(initialValue = null)
-    val isBookmarked = dbPlaylist?.playlist?.bookmarkedAt != null
-
-    Card(
-        modifier =
-            modifier
-                .width(320.dp)
-                .height(420.dp),
-        colors =
-            CardDefaults.cardColors(
-                containerColor = containerColor,
-            ),
-        shape = RoundedCornerShape(28.dp),
-        onClick = onClick,
-    ) {
-        Column(
-            modifier = Modifier.fillMaxSize(),
-        ) {
-            Row(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-            ) {
-                // 2x2 Grid of thumbnails
-                Box(
-                    modifier =
-                        Modifier
-                            .size(100.dp)
-                            .clip(RoundedCornerShape(12.dp)),
-                ) {
-                    Column(modifier = Modifier.fillMaxSize()) {
-                        Row(modifier = Modifier.weight(1f)) {
-                            AsyncImage(
-                                model =
-                                    item.songs
-                                        .getOrNull(0)
-                                        ?.thumbnail
-                                        ?.resize(200, 200),
-                                contentDescription = null,
-                                contentScale = ContentScale.Crop,
-                                modifier =
-                                    Modifier
-                                        .weight(1f)
-                                        .fillMaxSize(),
-                            )
-                            AsyncImage(
-                                model =
-                                    item.songs
-                                        .getOrNull(1)
-                                        ?.thumbnail
-                                        ?.resize(200, 200),
-                                contentDescription = null,
-                                contentScale = ContentScale.Crop,
-                                modifier =
-                                    Modifier
-                                        .weight(1f)
-                                        .fillMaxSize(),
-                            )
-                        }
-                        Row(modifier = Modifier.weight(1f)) {
-                            AsyncImage(
-                                model =
-                                    item.songs
-                                        .getOrNull(2)
-                                        ?.thumbnail
-                                        ?.resize(200, 200),
-                                contentDescription = null,
-                                contentScale = ContentScale.Crop,
-                                modifier =
-                                    Modifier
-                                        .weight(1f)
-                                        .fillMaxSize(),
-                            )
-                            AsyncImage(
-                                model =
-                                    item.songs
-                                        .getOrNull(3)
-                                        ?.thumbnail
-                                        ?.resize(200, 200),
-                                contentDescription = null,
-                                contentScale = ContentScale.Crop,
-                                modifier =
-                                    Modifier
-                                        .weight(1f)
-                                        .fillMaxSize(),
-                            )
-                        }
-                    }
-                }
-
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.Center,
-                ) {
-                    Text(
-                        text = item.playlist.title,
-                        style = MaterialTheme.typography.titleMedium,
-                        maxLines = 2,
-                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text =
-                            item.playlist.author?.let {
-                                ArtistNameAliases.resolve(artistNameAliases, it.id, it.name)
-                            }.orEmpty(),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
-                        maxLines = 1,
-                    )
-                }
-            }
-
-            Column(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .weight(1f)
-                        .padding(horizontal = 16.dp),
-            ) {
-                item.songs.take(3).forEach { song ->
-                    Row(
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 4.dp)
-                                .clip(RoundedCornerShape(12.dp))
-                                .combinedClickable(onClick = { onSongClick(song) }),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
-                        AsyncImage(
-                            model = song.thumbnail.resize(200, 200),
-                            contentDescription = null,
-                            modifier =
-                                Modifier
-                                    .size(56.dp)
-                                    .clip(RoundedCornerShape(12.dp)),
-                            contentScale = ContentScale.Crop,
+    // JixOne modern community card — compact shelf proportions: a square
+    // 2x2 collage, tight title/subtitle, and a small floating play FAB.
+    // A third the size of the old 320x420 giant.
+    Column(
+        modifier = modifier
+            .width(168.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    menuState.show {
+                        YouTubePlaylistMenu(
+                            playlist = item.playlist,
+                            coroutineScope = scope,
+                            onDismiss = menuState::dismiss,
                         )
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = song.title,
-                                style = MaterialTheme.typography.bodyMedium,
-                                maxLines = 1,
-                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                            )
-                            Text(
-                                text = song.artists.joinToArtistString(" ${stringResource(R.string.and)} ") {
-                                    ArtistNameAliases.resolve(artistNameAliases, it.id, it.name)
-                                },
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
-                                maxLines = 1,
-                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                            )
-                        }
+                    }
+                },
+            ),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(168.dp),
+        ) {
+            // 2x2 collage
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(RoundedCornerShape(12.dp)),
+            ) {
+                Column(modifier = Modifier.fillMaxSize()) {
+                    Row(modifier = Modifier.weight(1f)) {
+                        AsyncImage(
+                            model = item.songs.getOrNull(0)?.thumbnail?.resize(200, 200),
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.weight(1f).fillMaxSize(),
+                        )
+                        AsyncImage(
+                            model = item.songs.getOrNull(1)?.thumbnail?.resize(200, 200),
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.weight(1f).fillMaxSize(),
+                        )
+                    }
+                    Row(modifier = Modifier.weight(1f)) {
+                        AsyncImage(
+                            model = item.songs.getOrNull(2)?.thumbnail?.resize(200, 200),
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.weight(1f).fillMaxSize(),
+                        )
+                        AsyncImage(
+                            model = item.songs.getOrNull(3)?.thumbnail?.resize(200, 200),
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.weight(1f).fillMaxSize(),
+                        )
                     }
                 }
             }
 
-            Row(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
-            ) {
-                IconButton(
-                    onClick = {
+            // floating play FAB — plays the playlist straight from the shelf
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(7.dp)
+                    .size(34.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.92f))
+                    .combinedClickable {
                         if (!isListenTogetherGuest) {
                             item.playlist.playEndpoint?.let {
                                 playerConnection?.playQueue(YouTubeQueue(it))
                             }
                         }
                     },
-                    modifier =
-                        Modifier
-                            .size(48.dp)
-                            .background(MaterialTheme.colorScheme.primaryContainer, CircleShape),
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.ic_widget_play),
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                        modifier = Modifier.size(24.dp),
-                    )
-                }
-
-                IconButton(
-                    onClick = {
-                        if (!isListenTogetherGuest) {
-                            item.playlist.radioEndpoint?.let {
-                                playerConnection?.playQueue(YouTubeQueue(it))
-                            }
-                        }
-                    },
-                    modifier =
-                        Modifier
-                            .size(48.dp)
-                            .background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f), CircleShape),
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.radio),
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                        modifier = Modifier.size(24.dp),
-                    )
-                }
-
-                IconButton(
-                    onClick = {
-                        scope.launch(Dispatchers.IO) {
-                            if (dbPlaylist?.playlist == null) {
-                                val playlistEntity =
-                                    PlaylistEntity(
-                                        name = item.playlist.title,
-                                        browseId = item.playlist.id,
-                                        thumbnailUrl = item.playlist.thumbnail,
-                                        remoteSongCount =
-                                            item.playlist.songCountText
-                                                ?.split(" ")
-                                                ?.firstOrNull()
-                                                ?.toIntOrNull(),
-                                        playEndpointParams = item.playlist.playEndpoint?.params,
-                                        shuffleEndpointParams = item.playlist.shuffleEndpoint?.params,
-                                        radioEndpointParams = item.playlist.radioEndpoint?.params,
-                                    ).toggleLike()
-                                val songMetadata =
-                                    item.songs
-                                        .ifEmpty {
-                                            YouTube
-                                                .playlist(item.playlist.id)
-                                                .completed()
-                                                .getOrNull()
-                                                ?.songs
-                                                .orEmpty()
-                                        }.map { it.toMediaMetadata() }
-                                if (songMetadata.isNotEmpty()) {
-                                    database.withTransaction {
-                                        insert(playlistEntity)
-                                        songMetadata.onEach { insert(it) }
-                                        val songIds = songMetadata.map { it.id to it.setVideoId }
-                                        val createdPlaylist = database.playlistBlocking(playlistEntity.id)
-                                        if (createdPlaylist != null) {
-                                            addSongsToPlaylist(createdPlaylist, songIds)
-                                        }
-                                    }
-                                }
-                            } else {
-                                database.transaction {
-                                    val currentPlaylist = dbPlaylist!!.playlist
-                                    update(currentPlaylist.toggleLike())
-                                }
-                            }
-                        }
-                    },
-                    modifier =
-                        Modifier
-                            .size(48.dp)
-                            .background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f), CircleShape),
-                ) {
-                    Icon(
-                        painter = painterResource(if (isBookmarked) R.drawable.library_add_check else R.drawable.library_add),
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                        modifier = Modifier.size(24.dp),
-                    )
-                }
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.jix_play),
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(16.dp).padding(start = 1.dp),
+                )
             }
+        }
+
+        Spacer(Modifier.height(7.dp))
+
+        Text(
+            text = item.playlist.title,
+            fontSize = 13.sp,
+            lineHeight = 17.sp,
+            fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(horizontal = 2.dp),
+        )
+        item.playlist.author?.let {
+            Spacer(Modifier.height(2.dp))
+            Text(
+                text = ArtistNameAliases.resolve(artistNameAliases, it.id, it.name),
+                fontSize = 11.sp,
+                lineHeight = 14.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(horizontal = 2.dp),
+            )
         }
     }
 }
@@ -812,99 +649,93 @@ fun HomeScreen(
         }
     }
 
+    // JixOne shelf renderer for LOCAL items — compact modern cards
+    // (square rounded artwork, tight 2-line title, subtle subtitle) instead
+    // of the old oversized grid tiles.
     val localGridItem: @Composable (LocalItem) -> Unit = {
         when (it) {
             is Song -> {
-                SongGridItem(
-                    song = it,
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .combinedClickable(
-                                onClick = {
-                                    if (!isListenTogetherGuest) {
-                                        if (it.id == mediaMetadata?.id) {
-                                            playerConnection.togglePlayPause()
-                                        } else {
-                                            playerConnection.playQueue(
-                                                if (autoRadioQueue) {
-                                                    YouTubeQueue.radio(it.toMediaMetadata())
-                                                } else {
-                                                    ListQueue(
-                                                        title = it.title,
-                                                        items = listOf(it.toMediaItem())
-                                                    )
-                                                }
-                                            )
-                                        }
-                                    }
-                                },
-                                onLongClick = {
-                                    haptic.performHapticFeedback(
-                                        HapticFeedbackType.LongPress,
-                                    )
-                                    menuState.show {
-                                        SongMenu(
-                                            originalSong = it,
-                                            onDismiss = menuState::dismiss,
-                                        )
-                                    }
-                                },
-                            ),
+                JixShelfCard(
+                    title = it.song.title,
+                    subtitle = it.song.artists.joinToString(", ") { artist -> artist.name },
+                    thumbnailUrl = it.song.thumbnailUrl,
                     isActive = it.id == mediaMetadata?.id,
                     isPlaying = isPlaying,
+                    onClick = {
+                        if (!isListenTogetherGuest) {
+                            if (it.id == mediaMetadata?.id) {
+                                playerConnection.togglePlayPause()
+                            } else {
+                                playerConnection.playQueue(
+                                    if (autoRadioQueue) {
+                                        YouTubeQueue.radio(it.toMediaMetadata())
+                                    } else {
+                                        ListQueue(
+                                            title = it.song.title,
+                                            items = listOf(it.toMediaItem()),
+                                        )
+                                    }
+                                )
+                            }
+                        }
+                    },
+                    onLongClick = {
+                        haptic.performHapticFeedback(
+                            HapticFeedbackType.LongPress,
+                        )
+                        menuState.show {
+                            SongMenu(
+                                originalSong = it,
+                                onDismiss = menuState::dismiss,
+                            )
+                        }
+                    },
                 )
             }
 
             is Album -> {
-                AlbumGridItem(
-                    album = it,
-                    isActive = it.id == mediaMetadata?.album?.id,
+                JixShelfCard(
+                    title = it.album.title,
+                    subtitle = it.album.artists.firstOrNull()?.name,
+                    thumbnailUrl = it.album.thumbnailUrl,
+                    isActive = it.album.id == mediaMetadata?.album?.id,
                     isPlaying = isPlaying,
-                    coroutineScope = scope,
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .combinedClickable(
-                                onClick = {
-                                    navController.navigate("album/${it.id}")
-                                },
-                                onLongClick = {
-                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    menuState.show {
-                                        AlbumMenu(
-                                            originalAlbum = it,
-                                            onDismiss = menuState::dismiss,
-                                        )
-                                    }
-                                },
-                            ),
+                    onClick = {
+                        navController.navigate("album/${it.album.id}")
+                    },
+                    onLongClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        menuState.show {
+                            AlbumMenu(
+                                originalAlbum = it,
+                                onDismiss = menuState::dismiss,
+                            )
+                        }
+                    },
                 )
             }
 
             is Artist -> {
-                ArtistGridItem(
-                    artist = it,
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .combinedClickable(
-                                onClick = {
-                                    navController.navigate("artist/${it.id}")
-                                },
-                                onLongClick = {
-                                    haptic.performHapticFeedback(
-                                        HapticFeedbackType.LongPress,
-                                    )
-                                    menuState.show {
-                                        ArtistMenu(
-                                            originalArtist = it,
-                                            coroutineScope = scope,
-                                            onDismiss = menuState::dismiss,
-                                        )
-                                    }
-                                },
-                            ),
+                JixShelfCard(
+                    title = it.artist.name,
+                    subtitle = null,
+                    thumbnailUrl = it.artist.thumbnailUrl,
+                    isCircle = true,
+                    onClick = {
+                        navController.navigate("artist/${it.id}")
+                    },
+                    onLongClick = {
+                        haptic.performHapticFeedback(
+                            HapticFeedbackType.LongPress,
+                        )
+                        menuState.show {
+                            ArtistMenu(
+                                originalArtist = it,
+                                coroutineScope = scope,
+                                onDismiss = menuState::dismiss,
+                            )
+                        }
+                    },
                 )
             }
 
@@ -912,117 +743,113 @@ fun HomeScreen(
         }
     }
 
+    // JixOne shelf renderer for YouTube items — the compact modern card used
+    // across every Explore shelf (quick picks, moods, home sections...).
     val ytGridItem: @Composable (YTItem) -> Unit = { item ->
-        YouTubeGridItem(
+        JixShelfItem(
             item = item,
             isActive = item.id in listOf(mediaMetadata?.album?.id, mediaMetadata?.id),
             isPlaying = isPlaying,
-            coroutineScope = scope,
-            thumbnailRatio = 1f,
-            modifier =
-                Modifier
-                    .combinedClickable(
-                        onClick = {
-                            when (item) {
-                                is SongItem -> {
-                                    if (!isListenTogetherGuest) {
-                                        playerConnection.playQueue(
-                                            if (autoRadioQueue) {
-                                                YouTubeQueue(
-                                                    item.endpoint ?: WatchEndpoint(
-                                                        videoId = item.id,
-                                                    ),
-                                                    item.toMediaMetadata(),
-                                                )
-                                            } else {
-                                                ListQueue(
-                                                    title = item.title,
-                                                    items = listOf(item.toMediaItem())
-                                                )
-                                            }
-                                        )
-                                    }
+            onClick = {
+                when (item) {
+                    is SongItem -> {
+                        if (!isListenTogetherGuest) {
+                            playerConnection.playQueue(
+                                if (autoRadioQueue) {
+                                    YouTubeQueue(
+                                        item.endpoint ?: WatchEndpoint(
+                                            videoId = item.id,
+                                        ),
+                                        item.toMediaMetadata(),
+                                    )
+                                } else {
+                                    ListQueue(
+                                        title = item.title,
+                                        items = listOf(item.toMediaItem()),
+                                    )
                                 }
+                            )
+                        }
+                    }
 
-                                is AlbumItem -> {
-                                    navController.navigate("album/${item.id}")
-                                }
+                    is AlbumItem -> {
+                        navController.navigate("album/${item.id}")
+                    }
 
-                                is ArtistItem -> {
-                                    navController.navigate("artist/${item.id}")
-                                }
+                    is ArtistItem -> {
+                        navController.navigate("artist/${item.id}")
+                    }
 
-                                is PlaylistItem -> {
-                                    navController.navigate("online_playlist/${item.id}")
-                                }
+                    is PlaylistItem -> {
+                        navController.navigate("online_playlist/${item.id}")
+                    }
 
-                                is PodcastItem -> {
-                                    navController.navigate("online_podcast/${item.id}")
-                                }
+                    is PodcastItem -> {
+                        navController.navigate("online_podcast/${item.id}")
+                    }
 
-                                is EpisodeItem -> {
-                                    if (!isListenTogetherGuest) {
-                                        playerConnection.playQueue(
-                                            ListQueue(
-                                                title = item.title,
-                                                items = listOf(item.toMediaMetadata().toMediaItem()),
-                                            ),
-                                        )
-                                    }
-                                }
-                            }
-                        },
-                        onLongClick = {
-                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            menuState.show {
-                                when (item) {
-                                    is SongItem -> {
-                                        YouTubeSongMenu(
-                                            song = item,
-                                            onDismiss = menuState::dismiss,
-                                        )
-                                    }
+                    is EpisodeItem -> {
+                        if (!isListenTogetherGuest) {
+                            playerConnection.playQueue(
+                                ListQueue(
+                                    title = item.title,
+                                    items = listOf(item.toMediaMetadata().toMediaItem()),
+                                ),
+                            )
+                        }
+                    }
+                }
+            },
+            onLongClick = {
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                menuState.show {
+                    when (item) {
+                        is SongItem -> {
+                            YouTubeSongMenu(
+                                song = item,
+                                onDismiss = menuState::dismiss,
+                            )
+                        }
 
-                                    is AlbumItem -> {
-                                        YouTubeAlbumMenu(
-                                            albumItem = item,
-                                            onDismiss = menuState::dismiss,
-                                        )
-                                    }
+                        is AlbumItem -> {
+                            YouTubeAlbumMenu(
+                                albumItem = item,
+                                onDismiss = menuState::dismiss,
+                            )
+                        }
 
-                                    is ArtistItem -> {
-                                        YouTubeArtistMenu(
-                                            artist = item,
-                                            onDismiss = menuState::dismiss,
-                                        )
-                                    }
+                        is ArtistItem -> {
+                            YouTubeArtistMenu(
+                                artist = item,
+                                onDismiss = menuState::dismiss,
+                            )
+                        }
 
-                                    is PlaylistItem -> {
-                                        YouTubePlaylistMenu(
-                                            playlist = item,
-                                            coroutineScope = scope,
-                                            onDismiss = menuState::dismiss,
-                                        )
-                                    }
+                        is PlaylistItem -> {
+                            YouTubePlaylistMenu(
+                                playlist = item,
+                                coroutineScope = scope,
+                                onDismiss = menuState::dismiss,
+                            )
+                        }
 
-                                    is PodcastItem -> {
-                                        YouTubePlaylistMenu(
-                                            playlist = item.asPlaylistItem(),
-                                            coroutineScope = scope,
-                                            onDismiss = menuState::dismiss,
-                                        )
-                                    }
+                        is PodcastItem -> {
+                            YouTubePlaylistMenu(
+                                playlist = item.asPlaylistItem(),
+                                coroutineScope = scope,
+                                onDismiss = menuState::dismiss,
+                            )
+                        }
 
-                                    is EpisodeItem -> {
-                                        YouTubeSongMenu(
-                                            song = item.asSongItem(),
-                                            onDismiss = menuState::dismiss,
-                                        )
-                                    }
-                                }
-                            }
-                        },
-                    ),
+                        is EpisodeItem -> {
+                            YouTubeSongMenu(
+                                song = item.asSongItem(),
+                                onDismiss = menuState::dismiss,
+                            )
+                        }
+                    }
+                }
+            },
         )
     }
 
@@ -1923,8 +1750,8 @@ fun HomeScreen(
 
                                 item(key = "community_playlists_content") {
                                     LazyRow(
-                                        contentPadding = PaddingValues(horizontal = 16.dp),
-                                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                                        contentPadding = PaddingValues(horizontal = 12.dp),
+                                        horizontalArrangement = Arrangement.spacedBy(10.dp),
                                     ) {
                                         items(playlists) { item ->
                                             CommunityPlaylistCard(

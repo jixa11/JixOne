@@ -981,7 +981,7 @@ fun ContentSettings(
                 if (proxyEnabled) {
                     add(
                         Material3SettingsItem(
-                            icon = painterResource(R.drawable.settings),
+                            icon = painterResource(R.drawable.jix_settings),
                             title = { Text(stringResource(R.string.config_proxy)) },
                             onClick = { showProxyConfigurationDialog = true }
                         )
@@ -1122,7 +1122,7 @@ fun ContentSettings(
                 onLongClick = navController::backToMain,
             ) {
                 Icon(
-                    painterResource(R.drawable.arrow_back),
+                    painterResource(R.drawable.jix_arrow_left),
                     contentDescription = null,
                 )
             }

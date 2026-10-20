@@ -39,6 +39,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalViewConfiguration
@@ -151,11 +152,10 @@ fun AppNavigationRail(
 }
 
 /**
- * JixOne bottom navigation — a faithful port of the web app's MobileNav
- * (src/components/Sidebar.tsx): a full-width glass bar with a hairline top
- * border, evenly spaced items, the Lucide icon set, and the web's active
- * treatment: a small ACCENT PILL above the icon + bold accent label.
- * Nothing like the Material 3 pill-indicator bar Metrolist uses.
+ * JixOne bottom navigation — the modern compact bar (Spotify / YT Music
+ * flavor): small precise icons, the selected item sits in a soft tonal
+ * chip, filled icon variants when active, tiny labels. Nothing like the
+ * old oversized pill-indicator bar.
  */
 @Composable
 fun AppNavigationBar(
@@ -173,14 +173,14 @@ fun AppNavigationBar(
 
     Surface(
         modifier = modifier.fillMaxWidth(),
-        // web .glass — backdrop blur isn't available to a plain Surface, so
-        // the bar sits at 92% surfaceContainer like the web's translucency
+        // glass — the bar sits at 92% surfaceContainer so a breath of the
+        // ambient mesh / Persian artwork glows through.
         color = if (pureBlack) Color.Black else MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.92f),
         contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
         shadowElevation = 0.dp,
     ) {
         Column {
-            // hairline top border, like the web nav's border-t border-line
+            // hairline top border
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -190,7 +190,7 @@ fun AppNavigationBar(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 6.dp),
+                    .padding(vertical = if (slimNav) 2.dp else 5.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 navigationItems.forEach { screen ->
@@ -210,10 +210,15 @@ fun AppNavigationBar(
                         animationSpec = tween(durationMillis = 150),
                         label = "navItemColor",
                     )
-                    val pillAlpha by animateFloatAsState(
+                    val chipAlpha by animateFloatAsState(
                         targetValue = if (isSelected) 1f else 0f,
                         animationSpec = tween(durationMillis = 200),
-                        label = "navPillAlpha",
+                        label = "navChipAlpha",
+                    )
+                    val iconScale by animateFloatAsState(
+                        targetValue = if (isSelected) 1.05f else 1f,
+                        animationSpec = tween(durationMillis = 150),
+                        label = "navIconScale",
                     )
 
                     val isSearchItem = screen == Screens.Search && onSearchLongClick != null
@@ -256,49 +261,51 @@ fun AppNavigationBar(
                                 interactionSource = interactionSource,
                                 indication = null,
                             ) {
-                                // Special items (search long-press / home
-                                // long-hold) are driven by the InteractionSource
-                                // below; their normal click fires on Release.
                                 if (!isSearchItem && !isHomeHoldItem) {
                                     onItemClick(screen, currentIsSelected)
                                 }
                             }
-                            .padding(vertical = 6.dp),
+                            .padding(vertical = if (slimNav) 1.dp else 3.dp),
                     ) {
-                        // the web's active indicator: accent pill ABOVE the icon
+                        // modern active treatment: the icon sits inside a soft
+                        // tonal chip (like YTM's selected pill behind the icon)
                         Box(
+                            contentAlignment = Alignment.Center,
                             modifier = Modifier
-                                .height(3.dp)
-                                .width(24.dp)
-                                .clip(RoundedCornerShape(2.dp))
-                                .shadow(
-                                    elevation = 6.dp,
-                                    shape = RoundedCornerShape(2.dp),
-                                    ambientColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
-                                    spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
-                                )
+                                .height(30.dp)
+                                .fillMaxWidth(0.62f)
+                                .clip(RoundedCornerShape(15.dp))
                                 .background(
-                                    MaterialTheme.colorScheme.primary.copy(alpha = pillAlpha)
+                                    MaterialTheme.colorScheme.primary.copy(
+                                        alpha = 0.14f * chipAlpha
+                                    )
                                 ),
-                        )
-                        Spacer(Modifier.height(6.dp))
-                        Icon(
-                            painter = painterResource(id = iconRes),
-                            contentDescription = stringResource(screen.titleId),
-                            tint = contentColor,
-                            modifier = Modifier.size(22.dp),
-                        )
-                        Spacer(Modifier.height(3.dp))
-                        Text(
-                            text = stringResource(screen.titleId),
-                            fontSize = 10.5.sp,
-                            lineHeight = 13.sp,
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                            color = contentColor,
-                            textAlign = TextAlign.Center,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
+                        ) {
+                            Icon(
+                                painter = painterResource(id = iconRes),
+                                contentDescription = stringResource(screen.titleId),
+                                tint = contentColor,
+                                modifier = Modifier
+                                    .size(if (slimNav) 20.dp else 21.dp)
+                                    .graphicsLayer {
+                                        scaleX = iconScale
+                                        scaleY = iconScale
+                                    },
+                            )
+                        }
+                        if (!slimNav) {
+                            Spacer(Modifier.height(2.dp))
+                            Text(
+                                text = stringResource(screen.titleId),
+                                fontSize = 10.sp,
+                                lineHeight = 12.sp,
+                                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                                color = contentColor,
+                                textAlign = TextAlign.Center,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
                     }
                 }
             }

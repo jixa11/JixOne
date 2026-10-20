@@ -974,7 +974,7 @@ fun AppearanceSettings(
                     // Persian artwork background — the signature JixOne look
                     add(
                         Material3SettingsItem(
-                            icon = painterResource(R.drawable.palette),
+                            icon = painterResource(R.drawable.jix_palette),
                             title = { Text(stringResource(R.string.theme_artwork_background)) },
                             description = { Text(stringResource(R.string.theme_artwork_background_desc)) },
                             trailingContent = {
@@ -1001,7 +1001,7 @@ fun AppearanceSettings(
                     if (!isUsingCustomColor) {
                         add(
                             Material3SettingsItem(
-                                icon = painterResource(R.drawable.palette),
+                                icon = painterResource(R.drawable.jix_palette),
                                 title = { Text(stringResource(R.string.enable_dynamic_theme)) },
                                 trailingContent = {
                                     Switch(
@@ -1025,7 +1025,7 @@ fun AppearanceSettings(
                     }
                     add(
                         Material3SettingsItem(
-                            icon = painterResource(R.drawable.palette),
+                            icon = painterResource(R.drawable.jix_palette),
                             title = { Text(stringResource(R.string.enable_dynamic_icon)) },
                             description = { Text(stringResource(R.string.enable_dynamic_icon_desc)) },
                             trailingContent = {
@@ -1049,7 +1049,7 @@ fun AppearanceSettings(
                     )
                     add(
                         Material3SettingsItem(
-                            icon = painterResource(R.drawable.palette),
+                            icon = painterResource(R.drawable.jix_palette),
                             title = { Text(stringResource(R.string.theme)) },
                             description = { Text(stringResource(R.string.theme_desc)) },
                             onClick = { navController.navigate("settings/appearance/theme") },
@@ -1144,7 +1144,7 @@ fun AppearanceSettings(
             items =
                 listOf(
                     Material3SettingsItem(
-                        icon = painterResource(R.drawable.palette),
+                        icon = painterResource(R.drawable.jix_palette),
                         title = { Text(stringResource(R.string.new_player_design)) },
                         trailingContent = {
                             Switch(
@@ -1223,7 +1223,7 @@ fun AppearanceSettings(
                         onClick = { onCropAlbumArtChange(!cropAlbumArt) },
                     ),
                     Material3SettingsItem(
-                        icon = painterResource(R.drawable.palette),
+                        icon = painterResource(R.drawable.jix_palette),
                         title = { Text(stringResource(R.string.player_buttons_style)) },
                         description = {
                             Text(
@@ -1830,7 +1830,7 @@ fun AppearanceSettings(
                         onClick = { onShowTopPlaylistChange(!showTopPlaylist) },
                     ),
                     Material3SettingsItem(
-                        icon = painterResource(R.drawable.cached),
+                        icon = painterResource(R.drawable.jix_refresh),
                         title = { Text(stringResource(R.string.show_cached_playlist)) },
                         trailingContent = {
                             Switch(
@@ -1904,7 +1904,7 @@ fun AppearanceSettings(
                 onLongClick = navController::backToMain,
             ) {
                 Icon(
-                    painterResource(R.drawable.arrow_back),
+                    painterResource(R.drawable.jix_arrow_left),
                     contentDescription = null,
                 )
             }

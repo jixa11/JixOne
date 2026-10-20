@@ -139,7 +139,7 @@ fun UpdaterScreen(
                     add(
                         Material3SettingsItem(
                             title = { Text(stringResource(R.string.check_for_updates)) },
-                            icon = painterResource(R.drawable.update),
+                            icon = painterResource(R.drawable.jix_update),
                             trailingContent = {
                                 Switch(
                                     checked = checkForUpdates,
@@ -250,7 +250,7 @@ fun UpdaterScreen(
                 onLongClick = navController::backToMain,
             ) {
                 Icon(
-                    painter = painterResource(R.drawable.arrow_back),
+                    painter = painterResource(R.drawable.jix_arrow_left),
                     contentDescription = null,
                 )
             }

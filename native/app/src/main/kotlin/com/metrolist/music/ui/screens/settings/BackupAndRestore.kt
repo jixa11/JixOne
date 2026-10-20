@@ -192,7 +192,7 @@ fun BackupAndRestore(
                     ),
                     Material3SettingsItem(
                         title = { Text(stringResource(R.string.action_restore)) },
-                        icon = painterResource(R.drawable.restore),
+                        icon = painterResource(R.drawable.jix_backup),
                         onClick = {
                             restoreLauncher.launch(arrayOf("application/octet-stream"))
                         },
@@ -225,7 +225,7 @@ fun BackupAndRestore(
                 onLongClick = navController::backToMain,
             ) {
                 Icon(
-                    painterResource(R.drawable.arrow_back),
+                    painterResource(R.drawable.jix_arrow_left),
                     contentDescription = null,
                 )
             }
@@ -312,7 +312,7 @@ fun BackupAndRestore(
             },
             icon = {
                 Icon(
-                    painter = painterResource(R.drawable.restore),
+                    painter = painterResource(R.drawable.jix_backup),
                     contentDescription = null,
                 )
             },

@@ -149,7 +149,7 @@ fun ArtistAlbumsScreen(
                     onLongClick = navController::backToMain,
                 ) {
                     Icon(
-                        painter = painterResource(id = R.drawable.arrow_back),
+                        painter = painterResource(id = R.drawable.jix_arrow_left),
                         contentDescription = null,
                     )
                 }

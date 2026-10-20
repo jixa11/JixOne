@@ -208,7 +208,7 @@ fun RecognitionScreen(
                         onLongClick = { navController.backToMain() },
                     ) {
                         Icon(
-                            painter = painterResource(R.drawable.arrow_back),
+                            painter = painterResource(R.drawable.jix_arrow_left),
                             contentDescription = null,
                         )
                     }

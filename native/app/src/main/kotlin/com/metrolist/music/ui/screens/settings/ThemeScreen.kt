@@ -189,7 +189,7 @@ fun ThemeScreen(
         navigationIcon = {
             IconButton(onClick = { navController.navigateUp() }) {
                 Icon(
-                    painter = painterResource(R.drawable.arrow_back),
+                    painter = painterResource(R.drawable.jix_arrow_left),
                     contentDescription = stringResource(R.string.cd_back)
                 )
             }
@@ -658,7 +658,7 @@ fun PaletteItem(
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    painter = painterResource(R.drawable.palette),
+                    painter = painterResource(R.drawable.jix_palette),
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(24.dp)

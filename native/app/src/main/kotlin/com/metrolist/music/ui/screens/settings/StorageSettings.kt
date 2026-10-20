@@ -301,7 +301,7 @@ fun StorageSettings(
             items =
                 listOf(
                     Material3SettingsItem(
-                        icon = painterResource(R.drawable.storage),
+                        icon = painterResource(R.drawable.jix_folder),
                         title = { Text(stringResource(R.string.downloaded_songs)) },
                         description = {
                             Text(text = Formatter.formatShortFileSize(context, downloadCacheSize))
@@ -321,7 +321,7 @@ fun StorageSettings(
             title = stringResource(R.string.song_cache),
             items = listOf(
                 Material3SettingsItem(
-                    icon = painterResource(R.drawable.cached),
+                    icon = painterResource(R.drawable.jix_refresh),
                     title = { Text(stringResource(R.string.enable_song_cache)) },
                     description = { Text(stringResource(R.string.enable_song_cache_desc)) },
                     trailingContent = {
@@ -342,7 +342,7 @@ fun StorageSettings(
                     onClick = { onEnableSongCacheChange(!enableSongCache) }
                 ),
                 Material3SettingsItem(
-                    icon = painterResource(R.drawable.cached),
+                    icon = painterResource(R.drawable.jix_refresh),
                     title = { Text(stringResource(R.string.max_song_cache_size)) },
                     enabled = enableSongCache,
                     description = {
@@ -483,7 +483,7 @@ fun StorageSettings(
                 onLongClick = navController::backToMain,
             ) {
                 Icon(
-                    painterResource(R.drawable.arrow_back),
+                    painterResource(R.drawable.jix_arrow_left),
                     contentDescription = null,
                 )
             }

@@ -422,7 +422,7 @@ fun OnlinePlaylistScreen(
                     Icon(
                         painter =
                             painterResource(
-                                if (inSelectMode) R.drawable.close else R.drawable.arrow_back,
+                                if (inSelectMode) R.drawable.close else R.drawable.jix_arrow_left,
                             ),
                         contentDescription = null,
                     )

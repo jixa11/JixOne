@@ -425,7 +425,7 @@ fun ListenTogetherScreen(
                     onLongClick = navController::backToMain,
                 ) {
                     Icon(
-                        painterResource(R.drawable.arrow_back),
+                        painterResource(R.drawable.jix_arrow_left),
                         contentDescription = null,
                     )
                 }

@@ -25,14 +25,14 @@ sealed class Screens(
     object Home : Screens(
         titleId = R.string.explore,
         iconIdInactive = R.drawable.jix_compass,
-        iconIdActive = R.drawable.jix_compass,
+        iconIdActive = R.drawable.jix_compass_filled,
         route = "home"
     )
 
     object Search : Screens(
         titleId = R.string.search,
         iconIdInactive = R.drawable.jix_search,
-        iconIdActive = R.drawable.jix_search,
+        iconIdActive = R.drawable.jix_search_bold,
         route = "search_input"
     )
 
@@ -46,7 +46,7 @@ sealed class Screens(
     object Library : Screens(
         titleId = R.string.filter_library,
         iconIdInactive = R.drawable.jix_library,
-        iconIdActive = R.drawable.jix_library,
+        iconIdActive = R.drawable.jix_library_filled,
         route = "library"
     )
 

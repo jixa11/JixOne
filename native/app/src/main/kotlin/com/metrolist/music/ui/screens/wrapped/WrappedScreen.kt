@@ -200,7 +200,7 @@ fun WrappedScreenContent() {
                 title = { },
                 navigationIcon = {
                     IconButton(onClick = onClose) {
-                        Icon(painterResource(R.drawable.arrow_back), stringResource(R.string.back_button_desc), tint = Color.White)
+                        Icon(painterResource(R.drawable.jix_arrow_left), stringResource(R.string.back_button_desc), tint = Color.White)
                     }
                 },
                 actions = {

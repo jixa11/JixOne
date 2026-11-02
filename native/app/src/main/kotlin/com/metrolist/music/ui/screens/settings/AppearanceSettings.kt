@@ -112,7 +112,7 @@ import com.metrolist.music.ui.component.PlayerSliderTrack
 import com.metrolist.music.ui.component.SquigglySlider
 import com.metrolist.music.ui.component.WavySlider
 import com.metrolist.music.ui.theme.DefaultThemeColor
-import com.metrolist.music.ui.theme.PersianCarpetSeed
+import com.metrolist.music.ui.theme.DefaultPaletteSeed
 import com.metrolist.music.ui.theme.PlayerSliderColors
 import com.metrolist.music.ui.utils.backToMain
 import com.metrolist.music.utils.IconUtils
@@ -161,7 +161,7 @@ fun AppearanceSettings(
     val (selectedThemeColorInt) =
         rememberPreference(
             SelectedThemeColorKey,
-            defaultValue = PersianCarpetSeed.toArgb(),
+            defaultValue = DefaultPaletteSeed.toArgb(),
         )
     // Check if user has selected a custom color (not the default/dynamic color)
     val isUsingCustomColor = selectedThemeColorInt != DefaultThemeColor.toArgb()

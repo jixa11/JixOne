@@ -868,6 +868,26 @@ fun LibraryMixScreen(
                                 onClick = { navController.navigate("auto_playlist/downloaded") },
                             )
                         }
+                        // stats + equalizer — formerly top-bar icons, now one tap
+                        // from Library alongside history (2x3 quick grid on phones)
+                        item(key = "jix_quick_stats", contentType = CONTENT_TYPE_HEADER) {
+                            JixQuickCard(
+                                label = stringResource(R.string.stats),
+                                icon = R.drawable.jix_activity,
+                                iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                iconBackground = JixCardBackground.SOFT,
+                                onClick = { navController.navigate("stats") },
+                            )
+                        }
+                        item(key = "jix_quick_equalizer", contentType = CONTENT_TYPE_HEADER) {
+                            JixQuickCard(
+                                label = stringResource(R.string.equalizer),
+                                icon = R.drawable.equalizer,
+                                iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                iconBackground = JixCardBackground.SOFT,
+                                onClick = { navController.navigate("equalizer") },
+                            )
+                        }
                     }
 
                     if (showLikedPlaylist) {
@@ -1296,6 +1316,25 @@ private fun JixLibraryQuickCards(
                 iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
                 iconBackground = JixCardBackground.SOFT,
                 onClick = { navController.navigate("auto_playlist/downloaded") },
+                modifier = Modifier.weight(1f),
+            )
+        }
+        // stats + equalizer — formerly top-bar icons, now one tap from Library
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            JixQuickCard(
+                label = stringResource(R.string.stats),
+                icon = R.drawable.jix_activity,
+                iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
+                iconBackground = JixCardBackground.SOFT,
+                onClick = { navController.navigate("stats") },
+                modifier = Modifier.weight(1f),
+            )
+            JixQuickCard(
+                label = stringResource(R.string.equalizer),
+                icon = R.drawable.equalizer,
+                iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
+                iconBackground = JixCardBackground.SOFT,
+                onClick = { navController.navigate("equalizer") },
                 modifier = Modifier.weight(1f),
             )
         }

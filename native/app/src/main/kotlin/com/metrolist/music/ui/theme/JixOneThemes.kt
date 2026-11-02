@@ -12,11 +12,18 @@ package com.metrolist.music.ui.theme
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import com.metrolist.music.R
-/** The JixOne app-default seed: Persian Carpet gold (matches the web app). */
+/** Persian Carpet gold (web-app heritage palette). */
 val PersianCarpetSeed = Color(0xFFD9A441)
 val PersianTileSeed = Color(0xFF33C5D6)
 val DerafshKavianiSeed = Color(0xFF9A5BE0)
 val CyrusSeed = Color(0xFF2A5D9F)
+
+/**
+ * The JixOne app-default seed: Derafsh Kaviani violet — the banner of the
+ * app's identity. Every "default theme" preference in the app reads this
+ * single constant so the default can never drift between screens.
+ */
+val DefaultPaletteSeed = DerafshKavianiSeed
 
 data class PersianArtworkTheme(
     /** seed color the theme picker stores — used as the identity match */
@@ -45,7 +52,7 @@ data class PersianArtworkTheme(
 
 /**
  * Everything the app root needs to paint an active artwork background.
- * Provided by [MetrolistTheme] via [LocalThemeArtwork].
+ * Provided by [JixOneTheme] via [LocalThemeArtwork].
  */
 class ThemeArtwork(
     val artworkRes: Int,
@@ -57,6 +64,24 @@ class ThemeArtwork(
 val LocalThemeArtwork = staticCompositionLocalOf<ThemeArtwork?> { null }
 
 val PersianArtworkThemes = listOf(
+    // Default first: Derafsh Kaviani — the app's flagship theme.
+    PersianArtworkTheme(
+        seed = DerafshKavianiSeed,
+        darkBackground = Color(0xFF1B0A2A), // kaviani plum (web app)
+        lightBackground = null,
+        artworkRes = R.drawable.jixone_bg_derafsh,
+        tiled = false,
+        // web: opacity .32 → veil .68 (globals.css derafsh)
+        veilAlphaDark = 0.68f,
+        // web mesh: gold 15% / amethyst 17% / madder 9% (globals.css derafsh)
+        meshDark = Triple(
+            Color(0x26E0B24A),
+            Color(0x2B9A5BE0),
+            Color(0x17C83250),
+        ),
+        // web --app-bg-2 (globals.css derafsh)
+        darkBg2 = Color(0xFF25103A),
+    ),
     PersianArtworkTheme(
         seed = PersianCarpetSeed,
         darkBackground = Color(0xFF081828), // deep carpet navy (web app)
@@ -92,23 +117,6 @@ val PersianArtworkThemes = listOf(
         darkBg2 = Color(0xFF0C1A33),
     ),
     PersianArtworkTheme(
-        seed = DerafshKavianiSeed,
-        darkBackground = Color(0xFF1B0A2A), // kaviani plum (web app)
-        lightBackground = null,
-        artworkRes = R.drawable.jixone_bg_derafsh,
-        tiled = false,
-        // web: opacity .32 → veil .68 (globals.css derafsh)
-        veilAlphaDark = 0.68f,
-        // web mesh: gold 15% / amethyst 17% / madder 9% (globals.css derafsh)
-        meshDark = Triple(
-            Color(0x26E0B24A),
-            Color(0x2B9A5BE0),
-            Color(0x17C83250),
-        ),
-        // web --app-bg-2 (globals.css derafsh)
-        darkBg2 = Color(0xFF25103A),
-    ),
-    PersianArtworkTheme(
         seed = CyrusSeed,
         darkBackground = Color(0xFF16233F), // darkened achaemenid blue
         lightBackground = Color(0xFFF5EEDE), // cyrus parchment (web app)
@@ -135,7 +143,7 @@ fun persianThemeFor(seed: Color): PersianArtworkTheme? =
  * The ambient mesh the app root paints behind everything: three soft color
  * blobs at the screen corners over a vertical base gradient — the signature
  * look of the JixOne web app (globals.css `body` background), ported 1:1.
- * Provided by [MetrolistTheme] via [LocalThemeMesh].
+ * Provided by [JixOneTheme] via [LocalThemeMesh].
  */
 class ThemeMesh(
     val blobTopRight: Color,

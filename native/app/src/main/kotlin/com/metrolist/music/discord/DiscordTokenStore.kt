@@ -164,7 +164,7 @@ object DiscordTokenStore {
 
     internal object AesKeystore {
         private const val ANDROID_KEYSTORE = "AndroidKeyStore"
-        private const val KEY_ALIAS = "metrolist_discord_token_key"
+        private const val KEY_ALIAS = "jixone_discord_token_key"
         private const val TRANSFORMATION = "AES/GCM/NoPadding"
         private const val GCM_IV_SIZE = 12
         private const val GCM_TAG_SIZE = 128

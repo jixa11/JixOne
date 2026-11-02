@@ -81,8 +81,8 @@ import com.metrolist.music.constants.PureBlackKey
 import com.metrolist.music.constants.PureBlackMiniPlayerKey
 import com.metrolist.music.constants.SelectedThemeColorKey
 import com.metrolist.music.ui.theme.DefaultThemeColor
-import com.metrolist.music.ui.theme.MetrolistTheme
-import com.metrolist.music.ui.theme.PersianCarpetSeed
+import com.metrolist.music.ui.theme.JixOneTheme
+import com.metrolist.music.ui.theme.DefaultPaletteSeed
 import com.metrolist.music.ui.theme.persianThemeFor
 import com.metrolist.music.utils.rememberEnumPreference
 import com.metrolist.music.utils.rememberPreference
@@ -94,9 +94,9 @@ data class ThemePalette(
 
 val PaletteColors = listOf(
     ThemePalette(R.string.palette_dynamic, Color.Transparent), // Sentinel for System/Dynamic colors
+    ThemePalette(R.string.palette_jixone_derafsh, Color(0xFF9A5BE0)), // JixOne default: Derafsh violet
     ThemePalette(R.string.palette_jixone_tile, Color(0xFF33C5D6)), // JixOne: Isfahan tile turquoise
     ThemePalette(R.string.palette_jixone_carpet, Color(0xFFD9A441)), // JixOne: Persian carpet gold
-    ThemePalette(R.string.palette_jixone_derafsh, Color(0xFF9A5BE0)), // JixOne: Derafsh violet
     ThemePalette(R.string.palette_jixone_cyrus, Color(0xFF2A5D9F)), // JixOne: Cyrus blue
     ThemePalette(R.string.palette_neon_crimson, Color(0xFFFF2D55)), // JixOne web: Neon Crimson
     ThemePalette(R.string.palette_neo_tokyo, Color(0xFF22D3EE)), // JixOne web: Neo Tokyo
@@ -145,7 +145,7 @@ fun ThemeScreen(
     }
     val (selectedThemeColorInt, onSelectedThemeColorChange) = rememberPreference(
         SelectedThemeColorKey,
-        PersianCarpetSeed.toArgb()
+        DefaultPaletteSeed.toArgb()
     )
     val (_, onDynamicThemeChange) = rememberPreference(DynamicThemeKey, defaultValue = false)
 
@@ -704,7 +704,7 @@ fun ThemeMockup(
         DarkMode.OFF -> false
     }
 
-    MetrolistTheme(
+    JixOneTheme(
         darkTheme = useDark,
         pureBlack = pureBlack,
         themeColor = themeColor
@@ -812,7 +812,7 @@ fun ThemeMockupPortrait(
         DarkMode.OFF -> false
     }
 
-    MetrolistTheme(
+    JixOneTheme(
         darkTheme = useDark,
         pureBlack = pureBlack,
         themeColor = themeColor

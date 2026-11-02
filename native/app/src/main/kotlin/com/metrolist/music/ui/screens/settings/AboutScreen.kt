@@ -105,9 +105,9 @@ private data class CommunityLink(
     val url: String
 )
 
-/* JixOne — the upstream attribution (Metrolist, GPL-3.0) is intentionally
-   NOT part of the About page's visible branding; it lives in the
-   "Open-source licenses" dialog, NOTICE.md and the source tree. */
+/* JixOne — licensing and upstream attribution live in the "Open-source
+   licenses" dialog, NOTICE.md and the source tree, keeping this page
+   purely JixOne. */
 
 private val communityLinks = listOf(
     CommunityLink(R.string.credits_view_repo, R.drawable.github, "https://github.com/jixa11/JixOne"),
@@ -281,9 +281,9 @@ fun AboutScreen(
 
         Spacer(Modifier.height(16.dp))
 
-        // Open-source licenses — where the upstream (Metrolist, GPL-3.0) and
-        // Lucide (ISC) attributions live. One quiet row instead of a branded
-        // credits section: this page is JixOne's identity.
+        // Open-source licenses — where GPL-3.0 and Lucide (ISC) attributions
+        // live. One quiet row instead of a branded credits section: this page
+        // is JixOne's identity.
         var showOssDialog by remember { mutableStateOf(false) }
         if (showOssDialog) {
             AlertDialog(

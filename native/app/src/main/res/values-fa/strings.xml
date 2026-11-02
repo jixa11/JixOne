@@ -112,10 +112,7 @@
     <string name="palette_youtube">یوتیوب</string>
     <string name="palette_pure_oled">OLED خالص</string>
     <string name="palette_youtube_light">روشن یوتیوب</string>
-    <string name="credits_upstream">پروژهٔ بالادستی (Metrolist)</string>
-    <string name="credits_upstream_section">پروژه‌ی پایه · Metrolist</string>
     <string name="jixone_tagline">کلاینت نیتیو یوتیوب موزیک</string>
-    <string name="jixone_upstream_note">نسخه‌ی نیتیو جیکس‌وان بر پایه‌ی Metrolist (GPL-3.0) ساخته شده — سپاس از تیم پروژه‌ی پایه.</string>
     <string name="create_playlist">ایجاد فهرست‌پخش</string>
     <string name="playlist_name">نام فهرست‌پخش</string>
     <string name="error_playlist_name_empty">نام فهرست‌پخش نمی تواند خالی باشد.</string>

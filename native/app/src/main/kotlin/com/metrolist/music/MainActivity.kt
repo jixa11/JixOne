@@ -141,10 +141,10 @@ import com.metrolist.innertube.models.SongItem
 import com.metrolist.innertube.models.WatchEndpoint
 import com.metrolist.music.constants.AppBarHeight
 import com.metrolist.music.constants.AppLanguageKey
+import com.metrolist.music.constants.ArtistOnboardingCompletedKey
 import com.metrolist.music.constants.CheckForUpdatesKey
 import com.metrolist.music.constants.DarkModeKey
 import com.metrolist.music.constants.DefaultOpenTabKey
-import com.metrolist.music.constants.DismissedKmpUpdateKey
 import com.metrolist.music.constants.DismissedStandaloneUpdateKey
 import com.metrolist.music.constants.DensityScaleKey
 import com.metrolist.music.constants.DisableScreenshotKey
@@ -162,7 +162,6 @@ import com.metrolist.music.constants.MiniPlayerBottomSpacing
 import com.metrolist.music.constants.MiniPlayerHeight
 import com.metrolist.music.constants.NavigationBarAnimationSpec
 import com.metrolist.music.constants.NavigationBarHeight
-import com.metrolist.music.constants.PauseListenHistoryKey
 import com.metrolist.music.constants.PauseSearchHistoryKey
 import com.metrolist.music.constants.PreferredLyricsProvider
 import com.metrolist.music.constants.PreferredLyricsProviderKey
@@ -206,8 +205,8 @@ import com.metrolist.music.ui.theme.ColorSaver
 import com.metrolist.music.ui.theme.DefaultThemeColor
 import com.metrolist.music.ui.theme.LocalThemeArtwork
 import com.metrolist.music.ui.theme.LocalThemeMesh
-import com.metrolist.music.ui.theme.MetrolistTheme
-import com.metrolist.music.ui.theme.PersianCarpetSeed
+import com.metrolist.music.ui.theme.JixOneTheme
+import com.metrolist.music.ui.theme.DefaultPaletteSeed
 import com.metrolist.music.ui.theme.extractThemeColor
 import com.metrolist.music.ui.utils.appBarScrollBehavior
 import com.metrolist.music.ui.utils.resetHeightOffset
@@ -241,9 +240,8 @@ import javax.inject.Inject
 private data class AvailableUpdate(
     val release: ReleaseInfo,
     val downloadUrl: String,
-    val isKmp: Boolean,
 ) {
-    val dismissalKey = if (isKmp) DismissedKmpUpdateKey else DismissedStandaloneUpdateKey
+    val dismissalKey = DismissedStandaloneUpdateKey
 }
 
 @Suppress("DEPRECATION", "ASSIGNED_BUT_NEVER_ACCESSED_VARIABLE")
@@ -479,7 +477,7 @@ class MainActivity : FragmentActivity() {
         }
 
         setContent {
-            MetrolistApp(
+            JixOneApp(
                 latestVersionName = latestVersionName,
                 onLatestVersionNameChange = { latestVersionName = it },
                 playerConnection = playerConnectionSnapshot,
@@ -493,7 +491,7 @@ class MainActivity : FragmentActivity() {
     @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
-    private fun MetrolistApp(
+    private fun JixOneApp(
         latestVersionName: String,
         onLatestVersionNameChange: (String) -> Unit,
         playerConnection: PlayerConnection?,
@@ -518,7 +516,7 @@ class MainActivity : FragmentActivity() {
                             ?.takeIf { hasUpdate }
                             ?.let { release ->
                                 Updater.getDownloadUrlForCurrentVariant(release)?.let { downloadUrl ->
-                                    AvailableUpdate(release, downloadUrl, isKmp = false)
+                                    AvailableUpdate(release, downloadUrl)
                                 }
                             }
                     availableUpdate = update?.takeUnless {
@@ -529,29 +527,13 @@ class MainActivity : FragmentActivity() {
                         val intent = Intent(Intent.ACTION_VIEW, update.downloadUrl.toUri())
                         val flags = PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
                         val pending = PendingIntent.getActivity(this@MainActivity, 1001, intent, flags)
-                        val notificationText =
-                            if (update.isKmp) {
-                                getString(R.string.kmp_upgrade_warning)
-                            } else {
-                                update.release.versionName
-                            }
+                        val notificationText = update.release.versionName
                         val notification =
                             NotificationCompat
                                 .Builder(this@MainActivity, "updates")
                                 .setSmallIcon(R.drawable.update)
-                                .setContentTitle(
-                                    if (update.isKmp) {
-                                        getString(R.string.kmp_upgrade_title, update.release.versionName)
-                                    } else {
-                                        getString(R.string.update_available_title)
-                                    },
-                                )
+                                .setContentTitle(getString(R.string.update_available_title))
                                 .setContentText(notificationText)
-                                .apply {
-                                    if (update.isKmp) {
-                                        setStyle(NotificationCompat.BigTextStyle().bigText(notificationText))
-                                    }
-                                }
                                 .setContentIntent(pending)
                                 .setAutoCancel(true)
                                 .build()
@@ -621,7 +603,7 @@ class MainActivity : FragmentActivity() {
                 pureBlackEnabled && useDarkTheme
             }
 
-        val (selectedThemeColorInt) = rememberPreference(SelectedThemeColorKey, defaultValue = PersianCarpetSeed.toArgb())
+        val (selectedThemeColorInt) = rememberPreference(SelectedThemeColorKey, defaultValue = DefaultPaletteSeed.toArgb())
         val selectedThemeColor = Color(selectedThemeColorInt)
 
         val showChangelog = rememberSaveable { mutableStateOf(false) }
@@ -684,7 +666,7 @@ class MainActivity : FragmentActivity() {
                 }
         }
 
-        MetrolistTheme(
+        JixOneTheme(
             darkTheme = useDarkTheme,
             pureBlack = pureBlack,
             themeColor = themeColor,
@@ -1093,9 +1075,21 @@ class MainActivity : FragmentActivity() {
                         handleDeepLinkIntent(pendingIntent!!, navController)
                         pendingIntent = null
                     } else {
+                        // capture BEFORE the handlers consume/clear intent.data
+                        val arrivedViaDeepLink =
+                            intent.data != null || intent.hasExtra(Intent.EXTRA_TEXT)
                         handleWidgetTargetIntent(intent, navController)
                         handleRecognitionIntent(intent, navController)
                         handleDeepLinkIntent(intent, navController)
+
+                        // JixOne first run: Spotify-style artist onboarding.
+                        // Only when nothing deep-linked the app, so widgets,
+                        // recognition and shared links land straight on content.
+                        val onboardingDone =
+                            dataStore.data.first()[ArtistOnboardingCompletedKey] ?: false
+                        if (!onboardingDone && !arrivedViaDeepLink) {
+                            navController.navigate("onboarding")
+                        }
                     }
                 }
 
@@ -1123,13 +1117,6 @@ class MainActivity : FragmentActivity() {
                     }
 
                 var showAccountDialog by remember { mutableStateOf(false) }
-
-                val pauseListenHistory by rememberPreference(PauseListenHistoryKey, defaultValue = false)
-                val eventCount by database.eventCount().collectAsStateWithLifecycle(initialValue = 0)
-                val showHistoryButton =
-                    remember(pauseListenHistory, eventCount) {
-                        !(pauseListenHistory && eventCount == 0)
-                    }
 
                 val baseBg = if (pureBlack) Color.Black else MaterialTheme.colorScheme.surfaceContainer
                 val artistNameAliases by ArtistNameAliases.aliases.collectAsStateWithLifecycle()
@@ -1175,24 +1162,11 @@ class MainActivity : FragmentActivity() {
                                             )
                                         },
                                         actions = {
-                                            // JixOne web TopBar: history, stats,
-                                            // listen-together + the SETTINGS GEAR
-                                            // (the web app keeps settings out of
-                                            // the bottom nav, in the top corner)
-                                            if (showHistoryButton) {
-                                                IconButton(onClick = { navController.navigate("history") }) {
-                                                    Icon(
-                                                        painter = painterResource(R.drawable.jix_clock),
-                                                        contentDescription = stringResource(R.string.history),
-                                                    )
-                                                }
-                                            }
-                                            IconButton(onClick = { navController.navigate("stats") }) {
-                                                Icon(
-                                                    painter = painterResource(R.drawable.jix_activity),
-                                                    contentDescription = stringResource(R.string.stats),
-                                                )
-                                            }
+                                            // JixOne top bar: the four utility
+                                            // pillars — Listen Together, Equalizer,
+                                            // Integrations, Settings — plus the
+                                            // account chip. History and stats live
+                                            // one tap away in Library quick cards.
                                             if (listenTogetherInTopBar) {
                                                 IconButton(onClick = { navController.navigate("listen_together_from_topbar") }) {
                                                     Icon(
@@ -1200,6 +1174,18 @@ class MainActivity : FragmentActivity() {
                                                         contentDescription = stringResource(R.string.together),
                                                     )
                                                 }
+                                            }
+                                            IconButton(onClick = { navController.navigate("equalizer") }) {
+                                                Icon(
+                                                    painter = painterResource(R.drawable.equalizer),
+                                                    contentDescription = stringResource(R.string.equalizer),
+                                                )
+                                            }
+                                            IconButton(onClick = { navController.navigate("settings/integrations") }) {
+                                                Icon(
+                                                    painter = painterResource(R.drawable.integration),
+                                                    contentDescription = stringResource(R.string.integrations),
+                                                )
                                             }
                                             IconButton(onClick = { navController.navigate("settings") }) {
                                                 Icon(
@@ -1588,25 +1574,12 @@ class MainActivity : FragmentActivity() {
                                                 .verticalScroll(rememberScrollState()),
                                     ) {
                                         Text(
-                                            text =
-                                                stringResource(
-                                                    if (update.isKmp) {
-                                                        R.string.kmp_upgrade_title
-                                                    } else {
-                                                        R.string.update_available_message
-                                                    },
-                                                    update.release.versionName,
-                                                ),
+                                            text = stringResource(
+                                                R.string.update_available_message,
+                                                update.release.versionName,
+                                            ),
                                             style = MaterialTheme.typography.bodyMedium,
                                         )
-                                        if (update.isKmp) {
-                                            Text(
-                                                text = stringResource(R.string.kmp_upgrade_warning),
-                                                style = MaterialTheme.typography.bodyMedium,
-                                                color = MaterialTheme.colorScheme.error,
-                                                modifier = Modifier.padding(top = 12.dp),
-                                            )
-                                        }
                                         Text(
                                             text = stringResource(R.string.changelog),
                                             style = MaterialTheme.typography.titleSmall,
@@ -1625,16 +1598,12 @@ class MainActivity : FragmentActivity() {
                                             startActivity(Intent(Intent.ACTION_VIEW, update.downloadUrl.toUri()))
                                         },
                                     ) {
-                                        Text(
-                                            stringResource(
-                                                if (update.isKmp) R.string.kmp_upgrade_action else R.string.update_action,
-                                            ),
-                                        )
+                                        Text(stringResource(R.string.update_action))
                                     }
                                 },
                                 dismissButton = {
                                     TextButton(onClick = dismissUpdate) {
-                                        Text(stringResource(R.string.kmp_upgrade_later))
+                                        Text(stringResource(R.string.not_now))
                                     }
                                 },
                             )

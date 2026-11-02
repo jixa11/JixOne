@@ -1427,9 +1427,13 @@ fun ListenTogetherDialog(
                             }
                             if (isHost) {
                                 Spacer(modifier = Modifier.height(12.dp))
-                                val inviteLink =
-                                    remember(room.roomCode) {
-                                        "https://metrolist.cc/listen?code=${room.roomCode}"
+                                // JixOne: invite shares the room code with
+                                // JixOne branding — join via Listen Together.
+                                val togetherLabel = stringResource(R.string.together)
+                                val roomCodeLabel = stringResource(R.string.room_code_label)
+                                val inviteText =
+                                    remember(room.roomCode, togetherLabel, roomCodeLabel) {
+                                        "JixOne · $togetherLabel\n$roomCodeLabel: ${room.roomCode}"
                                     }
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
@@ -1441,18 +1445,18 @@ fun ListenTogetherDialog(
                                                 context.getSystemService(
                                                     Context.CLIPBOARD_SERVICE,
                                                 ) as android.content.ClipboardManager
-                                            val clip = android.content.ClipData.newPlainText("Listen Together Link", inviteLink)
+                                            val clip = android.content.ClipData.newPlainText("JixOne Invite", inviteText)
                                             clipboard.setPrimaryClip(clip)
                                             Toast.makeText(context, R.string.copied_to_clipboard, Toast.LENGTH_SHORT).show()
                                         },
                                     ) {
                                         Icon(
                                             painter = painterResource(R.drawable.link),
-                                            contentDescription = stringResource(R.string.copy_link),
+                                            contentDescription = stringResource(R.string.copy_invite),
                                             modifier = Modifier.size(18.dp),
                                         )
                                         Spacer(modifier = Modifier.width(8.dp))
-                                        Text(stringResource(R.string.copy_link))
+                                        Text(stringResource(R.string.copy_invite))
                                     }
 
                                     Spacer(modifier = Modifier.width(8.dp))

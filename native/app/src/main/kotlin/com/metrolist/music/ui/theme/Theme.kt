@@ -40,7 +40,7 @@ val DefaultThemeColor = Color(0xFF5F5BF9)
 
 /**
  * JixOne modern shape language: generous, soft corners everywhere —
- * the visual signature that separates JixOne from stock Material/Metrolist.
+ * the visual signature that separates JixOne from stock Material.
  */
 val JixOneShapes = Shapes(
     extraSmall = RoundedCornerShape(10.dp),
@@ -97,7 +97,7 @@ val JixOneTypography: Typography = run {
 }
 
 @Composable
-fun MetrolistTheme(
+fun JixOneTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     pureBlack: Boolean = false,
     themeColor: Color = DefaultThemeColor,

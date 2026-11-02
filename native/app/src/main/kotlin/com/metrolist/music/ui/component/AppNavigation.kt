@@ -155,7 +155,7 @@ fun AppNavigationRail(
  * (src/components/Sidebar.tsx): a full-width glass bar with a hairline top
  * border, evenly spaced items, the Lucide icon set, and the web's active
  * treatment: a small ACCENT PILL above the icon + bold accent label.
- * Nothing like the Material 3 pill-indicator bar Metrolist uses.
+ * Nothing like a stock Material 3 pill-indicator bar.
  */
 @Composable
 fun AppNavigationBar(

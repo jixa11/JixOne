@@ -43,7 +43,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.FileProvider
 import com.metrolist.music.R
-import com.metrolist.music.ui.theme.MetrolistTheme
+import com.metrolist.music.ui.theme.JixOneTheme
 import com.metrolist.music.utils.CrashHandler
 import java.io.File
 import java.text.SimpleDateFormat
@@ -60,7 +60,7 @@ class CrashActivity : ComponentActivity() {
         
         setContent {
             val darkTheme = isSystemInDarkTheme()
-            MetrolistTheme(darkTheme = darkTheme) {
+            JixOneTheme(darkTheme = darkTheme) {
                 CrashScreen(
                     crashLog = crashLog,
                     onClose = { finishAffinity() },
@@ -74,7 +74,7 @@ class CrashActivity : ComponentActivity() {
         try {
             // Create crash log file
             val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
-            val fileName = "metrolist_crash_$timestamp.txt"
+            val fileName = "jixone_crash_$timestamp.txt"
             val crashFile = File(cacheDir, fileName)
             crashFile.writeText(crashLog)
             

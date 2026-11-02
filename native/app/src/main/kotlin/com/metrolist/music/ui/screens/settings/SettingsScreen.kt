@@ -82,6 +82,13 @@ fun SettingsScreen(
                     icon = painterResource(R.drawable.palette),
                     title = { Text(stringResource(R.string.appearance)) },
                     onClick = { navController.navigate("settings/appearance") }
+                ),
+                // JixOne: re-run the Spotify-style artist onboarding any time
+                Material3SettingsItem(
+                    icon = painterResource(R.drawable.artist),
+                    title = { Text(stringResource(R.string.onboarding_settings_title)) },
+                    description = { Text(stringResource(R.string.onboarding_settings_desc)) },
+                    onClick = { navController.navigate("onboarding") }
                 )
             )
         )

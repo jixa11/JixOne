@@ -107,6 +107,8 @@ val CheckForUpdatesKey = booleanPreferencesKey("checkForUpdates")
 val DismissedStandaloneUpdateKey = stringPreferencesKey("dismissedStandaloneUpdate")
 val DismissedKmpUpdateKey = stringPreferencesKey("dismissedKmpUpdate")
 val UpdateNotificationsEnabledKey = booleanPreferencesKey("updateNotifications")
+/** True once the artist onboarding (Spotify-style taste setup) has been finished. */
+val ArtistOnboardingCompletedKey = booleanPreferencesKey("artistOnboardingCompleted")
 
 val AudioQualityKey = stringPreferencesKey("audioQuality")
 

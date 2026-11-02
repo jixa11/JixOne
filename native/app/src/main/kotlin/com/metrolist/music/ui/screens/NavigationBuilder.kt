@@ -32,6 +32,7 @@ import com.metrolist.music.ui.screens.artist.ArtistSongsScreen
 import com.metrolist.music.ui.screens.equalizer.EqScreen
 import com.metrolist.music.ui.screens.equalizer.wizard.WizardScreen
 import com.metrolist.music.ui.screens.library.LibraryScreen
+import com.metrolist.music.ui.screens.onboarding.ArtistOnboardingScreen
 import com.metrolist.music.ui.screens.playlist.AutoPlaylistScreen
 import com.metrolist.music.ui.screens.playlist.CachePlaylistScreen
 import com.metrolist.music.ui.screens.playlist.LocalPlaylistScreen
@@ -107,6 +108,16 @@ fun NavGraphBuilder.navigationBuilder(
         route = "listen_together_from_topbar",
     ) {
         ListenTogetherScreen(navController, showTopBar = true)
+    }
+
+    composable("onboarding") {
+        ArtistOnboardingScreen(
+            onFinished = {
+                navController.navigate("home") {
+                    popUpTo("onboarding") { inclusive = true }
+                }
+            },
+        )
     }
 
     composable("history") {

@@ -2348,7 +2348,7 @@ fun HomeScreen(
                                                 .only(WindowInsetsSides.Horizontal)
                                                 .asPaddingValues(),
                                     ) {
-                                        items(recommendation.items.distinctBy { it.id }, key = { "from_your_${it.id}" }) { item ->
+                                        items(recommendation.items.distinctBy { it.id }, key = { "from_your_${section.index}_${it.id}" }) { item ->
                                             ytGridItem(item)
                                         }
                                     }

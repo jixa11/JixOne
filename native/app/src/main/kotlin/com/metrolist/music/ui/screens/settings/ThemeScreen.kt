@@ -92,39 +92,25 @@ data class ThemePalette(
     val seedColor: Color
 )
 
+//
+// The v5 line-up: the same curated 13 palettes, in the same order, that
+// JixOne 5.0.x shipped — no plain stock-color tail. YouTube red closes the
+// list and is the app default (DefaultPaletteSeed).
+//
 val PaletteColors = listOf(
     ThemePalette(R.string.palette_dynamic, Color.Transparent), // Sentinel for System/Dynamic colors
-    ThemePalette(R.string.palette_jixone_derafsh, Color(0xFF9A5BE0)), // JixOne default: Derafsh violet
-    ThemePalette(R.string.palette_jixone_tile, Color(0xFF33C5D6)), // JixOne: Isfahan tile turquoise
     ThemePalette(R.string.palette_jixone_carpet, Color(0xFFD9A441)), // JixOne: Persian carpet gold
+    ThemePalette(R.string.palette_jixone_tile, Color(0xFF33C5D6)), // JixOne: Isfahan tile turquoise
+    ThemePalette(R.string.palette_jixone_derafsh, Color(0xFF9A5BE0)), // JixOne: Derafsh Kaviani violet
     ThemePalette(R.string.palette_jixone_cyrus, Color(0xFF2A5D9F)), // JixOne: Cyrus blue
     ThemePalette(R.string.palette_neon_crimson, Color(0xFFFF2D55)), // JixOne web: Neon Crimson
     ThemePalette(R.string.palette_neo_tokyo, Color(0xFF22D3EE)), // JixOne web: Neo Tokyo
     ThemePalette(R.string.palette_synthwave, Color(0xFFFF2FA0)), // JixOne web: Synthwave
     ThemePalette(R.string.palette_classic_spotify, Color(0xFF1DB954)), // JixOne web: Classic Spotify
-    ThemePalette(R.string.palette_dubai_sunset, Color(0xFFFF6B35)), // JixOne web: Dubai Sunset
-    ThemePalette(R.string.palette_youtube, Color(0xFFFF0033)), // JixOne web: YouTube
     ThemePalette(R.string.palette_pure_oled, Color(0xFFE4E4E7)), // JixOne web: Pure OLED (neutral)
+    ThemePalette(R.string.palette_dubai_sunset, Color(0xFFFF6B35)), // JixOne web: Dubai Sunset
     ThemePalette(R.string.palette_youtube_light, Color(0xFFFF5E3A)), // JixOne web: YouTube Light
-    ThemePalette(R.string.palette_crimson, Color(0xFFEC5464)), // Slightly shifted from DefaultThemeColor (0xFF5F5BF9) to avoid conflict
-    ThemePalette(R.string.palette_rose, Color(0xFFD81B60)),
-    ThemePalette(R.string.palette_purple, Color(0xFF8E24AA)),
-    ThemePalette(R.string.palette_deep_purple, Color(0xFF5E35B1)),
-    ThemePalette(R.string.palette_indigo, Color(0xFF3949AB)),
-    ThemePalette(R.string.palette_blue, Color(0xFF1E88E5)),
-    ThemePalette(R.string.palette_sky_blue, Color(0xFF039BE5)),
-    ThemePalette(R.string.palette_cyan, Color(0xFF00ACC1)),
-    ThemePalette(R.string.palette_teal, Color(0xFF00897B)),
-    ThemePalette(R.string.palette_green, Color(0xFF43A047)),
-    ThemePalette(R.string.palette_light_green, Color(0xFF7CB342)),
-    ThemePalette(R.string.palette_lime, Color(0xFFC0CA33)),
-    ThemePalette(R.string.palette_yellow, Color(0xFFFDD835)),
-    ThemePalette(R.string.palette_amber, Color(0xFFFFB300)),
-    ThemePalette(R.string.palette_orange, Color(0xFFFB8C00)),
-    ThemePalette(R.string.palette_deep_orange, Color(0xFFF4511E)),
-    ThemePalette(R.string.palette_brown, Color(0xFF6D4C41)),
-    ThemePalette(R.string.palette_grey, Color(0xFF757575)),
-    ThemePalette(R.string.palette_blue_grey, Color(0xFF546E7A)),
+    ThemePalette(R.string.palette_youtube, Color(0xFFFF0033)), // JixOne web: YouTube — the app default
 )
 
 @OptIn(ExperimentalMaterial3Api::class)

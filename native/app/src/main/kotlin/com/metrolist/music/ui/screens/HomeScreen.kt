@@ -183,6 +183,20 @@ sealed class HomeSection(
 ) {
     data object SpeedDial : HomeSection("speed_dial", 100)
 
+    // JixOne onboarding personalization — the user's picked artists always
+    // lead the Explore page, above every other section.
+
+    /** The artists picked in the first-run onboarding, in selection order. */
+    data object YourArtists : HomeSection("your_artists", 120)
+
+    /** One content shelf per picked artist. */
+    data class FromYourArtist(
+        val index: Int,
+    ) : HomeSection("from_your_artist_$index", 115 - index)
+
+    /** "Fans might also like" artists gathered from the picked artists' pages. */
+    data object SimilarArtists : HomeSection("similar_artists", 108)
+
     data object QuickPicks : HomeSection("quick_picks", 90)
 
     data object DailyDiscover : HomeSection("daily_discover", 80)
@@ -672,6 +686,9 @@ fun HomeScreen(
     val explorePage by viewModel.explorePage.collectAsStateWithLifecycle()
     val dailyDiscover by viewModel.dailyDiscover.collectAsStateWithLifecycle()
     val communityPlaylists by viewModel.communityPlaylists.collectAsStateWithLifecycle()
+    val onboardingArtists by viewModel.onboardingArtists.collectAsStateWithLifecycle()
+    val onboardingRecommendations by viewModel.onboardingRecommendations.collectAsStateWithLifecycle()
+    val onboardingSimilarArtists by viewModel.onboardingSimilarArtists.collectAsStateWithLifecycle()
 
     val allLocalItems by viewModel.allLocalItems.collectAsStateWithLifecycle()
     val allYtItems by viewModel.allYtItems.collectAsStateWithLifecycle()
@@ -1041,6 +1058,9 @@ fun HomeScreen(
             similarRecommendations,
             homePage?.sections,
             explorePage?.moodAndGenres,
+            onboardingArtists,
+            onboardingRecommendations,
+            onboardingSimilarArtists,
         ) {
             val list = mutableListOf<HomeSection>()
             val chipActive = selectedChip != null
@@ -1052,6 +1072,15 @@ fun HomeScreen(
             if (!chipActive && keepListening?.isNotEmpty() == true) list.add(HomeSection.KeepListening)
             if (!chipActive && accountPlaylists?.isNotEmpty() == true) list.add(HomeSection.AccountPlaylists)
             if (!chipActive && forgottenFavorites?.isNotEmpty() == true) list.add(HomeSection.ForgottenFavorites)
+
+            // The onboarding picks always lead Explore, whatever else loaded.
+            if (!chipActive && !onboardingArtists.isNullOrEmpty()) list.add(HomeSection.YourArtists)
+            if (!chipActive) {
+                onboardingRecommendations?.indices?.forEach { i ->
+                    list.add(HomeSection.FromYourArtist(i))
+                }
+            }
+            if (!chipActive && !onboardingSimilarArtists.isNullOrEmpty()) list.add(HomeSection.SimilarArtists)
 
             if (!chipActive) {
                 similarRecommendations?.indices?.forEach { i ->
@@ -1076,6 +1105,14 @@ fun HomeScreen(
                     // All "main" sections start closer together
                     val base =
                         when (section) {
+                            // The user's onboarding picks outrank everything,
+                            // even in the shuffled layout: [950, 1050] always
+                            // sits above the top tier's [300, 900].
+                            HomeSection.YourArtists,
+                            is HomeSection.FromYourArtist,
+                            HomeSection.SimilarArtists,
+                            -> 1000
+
                             HomeSection.SpeedDial,
                             HomeSection.QuickPicks,
                             HomeSection.DailyDiscover,
@@ -1096,6 +1133,12 @@ fun HomeScreen(
 
                     val modifier =
                         when (section) {
+                            // Picks tier: tiny variance only — stays on top.
+                            HomeSection.YourArtists,
+                            is HomeSection.FromYourArtist,
+                            HomeSection.SimilarArtists,
+                            -> sectionRandom.nextInt(-50, 50)
+
                             // Top tier: High variance to allow shuffling among themselves
                             // Range: [500-200, 500+400] = [300, 900]
                             HomeSection.SpeedDial,
@@ -1120,6 +1163,8 @@ fun HomeScreen(
             } else {
                 val defaultOrder =
                     mapOf(
+                        HomeSection.YourArtists to 120,
+                        HomeSection.SimilarArtists to 108,
                         HomeSection.SpeedDial to 100,
                         HomeSection.QuickPicks to 90,
                         HomeSection.FromTheCommunity to 80,
@@ -1132,6 +1177,7 @@ fun HomeScreen(
 
                 list.sortedByDescending { section ->
                     when (section) {
+                        is HomeSection.FromYourArtist -> 115 - section.index
                         is HomeSection.SimilarRecommendation -> 30 - section.index
                         is HomeSection.HomePageSection -> 20 - section.index
                         else -> defaultOrder[section] ?: 0
@@ -2230,6 +2276,104 @@ fun HomeScreen(
                                                             },
                                                         ),
                                             )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        is HomeSection.YourArtists -> {
+                            val artists = onboardingArtists
+                            if (!artists.isNullOrEmpty()) {
+                                item(key = "your_artists_title") {
+                                    NavigationTitle(
+                                        title = stringResource(R.string.your_artists),
+                                        label = stringResource(R.string.from_your_picks),
+                                    )
+                                }
+                                item(key = "your_artists_list") {
+                                    LazyRow(
+                                        contentPadding =
+                                            WindowInsets.systemBars
+                                                .only(WindowInsetsSides.Horizontal)
+                                                .asPaddingValues(),
+                                    ) {
+                                        items(artists, key = { "your_artist_${it.id}" }) { artist ->
+                                            ytGridItem(
+                                                ArtistItem(
+                                                    id = artist.id,
+                                                    title = artist.title,
+                                                    thumbnail = artist.thumbnailUrl,
+                                                    shuffleEndpoint = null,
+                                                    radioEndpoint = null,
+                                                ),
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        is HomeSection.FromYourArtist -> {
+                            val recommendation = onboardingRecommendations?.getOrNull(section.index)
+                            recommendation?.let {
+                                item(key = "from_your_artist_title_${section.index}") {
+                                    NavigationTitle(
+                                        label = stringResource(R.string.from_your_picks),
+                                        title = recommendation.title.title,
+                                        thumbnail =
+                                            recommendation.title.thumbnailUrl?.let { thumbnailUrl ->
+                                                {
+                                                    AsyncImage(
+                                                        model = thumbnailUrl,
+                                                        contentDescription = null,
+                                                        modifier =
+                                                            Modifier
+                                                                .size(ListThumbnailSize)
+                                                                .clip(CircleShape),
+                                                    )
+                                                }
+                                            },
+                                        onClick = {
+                                            if (recommendation.title is Artist) {
+                                                navController.navigate("artist/${recommendation.title.id}")
+                                            }
+                                        },
+                                    )
+                                }
+                                item(key = "from_your_artist_list_${section.index}") {
+                                    LazyRow(
+                                        contentPadding =
+                                            WindowInsets.systemBars
+                                                .only(WindowInsetsSides.Horizontal)
+                                                .asPaddingValues(),
+                                    ) {
+                                        items(recommendation.items.distinctBy { it.id }, key = { "from_your_${it.id}" }) { item ->
+                                            ytGridItem(item)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        is HomeSection.SimilarArtists -> {
+                            val similar = onboardingSimilarArtists
+                            if (!similar.isNullOrEmpty()) {
+                                item(key = "similar_artists_title") {
+                                    NavigationTitle(
+                                        title = stringResource(R.string.similar_to_your_picks),
+                                        label = stringResource(R.string.from_your_picks),
+                                    )
+                                }
+                                item(key = "similar_artists_list") {
+                                    LazyRow(
+                                        contentPadding =
+                                            WindowInsets.systemBars
+                                                .only(WindowInsetsSides.Horizontal)
+                                                .asPaddingValues(),
+                                    ) {
+                                        items(similar, key = { "similar_artist_${it.id}" }) { artist ->
+                                            ytGridItem(artist)
                                         }
                                     }
                                 }

@@ -222,6 +222,9 @@
     <string name="onboarding_settings_title">انتخاب هنرمندان مورد علاقه</string>
     <string name="onboarding_subtitle">چند هنرمندی که دوست داری انتخاب کن تا کتاب‌خانه بر اساس آن‌ها تنظیم شود. برای پیدا کردن هرکس جستجو کن؛ هر تعداد که خواستی انتخاب کن.</string>
     <string name="onboarding_title">به جیکس‌وان خوش آمدید</string>
+    <string name="your_artists">آرتیست‌های تو</string>
+    <string name="from_your_picks">از انتخاب‌های تو</string>
+    <string name="similar_to_your_picks">شبیه انتخاب‌های تو</string>
     <string name="not_now">فعلاً نه</string>
     <string name="tap_to_play">برای باز کردن جیکس‌وان بزنید</string>
 </resources>

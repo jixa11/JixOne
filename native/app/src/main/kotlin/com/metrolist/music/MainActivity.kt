@@ -57,6 +57,8 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AlertDialogDefaults
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -1117,6 +1119,7 @@ class MainActivity : FragmentActivity() {
                     }
 
                 var showAccountDialog by remember { mutableStateOf(false) }
+                var profileMenuExpanded by remember { mutableStateOf(false) }
 
                 val baseBg = if (pureBlack) Color.Black else MaterialTheme.colorScheme.surfaceContainer
                 val artistNameAliases by ArtistNameAliases.aliases.collectAsStateWithLifecycle()
@@ -1162,59 +1165,106 @@ class MainActivity : FragmentActivity() {
                                             )
                                         },
                                         actions = {
-                                            // JixOne top bar: the four utility
-                                            // pillars — Listen Together, Equalizer,
-                                            // Integrations, Settings — plus the
-                                            // account chip. History and stats live
-                                            // one tap away in Library quick cards.
-                                            if (listenTogetherInTopBar) {
-                                                IconButton(onClick = { navController.navigate("listen_together_from_topbar") }) {
-                                                    Icon(
-                                                        painter = painterResource(R.drawable.jix_users),
-                                                        contentDescription = stringResource(R.string.together),
-                                                    )
+                                            // JixOne top bar: ONE profile icon — every
+                                            // top-bar action is consolidated into its
+                                            // dropdown menu (Account, Settings, Listen
+                                            // Together, Equalizer, Integrations).
+                                            Box {
+                                                IconButton(onClick = { profileMenuExpanded = true }) {
+                                                    BadgedBox(badge = {
+                                                        if (latestVersionName != BuildConfig.BASE_VERSION_NAME) {
+                                                            Badge()
+                                                        }
+                                                    }) {
+                                                        if (accountImageUrl != null) {
+                                                            AsyncImage(
+                                                                model = accountImageUrl,
+                                                                contentDescription = stringResource(R.string.account),
+                                                                modifier =
+                                                                    Modifier
+                                                                        .size(24.dp)
+                                                                        .clip(CircleShape),
+                                                            )
+                                                        } else {
+                                                            Icon(
+                                                                painter = painterResource(R.drawable.account),
+                                                                contentDescription = stringResource(R.string.account),
+                                                                modifier = Modifier.size(24.dp),
+                                                            )
+                                                        }
+                                                    }
                                                 }
-                                            }
-                                            IconButton(onClick = { navController.navigate("equalizer") }) {
-                                                Icon(
-                                                    painter = painterResource(R.drawable.equalizer),
-                                                    contentDescription = stringResource(R.string.equalizer),
-                                                )
-                                            }
-                                            IconButton(onClick = { navController.navigate("settings/integrations") }) {
-                                                Icon(
-                                                    painter = painterResource(R.drawable.integration),
-                                                    contentDescription = stringResource(R.string.integrations),
-                                                )
-                                            }
-                                            IconButton(onClick = { navController.navigate("settings") }) {
-                                                Icon(
-                                                    painter = painterResource(R.drawable.jix_settings),
-                                                    contentDescription = stringResource(R.string.settings),
-                                                )
-                                            }
-                                            IconButton(onClick = { showAccountDialog = true }) {
-                                                BadgedBox(badge = {
-                                                    if (latestVersionName != BuildConfig.BASE_VERSION_NAME) {
-                                                        Badge()
-                                                    }
-                                                }) {
-                                                    if (accountImageUrl != null) {
-                                                        AsyncImage(
-                                                            model = accountImageUrl,
-                                                            contentDescription = stringResource(R.string.account),
-                                                            modifier =
-                                                                Modifier
-                                                                    .size(24.dp)
-                                                                    .clip(CircleShape),
+                                                DropdownMenu(
+                                                    expanded = profileMenuExpanded,
+                                                    onDismissRequest = { profileMenuExpanded = false },
+                                                ) {
+                                                    DropdownMenuItem(
+                                                        text = { Text(stringResource(R.string.account)) },
+                                                        leadingIcon = {
+                                                            Icon(
+                                                                painter = painterResource(R.drawable.account),
+                                                                contentDescription = null,
+                                                            )
+                                                        },
+                                                        onClick = {
+                                                            profileMenuExpanded = false
+                                                            showAccountDialog = true
+                                                        },
+                                                    )
+                                                    DropdownMenuItem(
+                                                        text = { Text(stringResource(R.string.settings)) },
+                                                        leadingIcon = {
+                                                            Icon(
+                                                                painter = painterResource(R.drawable.jix_settings),
+                                                                contentDescription = null,
+                                                            )
+                                                        },
+                                                        onClick = {
+                                                            profileMenuExpanded = false
+                                                            navController.navigate("settings")
+                                                        },
+                                                    )
+                                                    if (listenTogetherInTopBar) {
+                                                        DropdownMenuItem(
+                                                            text = { Text(stringResource(R.string.together)) },
+                                                            leadingIcon = {
+                                                                Icon(
+                                                                    painter = painterResource(R.drawable.jix_users),
+                                                                    contentDescription = null,
+                                                                )
+                                                            },
+                                                            onClick = {
+                                                                profileMenuExpanded = false
+                                                                navController.navigate("listen_together_from_topbar")
+                                                            },
                                                         )
-                                                    } else {
-                                                        Icon(
-                                                            painter = painterResource(R.drawable.account),
-                                                            contentDescription = stringResource(R.string.account),
-                                                            modifier = Modifier.size(24.dp),
-                                                        )
                                                     }
+                                                    DropdownMenuItem(
+                                                        text = { Text(stringResource(R.string.equalizer)) },
+                                                        leadingIcon = {
+                                                            Icon(
+                                                                painter = painterResource(R.drawable.equalizer),
+                                                                contentDescription = null,
+                                                            )
+                                                        },
+                                                        onClick = {
+                                                            profileMenuExpanded = false
+                                                            navController.navigate("equalizer")
+                                                        },
+                                                    )
+                                                    DropdownMenuItem(
+                                                        text = { Text(stringResource(R.string.integrations)) },
+                                                        leadingIcon = {
+                                                            Icon(
+                                                                painter = painterResource(R.drawable.integration),
+                                                                contentDescription = null,
+                                                            )
+                                                        },
+                                                        onClick = {
+                                                            profileMenuExpanded = false
+                                                            navController.navigate("settings/integrations")
+                                                        },
+                                                    )
                                                 }
                                             }
                                         },

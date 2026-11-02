@@ -1,3 +1,15 @@
+## 🎯 JixOne 5.0.2 (native) — n5.0.2
+
+سه خواسته‌ی شما — بدون هیچ تغییر اضافه. صفحه‌ی ورودی (آنبوردینگ) دست‌نخورده ماند.
+
+- **اکسپلور شخصی‌شده:** صفحه‌ی اکسپلور حالا از آرتیست‌های انتخابیِ صفحه‌ی ورودی ساخته می‌شود — بالای صفحه ردیف «آرتیست‌های تو» (به ترتیب انتخاب شما)، بعد قفسه‌ی محتوای هر آرتیست («از انتخاب‌های تو») و در ادامه «شبیه انتخاب‌های تو» از بخش «Fans might also like» صفحه‌ی همان آرتیست‌ها. انتخاب‌های شما همیشه بالاتر از بقیه‌ی بخش‌های صفحه می‌مانند (حتی وقتی ترتیب تصادفی فعال است). اگر چیزی انتخاب نکرده باشید، اکسپلور مثل قبل می‌ماند.
+- **بخش تم مثل نسخه ۵:** همان ۱۳ پالت انتخابی نسخه ۵ با همان ترتیب دقیق — بدون دنباله‌ی رنگ‌های ساده. تم پیش‌فرض: **یوتیوب** (قرمز).
+- **تجمیع آیکون‌های بالا:** آیکون‌های نوار بالا حذف شدند؛ همه (حساب، تنظیمات، گوش دادن همراه، اکولایزر، یکپارچه‌سازی) در منوی بازشوی آیکون پروفایل جمع شدند.
+
+**English:** exactly the three requested changes, onboarding untouched — Explore is now built from the onboarding picks (picked-artists row first, then one content shelf per pick, then a "fans might also like" row; always ranked above the other sections), the theme section carries v5.0.x's curated 13-palette line-up with YouTube red as the default, and every top-bar action is consolidated into the profile icon's dropdown menu.
+
+---
+
 ## 🌟 JixOne 4.0.2 (native) — n4.0.2
 
 آخرین پاسِ برندینگ + راه‌اندازیِ اولین اجرا به سبک اسپاتیفای.

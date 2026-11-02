@@ -114,6 +114,13 @@ class HomeViewModel @Inject constructor(
     val homePage = MutableStateFlow<HomePage?>(null)
     val explorePage = MutableStateFlow<ExplorePage?>(null)
     val communityPlaylists = MutableStateFlow<List<CommunityPlaylistItem>?>(null)
+
+    // JixOne: Explore personalization from the onboarding picks (saved as
+    // bookmarked artists). Null = not loaded yet; empty = no picks made, so
+    // the personalized sections simply stay hidden.
+    val onboardingArtists = MutableStateFlow<List<com.metrolist.music.db.entities.Artist>?>(null)
+    val onboardingRecommendations = MutableStateFlow<List<SimilarRecommendation>?>(null)
+    val onboardingSimilarArtists = MutableStateFlow<List<ArtistItem>?>(null)
     val selectedChip = MutableStateFlow<HomePage.Chip?>(null)
     private val previousHomePage = MutableStateFlow<HomePage?>(null)
 
@@ -252,7 +259,7 @@ class HomeViewModel @Inject constructor(
     val accountName = MutableStateFlow("Guest")
     val accountImageUrl = MutableStateFlow<String?>(null)
 
-	val showWrappedCard: StateFlow<Boolean> = context.dataStore.data.map { prefs ->
+        val showWrappedCard: StateFlow<Boolean> = context.dataStore.data.map { prefs ->
         val showWrappedPref = prefs[ShowWrappedCardKey] ?: false
         val seen = prefs[WrappedSeenKey] ?: false
         val isBeforeDate = LocalDate.now().isBefore(LocalDate.of(2026, 2, 1))
@@ -438,6 +445,61 @@ class HomeViewModel @Inject constructor(
         communityPlaylists.value = playlists.shuffled()
     }
 
+    /**
+     * JixOne: personalize Explore from the artists picked in the first-run
+     * onboarding (persisted as bookmarked artists by OnboardingViewModel).
+     * The picks always win the top of the page:
+     *  1. a row of the picked artists themselves (selection order),
+     *  2. one content shelf per picked artist — songs/videos off their page,
+     *  3. a row of "Fans might also like" artists gathered from those pages.
+     */
+    private suspend fun getOnboardingRecommendations(
+        hideExplicit: Boolean,
+        hideVideoSongs: Boolean,
+    ) {
+        val picked = database.artistsBookmarkedByCreateDateAsc().first()
+            .filter { it.artist.isYouTubeArtist }
+        if (picked.isEmpty()) {
+            onboardingArtists.value = emptyList()
+            return
+        }
+        onboardingArtists.value = picked
+
+        val pickedIds = picked.map { it.id }.toSet()
+        val similar = LinkedHashMap<String, ArtistItem>()
+
+        val recommendations = picked.take(6).mapNotNull { artist ->
+            val items = mutableListOf<YTItem>()
+            try {
+                YouTube.artist(artist.id).onSuccess { page ->
+                    page.sections.takeLast(3).forEach { section -> items += section.items }
+                    page.sections
+                        .firstNotNullOfOrNull { section ->
+                            section.items.filterIsInstance<ArtistItem>().takeIf { it.isNotEmpty() }
+                        }
+                        ?.forEach { item ->
+                            if (item.id !in pickedIds) similar.putIfAbsent(item.id, item)
+                        }
+                }
+            } catch (_: Exception) {
+                // One artist's failure must not lose the rest.
+            }
+            SimilarRecommendation(
+                title = artist,
+                items = items
+                    .distinctBy { it.id }
+                    .filterExplicit(hideExplicit)
+                    .filterVideoSongs(hideVideoSongs)
+                    .shuffled()
+                    .take(12)
+                    .ifEmpty { return@mapNotNull null },
+            )
+        }
+
+        onboardingRecommendations.value = recommendations
+        onboardingSimilarArtists.value = similar.values.toList().take(20)
+    }
+
     private suspend fun load() {
         isLoading.value = true
         val hideExplicit = context.dataStore.get(HideExplicitKey, false)
@@ -494,6 +556,8 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch(Dispatchers.IO) { getDailyDiscover() }
 
         viewModelScope.launch(Dispatchers.IO) { getCommunityPlaylists() }
+
+        viewModelScope.launch(Dispatchers.IO) { getOnboardingRecommendations(hideExplicit, hideVideoSongs) }
 
         viewModelScope.launch(Dispatchers.IO) {
             YouTube.explore().onSuccess { page ->

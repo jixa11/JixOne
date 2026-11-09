@@ -6,21 +6,29 @@
 package com.metrolist.music.ui.component
 
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -37,7 +45,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -151,11 +159,15 @@ fun AppNavigationRail(
 }
 
 /**
- * JixOne bottom navigation — a faithful port of the web app's MobileNav
- * (src/components/Sidebar.tsx): a full-width glass bar with a hairline top
- * border, evenly spaced items, the Lucide icon set, and the web's active
- * treatment: a small ACCENT PILL above the icon + bold accent label.
- * Nothing like a stock Material 3 pill-indicator bar.
+ * JixOne "Aurora Island" bottom navigation (5.1 redesign).
+ *
+ * A detached floating pill that hovers above the gesture area over the app's
+ * ambient mesh background — the signature pattern of the newest music apps
+ * (Material 3 Expressive / iOS-style floating tab docks). The active item
+ * morphs into a gradient (primary -> tertiary) pill that grows to reveal its
+ * label; inactive items are quiet monochrome icons. Press morphs are driven
+ * by animateContentSize springs, taps keep the upstream long-press behaviors
+ * (search = song recognition, home = account switcher).
  */
 @Composable
 fun AppNavigationBar(
@@ -171,26 +183,35 @@ fun AppNavigationBar(
     val haptics = LocalHapticFeedback.current
     val viewConfiguration = LocalViewConfiguration.current
 
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        // web .glass — backdrop blur isn't available to a plain Surface, so
-        // the bar sits at 92% surfaceContainer like the web's translucency
-        color = if (pureBlack) Color.Black else MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.92f),
-        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-        shadowElevation = 0.dp,
+    val barHeight = if (slimNav) 58.dp else 66.dp
+    val pillHeight = if (slimNav) 32.dp else 38.dp
+
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Bottom)),
+        contentAlignment = Alignment.BottomCenter,
     ) {
-        Column {
-            // hairline top border, like the web nav's border-t border-line
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(1.dp)
-                    .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
-            )
+        Surface(
+            modifier = Modifier
+                .padding(horizontal = 14.dp, vertical = 6.dp)
+                .fillMaxWidth()
+                .height(barHeight),
+            shape = RoundedCornerShape(barHeight / 2),
+            color = if (pureBlack) Color(0xFF111116).copy(alpha = 0.96f)
+            else MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.93f),
+            contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            border = BorderStroke(
+                width = 1.dp,
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.22f),
+            ),
+            shadowElevation = 18.dp,
+            tonalElevation = 0.dp,
+        ) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 6.dp),
+                    .padding(horizontal = 6.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 navigationItems.forEach { screen ->
@@ -203,17 +224,12 @@ fun AppNavigationBar(
                     }
 
                     val targetContentColor =
-                        if (isSelected) MaterialTheme.colorScheme.primary
+                        if (isSelected) Color.White
                         else MaterialTheme.colorScheme.onSurfaceVariant
                     val contentColor by animateColorAsState(
                         targetValue = targetContentColor,
-                        animationSpec = tween(durationMillis = 150),
-                        label = "navItemColor",
-                    )
-                    val pillAlpha by animateFloatAsState(
-                        targetValue = if (isSelected) 1f else 0f,
                         animationSpec = tween(durationMillis = 200),
-                        label = "navPillAlpha",
+                        label = "navItemColor",
                     )
 
                     val isSearchItem = screen == Screens.Search && onSearchLongClick != null
@@ -248,57 +264,74 @@ fun AppNavigationBar(
                         }
                     }
 
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
+                    Box(
+                        contentAlignment = Alignment.Center,
                         modifier = Modifier
                             .weight(1f)
-                            .clickable(
-                                interactionSource = interactionSource,
-                                indication = null,
-                            ) {
-                                // Special items (search long-press / home
-                                // long-hold) are driven by the InteractionSource
-                                // below; their normal click fires on Release.
-                                if (!isSearchItem && !isHomeHoldItem) {
-                                    onItemClick(screen, currentIsSelected)
+                            .fillMaxHeight(),
+                    ) {
+                        // The morphing indicator pill: gradient-filled and
+                        // revealing the label when active; a bare icon when not.
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier
+                                .animateContentSize(
+                                    animationSpec = spring(
+                                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                                        stiffness = Spring.StiffnessMediumLow,
+                                    ),
+                                )
+                                .height(pillHeight)
+                                .clip(RoundedCornerShape(pillHeight / 2))
+                                .background(
+                                    if (isSelected) {
+                                        Brush.linearGradient(
+                                            listOf(
+                                                MaterialTheme.colorScheme.primary,
+                                                MaterialTheme.colorScheme.tertiary,
+                                            ),
+                                        )
+                                    } else {
+                                        Brush.linearGradient(
+                                            listOf(Color.Transparent, Color.Transparent),
+                                        )
+                                    },
+                                )
+                                .clickable(
+                                    interactionSource = interactionSource,
+                                    indication = null,
+                                ) {
+                                    // Special items (search long-press / home
+                                    // long-hold) are driven by the InteractionSource
+                                    // above; their normal click fires on Release.
+                                    if (!isSearchItem && !isHomeHoldItem) {
+                                        onItemClick(screen, currentIsSelected)
+                                    }
+                                }
+                                .padding(horizontal = 14.dp),
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    painter = painterResource(id = iconRes),
+                                    contentDescription = stringResource(screen.titleId),
+                                    tint = contentColor,
+                                    modifier = Modifier.size(if (slimNav) 20.dp else 22.dp),
+                                )
+                                if (isSelected) {
+                                    Spacer(Modifier.width(7.dp))
+                                    Text(
+                                        text = stringResource(screen.titleId),
+                                        fontSize = 12.5.sp,
+                                        lineHeight = 14.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color.White,
+                                        textAlign = TextAlign.Center,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                    )
                                 }
                             }
-                            .padding(vertical = 6.dp),
-                    ) {
-                        // the web's active indicator: accent pill ABOVE the icon
-                        Box(
-                            modifier = Modifier
-                                .height(3.dp)
-                                .width(24.dp)
-                                .clip(RoundedCornerShape(2.dp))
-                                .shadow(
-                                    elevation = 6.dp,
-                                    shape = RoundedCornerShape(2.dp),
-                                    ambientColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
-                                    spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
-                                )
-                                .background(
-                                    MaterialTheme.colorScheme.primary.copy(alpha = pillAlpha)
-                                ),
-                        )
-                        Spacer(Modifier.height(6.dp))
-                        Icon(
-                            painter = painterResource(id = iconRes),
-                            contentDescription = stringResource(screen.titleId),
-                            tint = contentColor,
-                            modifier = Modifier.size(22.dp),
-                        )
-                        Spacer(Modifier.height(3.dp))
-                        Text(
-                            text = stringResource(screen.titleId),
-                            fontSize = 10.5.sp,
-                            lineHeight = 13.sp,
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                            color = contentColor,
-                            textAlign = TextAlign.Center,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
+                        }
                     }
                 }
             }

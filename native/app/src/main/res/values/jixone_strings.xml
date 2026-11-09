@@ -720,6 +720,7 @@
     <string name="theme_artwork_background_desc">Show the Persian artwork behind the app for the four JixOne themes</string>
     <!-- Theme Palette Names -->
     <string name="palette_dynamic">Dynamic</string>
+    <string name="palette_aurora">Aurora</string>
     <string name="palette_jixone_tile">Isfahan Tile</string>
     <string name="palette_jixone_carpet">Persian Carpet</string>
     <string name="palette_jixone_derafsh">Derafsh Kaviani</string>

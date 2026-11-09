@@ -73,14 +73,18 @@ fun <E> ChipsRow(
         Spacer(Modifier.width(12.dp))
 
         chips.forEach { (value, label) ->
+            val isSelectedChip = currentValue == value
             FilterChip(
                 label = { Text(label) },
-                selected = currentValue == value,
+                selected = isSelectedChip,
                 colors = FilterChipDefaults.filterChipColors(
                     containerColor = containerColor,
+                    // Aurora selected state: solid primary pill with white text
+                    selectedContainerColor = MaterialTheme.colorScheme.primary,
+                    selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
                 ),
                 onClick = { onValueUpdate(value) },
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(50),
                 border = null
             )
 
@@ -141,7 +145,7 @@ fun <Int> ChoiceChipsRow(
                         modifier = Modifier.graphicsLayer(rotationZ = rotationAnimation),
                     )
                 },
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(50),
                 border = null,
                 colors = AssistChipDefaults.assistChipColors(
                     containerColor = containerColor,
@@ -196,9 +200,11 @@ fun <Int> ChoiceChipsRow(
                         selected = currentValue == value,
                         colors = FilterChipDefaults.filterChipColors(
                             containerColor = containerColor,
+                            selectedContainerColor = MaterialTheme.colorScheme.primary,
+                            selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
                         ),
                         onClick = { onValueUpdate(value) },
-                        shape = RoundedCornerShape(16.dp),
+                        shape = RoundedCornerShape(50),
                         border = null
                     )
                 }

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- JixOne 5.1 launcher backdrop: the Aurora identity — deep night violet
+     lifting into the app's electric-violet glow at the bottom edge. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <gradient
+        android:angle="270"
+        android:startColor="#0A0A12"
+        android:centerColor="#140F2E"
+        android:endColor="#31196B"
+        android:type="linear" />
+</shape>

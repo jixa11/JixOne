@@ -10,4 +10,20 @@
         <item name="android:windowDisablePreview">true</item>
         <item name="android:windowAnimationStyle">@null</item>
     </style>
+
+    <!-- JixOne 5.1: the Android 12+ system launch splash carries the Aurora
+         deep-violet tone instead of a cold white flash. The launcher icon is
+         shown by the system automatically. -->
+    <style name="Theme.JixOne" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowContentOverlay">@null</item>
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+        <item name="android:windowMinWidthMinor">100%</item>
+        <item name="android:windowMinWidthMajor">100%</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowBackground">#ffffff</item>
+        <item name="android:enforceNavigationBarContrast">false</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowSplashScreenBackground">#0C0A14</item>
+    </style>
 </resources>

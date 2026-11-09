@@ -93,12 +93,12 @@ data class ThemePalette(
 )
 
 //
-// The v5 line-up: the same curated 13 palettes, in the same order, that
-// JixOne 5.0.x shipped — no plain stock-color tail. YouTube red closes the
-// list and is the app default (DefaultPaletteSeed).
+// The 5.1 line-up: Dynamic first, then the JixOne 5.1 signature "Aurora"
+// (app default), followed by the curated v5 palettes, same order.
 //
 val PaletteColors = listOf(
     ThemePalette(R.string.palette_dynamic, Color.Transparent), // Sentinel for System/Dynamic colors
+    ThemePalette(R.string.palette_aurora, Color(0xFF7C5CFF)), // JixOne 5.1: Aurora — the app default
     ThemePalette(R.string.palette_jixone_carpet, Color(0xFFD9A441)), // JixOne: Persian carpet gold
     ThemePalette(R.string.palette_jixone_tile, Color(0xFF33C5D6)), // JixOne: Isfahan tile turquoise
     ThemePalette(R.string.palette_jixone_derafsh, Color(0xFF9A5BE0)), // JixOne: Derafsh Kaviani violet
@@ -110,7 +110,7 @@ val PaletteColors = listOf(
     ThemePalette(R.string.palette_pure_oled, Color(0xFFE4E4E7)), // JixOne web: Pure OLED (neutral)
     ThemePalette(R.string.palette_dubai_sunset, Color(0xFFFF6B35)), // JixOne web: Dubai Sunset
     ThemePalette(R.string.palette_youtube_light, Color(0xFFFF5E3A)), // JixOne web: YouTube Light
-    ThemePalette(R.string.palette_youtube, Color(0xFFFF0033)), // JixOne web: YouTube — the app default
+    ThemePalette(R.string.palette_youtube, Color(0xFFFF0033)), // JixOne web: YouTube
 )
 
 @OptIn(ExperimentalMaterial3Api::class)

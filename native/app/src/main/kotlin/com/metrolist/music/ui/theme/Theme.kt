@@ -115,12 +115,15 @@ fun JixOneTheme(
         // Use standard Material 3 dynamic color functions for system wallpaper colors
         if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
     } else {
-        // Use materialKolor only when a specific seed color is provided
+        // Use materialKolor only when a specific seed color is provided.
+        // 5.1: Expressive — richer secondary/tertiary chroma so the aurora
+        // gradients (primary -> tertiary) actually glow instead of the muted
+        // wallpaper-like tones of TonalSpot.
         rememberDynamicColorScheme(
             seedColor = themeColor, // themeColor is guaranteed non-default here
             isDark = darkTheme,
             specVersion = ColorSpec.SpecVersion.SPEC_2025,
-            style = PaletteStyle.TonalSpot // Keep existing style
+            style = PaletteStyle.Expressive
         )
     }
 
@@ -196,17 +199,17 @@ fun JixOneTheme(
             val base2Light = lerp(c.surface, Color.White, 0.55f)
             if (darkTheme) {
                 ThemeMesh(
-                    blobTopRight = c.primary.copy(alpha = 0.14f),
-                    blobBottomLeft = c.tertiary.copy(alpha = 0.11f),
-                    blobBottomCenter = c.secondary.copy(alpha = 0.08f),
+                    blobTopRight = c.primary.copy(alpha = 0.22f),
+                    blobBottomLeft = c.tertiary.copy(alpha = 0.17f),
+                    blobBottomCenter = c.secondary.copy(alpha = 0.12f),
                     baseTop = c.surface,
                     baseBottom = base2Dark,
                 )
             } else {
                 ThemeMesh(
-                    blobTopRight = c.primary.copy(alpha = 0.09f),
-                    blobBottomLeft = c.tertiary.copy(alpha = 0.07f),
-                    blobBottomCenter = c.secondary.copy(alpha = 0.05f),
+                    blobTopRight = c.primary.copy(alpha = 0.13f),
+                    blobBottomLeft = c.tertiary.copy(alpha = 0.10f),
+                    blobBottomCenter = c.secondary.copy(alpha = 0.07f),
                     baseTop = c.surface,
                     baseBottom = base2Light,
                 )

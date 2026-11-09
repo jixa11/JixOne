@@ -90,6 +90,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.lerp
@@ -1150,7 +1151,6 @@ fun BottomSheetPlayer(
                             topEnd = 3.dp,
                             bottomEnd = 3.dp,
                         )
-
                     val favShape =
                         RoundedCornerShape(
                             topStart = 3.dp,
@@ -1634,37 +1634,61 @@ fun BottomSheetPlayer(
 
                             Spacer(modifier = Modifier.width(8.dp))
 
-                            FilledIconButton(
-                                onClick = {
-                                    if (isListenTogetherGuest) {
-                                        playerConnection.toggleMute()
-                                        return@FilledIconButton
-                                    }
-                                    if (isCasting) {
-                                        if (castIsPlaying) {
-                                            castHandler?.pause()
-                                        } else {
-                                            castHandler?.play()
-                                        }
-                                    } else if (playbackState == STATE_ENDED) {
-                                        playerConnection.player.seekTo(0, 0)
-                                        playerConnection.player.playWhenReady = true
-                                    } else {
-                                        playerConnection.togglePlayPause()
-                                    }
-                                },
-                                shape = RoundedCornerShape(50),
-                                interactionSource = playPauseInteractionSource,
-                                colors =
-                                    IconButtonDefaults.filledIconButtonColors(
-                                        containerColor = textButtonColor,
-                                        contentColor = iconButtonColor,
-                                    ),
+                            // Aurora play/pause: the 5.1 signature — a vivid
+                            // primary -> tertiary gradient pill with a soft glow,
+                            // replacing the flat white pill. Users who explicitly
+                            // picked PRIMARY/TERTIARY button styles keep solids.
+                            val playBrush =
+                                if (playerButtonsStyle == PlayerButtonsStyle.DEFAULT) {
+                                    Brush.linearGradient(
+                                        listOf(
+                                            MaterialTheme.colorScheme.primary,
+                                            MaterialTheme.colorScheme.tertiary,
+                                        ),
+                                    )
+                                } else {
+                                    Brush.linearGradient(listOf(textButtonColor, textButtonColor))
+                                }
+                            val playContentColor =
+                                if (playerButtonsStyle == PlayerButtonsStyle.DEFAULT) Color.White
+                                else iconButtonColor
+
+                            Box(
+                                contentAlignment = Alignment.Center,
                                 modifier =
                                     Modifier
                                         .height(68.dp)
                                         .weight(playPauseWeight)
-                                        .focusRequester(focusRequester),
+                                        .focusRequester(focusRequester)
+                                        .shadow(
+                                            elevation = 14.dp,
+                                            shape = RoundedCornerShape(50),
+                                            ambientColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.45f),
+                                            spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.65f),
+                                        )
+                                        .clip(RoundedCornerShape(50))
+                                        .background(brush = playBrush)
+                                        .clickable(
+                                            interactionSource = playPauseInteractionSource,
+                                            indication = null,
+                                        ) {
+                                            if (isListenTogetherGuest) {
+                                                playerConnection.toggleMute()
+                                                return@clickable
+                                            }
+                                            if (isCasting) {
+                                                if (castIsPlaying) {
+                                                    castHandler?.pause()
+                                                } else {
+                                                    castHandler?.play()
+                                                }
+                                            } else if (playbackState == STATE_ENDED) {
+                                                playerConnection.player.seekTo(0, 0)
+                                                playerConnection.player.playWhenReady = true
+                                            } else {
+                                                playerConnection.togglePlayPause()
+                                            }
+                                        },
                             ) {
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
@@ -1679,6 +1703,7 @@ fun BottomSheetPlayer(
                                                     if (effectiveIsPlaying) R.drawable.jix_pause else R.drawable.jix_play
                                                 },
                                             ),
+                                        tint = playContentColor,
                                         contentDescription =
                                             if (isListenTogetherGuest) {
                                                 if (isMuted) stringResource(R.string.unmute) else stringResource(R.string.mute)
@@ -1695,6 +1720,7 @@ fun BottomSheetPlayer(
                                             } else {
                                                 if (effectiveIsPlaying) stringResource(R.string.player_pause) else stringResource(R.string.play)
                                             },
+                                        color = playContentColor,
                                         style = MaterialTheme.typography.titleMedium,
                                     )
                                 }

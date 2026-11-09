@@ -18,15 +18,22 @@ val PersianTileSeed = Color(0xFF33C5D6)
 val DerafshKavianiSeed = Color(0xFF9A5BE0)
 val CyrusSeed = Color(0xFF2A5D9F)
 
-/** YouTube red — the app's default palette seed (v5 line-up, user's pick). */
+/** YouTube red — kept as a palette option (v5 line-up heritage). */
 val YouTubeSeed = Color(0xFFFF0033)
 
 /**
- * The JixOne app-default seed: YouTube red. Every "default theme"
- * preference in the app reads this single constant so the default can never
- * drift between screens.
+ * JixOne 5.1 signature "Aurora" — electric violet. The redesign's identity:
+ * deep, glowing, layered; pairs with the gradient accents (primary ->
+ * tertiary) used across the nav island, player controls and headers.
  */
-val DefaultPaletteSeed = YouTubeSeed
+val AuroraSeed = Color(0xFF7C5CFF)
+
+/**
+ * The JixOne app-default seed: Aurora violet (5.1 redesign). Every "default
+ * theme" preference in the app reads this single constant so the default can
+ * never drift between screens.
+ */
+val DefaultPaletteSeed = AuroraSeed
 
 data class PersianArtworkTheme(
     /** seed color the theme picker stores — used as the identity match */

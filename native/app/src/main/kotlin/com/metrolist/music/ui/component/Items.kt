@@ -17,6 +17,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
@@ -262,29 +263,41 @@ inline fun ListItem(
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = if (isActive) {
-            modifier // playing highlight
+            modifier // playing highlight — aurora tint + hairline glow border
                 .height(ListItemHeight)
-                .padding(horizontal = 8.dp)
-                .clip(RoundedCornerShape(8.dp))
+                .padding(horizontal = 10.dp)
+                .clip(RoundedCornerShape(16.dp))
                 .background(
-                    color = // selected active
-                        if (isSelected == true) MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
-                        else MaterialTheme.colorScheme.secondaryContainer
+                    color =
+                        if (isSelected == true) MaterialTheme.colorScheme.primary.copy(alpha = 0.30f)
+                        else MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)
+                )
+                .border(
+                    width = 1.dp,
+                    color = MaterialTheme.colorScheme.primary.copy(
+                        alpha = if (isSelected == true) 0.55f else 0.35f
+                    ),
+                    shape = RoundedCornerShape(16.dp),
                 )
         } else if (isSelected == true) {
             modifier // inactive selected
                 .height(ListItemHeight)
-                .padding(horizontal = 8.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .background(color = MaterialTheme.colorScheme.inversePrimary.copy(alpha = 0.4f))
+                .padding(horizontal = 10.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .background(color = MaterialTheme.colorScheme.primary.copy(alpha = 0.16f))
+                .border(
+                    width = 1.dp,
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.28f),
+                    shape = RoundedCornerShape(16.dp),
+                )
         } else {
             modifier // default
                 .height(ListItemHeight)
-                .padding(horizontal = 8.dp)
+                .padding(horizontal = 10.dp)
         }
     ) {
         Box(
-            modifier = Modifier.padding(6.dp),
+            modifier = Modifier.padding(4.dp),
             contentAlignment = Alignment.Center
         ) {
             thumbnailContent()
@@ -313,12 +326,12 @@ inline fun ListItem(
         Column(
             modifier = Modifier
                 .weight(1f)
-                .padding(horizontal = 6.dp)
+                .padding(horizontal = 8.dp)
         ) {
             Text(
                 text = title,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.SemiBold,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )

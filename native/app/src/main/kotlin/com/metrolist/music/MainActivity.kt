@@ -169,6 +169,7 @@ import com.metrolist.music.constants.PreferredLyricsProvider
 import com.metrolist.music.constants.PreferredLyricsProviderKey
 import com.metrolist.music.constants.PureBlackKey
 import com.metrolist.music.constants.SYSTEM_DEFAULT
+import com.metrolist.music.constants.AuroraThemeMigratedKey
 import com.metrolist.music.constants.SelectedThemeColorKey
 import com.metrolist.music.constants.SimpMusicMigrationDoneKey
 import com.metrolist.music.constants.SlimNavBarHeight
@@ -203,11 +204,13 @@ import com.metrolist.music.ui.screens.navigationBuilder
 import com.metrolist.music.ui.screens.settings.ChangelogScreen
 import com.metrolist.music.ui.screens.settings.DarkMode
 import com.metrolist.music.ui.screens.settings.NavigationTab
+import com.metrolist.music.ui.theme.AuroraSeed
 import com.metrolist.music.ui.theme.ColorSaver
 import com.metrolist.music.ui.theme.DefaultThemeColor
 import com.metrolist.music.ui.theme.LocalThemeArtwork
 import com.metrolist.music.ui.theme.LocalThemeMesh
 import com.metrolist.music.ui.theme.JixOneTheme
+import com.metrolist.music.ui.theme.YouTubeSeed
 import com.metrolist.music.ui.theme.DefaultPaletteSeed
 import com.metrolist.music.ui.theme.extractThemeColor
 import com.metrolist.music.ui.utils.appBarScrollBehavior
@@ -605,7 +608,21 @@ class MainActivity : FragmentActivity() {
                 pureBlackEnabled && useDarkTheme
             }
 
-        val (selectedThemeColorInt) = rememberPreference(SelectedThemeColorKey, defaultValue = DefaultPaletteSeed.toArgb())
+        val (selectedThemeColorInt, onSelectedThemeColorChange) = rememberPreference(SelectedThemeColorKey, defaultValue = DefaultPaletteSeed.toArgb())
+        val (auroraThemeMigrated, onAuroraThemeMigratedChange) =
+            rememberPreference(AuroraThemeMigratedKey, defaultValue = false)
+
+        // One-time 5.1 migration: installs that lived on the old default
+        // (YouTube red) move to the new Aurora identity so the redesign is
+        // what they see after updating. Any other stored palette is kept.
+        LaunchedEffect(auroraThemeMigrated) {
+            if (!auroraThemeMigrated) {
+                if (selectedThemeColorInt == YouTubeSeed.toArgb()) {
+                    onSelectedThemeColorChange(AuroraSeed.toArgb())
+                }
+                onAuroraThemeMigratedChange(true)
+            }
+        }
         val selectedThemeColor = Color(selectedThemeColorInt)
 
         val showChangelog = rememberSaveable { mutableStateOf(false) }

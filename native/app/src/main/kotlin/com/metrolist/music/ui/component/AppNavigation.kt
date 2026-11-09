@@ -185,6 +185,9 @@ fun AppNavigationBar(
 
     val barHeight = if (slimNav) 58.dp else 66.dp
     val pillHeight = if (slimNav) 32.dp else 38.dp
+    // vertical breathing room around the island; slim mode stays within its
+    // 64dp reserved slot (58 + 2*3), regular fits the 80dp slot (66 + 2*6)
+    val barVerticalPadding = if (slimNav) 3.dp else 6.dp
 
     Box(
         modifier = modifier
@@ -194,7 +197,7 @@ fun AppNavigationBar(
     ) {
         Surface(
             modifier = Modifier
-                .padding(horizontal = 14.dp, vertical = 6.dp)
+                .padding(horizontal = 14.dp, vertical = barVerticalPadding)
                 .fillMaxWidth()
                 .height(barHeight),
             shape = RoundedCornerShape(barHeight / 2),

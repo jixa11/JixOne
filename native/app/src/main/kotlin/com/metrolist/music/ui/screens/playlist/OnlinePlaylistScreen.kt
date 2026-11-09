@@ -497,131 +497,107 @@ private fun OnlinePlaylistHeader(
     val isListenTogetherGuest = listenTogetherManager?.let { it.isInRoom && !it.isHost } ?: false
     val database = LocalDatabase.current
     val menuState = LocalMenuState.current
-    val syncUtils = LocalSyncUtils.current
 
-    Column(
-        modifier =
-            modifier
-                .fillMaxWidth()
-                .padding(top = 8.dp, bottom = 20.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Surface(
-            modifier =
-                Modifier
-                    .size(240.dp)
-                    .shadow(
-                        elevation = 24.dp,
-                        shape = RoundedCornerShape(3.dp),
-                        spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
-                    ),
-            shape = RoundedCornerShape(3.dp),
-        ) {
+    val totalDuration = songs.sumOf { it.duration ?: 0 }
+    val nSongs = pluralStringResource(
+        if (isPodcastPlaylist) R.plurals.n_episode else R.plurals.n_song,
+        songs.size,
+        songs.size,
+    )
+    val durationText = if (totalDuration > 0) makeTimeString(totalDuration * 1000L) else null
+    val metadataText = buildString {
+        append(nSongs)
+        if (durationText != null) {
+            append(" ")
+            append(durationText)
+        }
+    }
+
+    ModernPlaylistHeader(
+        modifier = modifier,
+        cover = {
             AsyncImage(
                 model = ImageRequest.Builder(LocalContext.current).data(playlist.thumbnail?.resize(1080, 1080)).build(),
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize(),
             )
-        }
-
-        Spacer(modifier = Modifier.height(20.dp))
-
-        Text(
-            text = playlist.title,
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold,
-            textAlign = TextAlign.Center,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(horizontal = 32.dp),
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        // Creator row - channel avatar + name centered
-        val author = playlist.author
-        if (author != null) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier =
-                    Modifier.combinedClickable(
-                        onClick = {
-                            if (author.id != null) {
-                                navController.navigate("artist/${author.id}")
-                            }
-                        },
-                    ),
-            ) {
-                if (playlist.authorAvatarUrl != null) {
-                    AsyncImage(
-                        model = playlist.authorAvatarUrl,
-                        contentDescription = null,
-                        contentScale = ContentScale.Crop,
-                        modifier =
-                            Modifier
-                                .size(24.dp)
-                                .clip(CircleShape),
+        },
+        label = stringResource(R.string.playlist_label),
+        title = playlist.title,
+        metadata = metadataText,
+        description = playlist.description?.takeIf { it.isNotBlank() },
+        authorRow = playlist.author?.let { author ->
+            {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier =
+                        Modifier.combinedClickable(
+                            onClick = {
+                                if (author.id != null) {
+                                    navController.navigate("artist/" + author.id)
+                                }
+                            },
+                        ),
+                ) {
+                    if (playlist.authorAvatarUrl != null) {
+                        AsyncImage(
+                            model = playlist.authorAvatarUrl,
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop,
+                            modifier =
+                                Modifier
+                                    .size(22.dp)
+                                    .clip(CircleShape),
+                        )
+                    }
+                    Text(
+                        text = author.name,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary,
                     )
                 }
-                Text(
-                    text = author.name,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                )
             }
-
-            Spacer(modifier = Modifier.height(4.dp))
-        }
-
-        // Metadata row - song count, duration
-        val totalDuration = songs.sumOf { it.duration ?: 0 }
-        val nSongs = pluralStringResource(
-            if (isPodcastPlaylist) R.plurals.n_episode else R.plurals.n_song,
-            songs.size,
-            songs.size,
-        )
-        val durationText = if (totalDuration > 0) makeTimeString(totalDuration * 1000L) else null
-        val metadataText = buildString {
-            append(nSongs)
-            if (durationText != null) {
-                append(" ")
-                append(durationText)
-            }
-        }
-        Text(
-            text = metadataText,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
-            textAlign = TextAlign.Center,
-            modifier = Modifier.padding(horizontal = 32.dp),
-        )
-
-        Spacer(modifier = Modifier.height(4.dp))
-
-        // Description
-        val description = playlist.description
-        if (!description.isNullOrBlank()) {
-            ExpandableText(
-                text = description,
-                modifier = Modifier.padding(horizontal = 32.dp),
-                collapsedMaxLines = 3,
+        },
+        actions = {
+            // Play — the big primary circle that leads the row (Spotify style)
+            PlaylistPlayButton(
+                onClick = {
+                    if (!isListenTogetherGuest && songs.isNotEmpty()) {
+                        playerConnection.playQueue(
+                            YouTubePlaylistQueue(
+                                playlistId = playlist.id,
+                                playlistTitle = playlist.title,
+                                initialSongs = songs,
+                                initialContinuation = continuation,
+                            ),
+                        )
+                    }
+                },
             )
-        }
 
-        Spacer(modifier = Modifier.height(24.dp))
+            // Shuffle — same queue with shuffled songs
+            PlaylistIconButton(
+                onClick = {
+                    if (!isListenTogetherGuest && songs.isNotEmpty()) {
+                        playerConnection.playQueue(
+                            YouTubePlaylistQueue(
+                                playlistId = playlist.id,
+                                playlistTitle = playlist.title,
+                                initialSongs = songs.shuffled(),
+                                initialContinuation = continuation,
+                            ),
+                        )
+                    }
+                },
+                iconRes = R.drawable.shuffle,
+                contentDescription = stringResource(R.string.shuffle),
+            )
 
-        Row(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterHorizontally),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            // Like Button - Smaller secondary button
-            Surface(
+            // Like / save the playlist
+            val liked = dbPlaylist?.playlist?.bookmarkedAt != null
+            PlaylistIconButton(
                 onClick = {
                     if (dbPlaylist != null) {
                         database.transaction {
@@ -658,64 +634,13 @@ private fun OnlinePlaylistHeader(
                         }
                     }
                 },
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.surfaceVariant,
-                modifier = Modifier.size(48.dp),
-            ) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        painter =
-                            painterResource(
-                                if (dbPlaylist?.playlist?.bookmarkedAt != null) R.drawable.favorite else R.drawable.favorite_border,
-                            ),
-                        contentDescription = null,
-                        tint =
-                            if (dbPlaylist?.playlist?.bookmarkedAt != null) {
-                                MaterialTheme.colorScheme.error
-                            } else {
-                                MaterialTheme.colorScheme.onSurfaceVariant
-                            },
-                        modifier = Modifier.size(24.dp),
-                    )
-                }
-            }
+                iconRes = if (liked) R.drawable.favorite else R.drawable.favorite_border,
+                contentDescription = null,
+                tint = if (liked) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+            )
 
-            // Play Button - Larger primary circular button
-            Surface(
-                onClick = {
-                    if (!isListenTogetherGuest && songs.isNotEmpty()) {
-                        playerConnection.playQueue(
-                            YouTubePlaylistQueue(
-                                playlistId = playlist.id,
-                                playlistTitle = playlist.title,
-                                initialSongs = songs,
-                                initialContinuation = continuation,
-                            ),
-                        )
-                    }
-                },
-                color = MaterialTheme.colorScheme.primary,
-                shape = CircleShape,
-                modifier = Modifier.size(72.dp),
-            ) {
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier.fillMaxSize(),
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.play),
-                        contentDescription = stringResource(R.string.play),
-                        tint = MaterialTheme.colorScheme.onPrimary,
-                        modifier = Modifier.size(32.dp),
-                    )
-                }
-            }
-
-            // Menu Button - Smaller secondary button
-            Surface(
+            // Overflow menu
+            PlaylistIconButton(
                 onClick = {
                     menuState.show {
                         YouTubePlaylistMenu(
@@ -726,21 +651,9 @@ private fun OnlinePlaylistHeader(
                         )
                     }
                 },
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.surfaceVariant,
-                modifier = Modifier.size(48.dp),
-            ) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.more_vert),
-                        contentDescription = null,
-                        modifier = Modifier.size(24.dp),
-                    )
-                }
-            }
-        }
-    }
+                iconRes = R.drawable.more_vert,
+                contentDescription = null,
+            )
+        },
+    )
 }

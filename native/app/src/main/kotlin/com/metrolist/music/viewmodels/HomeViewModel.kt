@@ -15,6 +15,7 @@ import com.metrolist.innertube.models.ArtistItem
 import com.metrolist.innertube.models.PlaylistItem
 import com.metrolist.innertube.models.SongItem
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.collectLatest
 import com.metrolist.innertube.models.WatchEndpoint
 import com.metrolist.innertube.models.BrowseEndpoint
 import com.metrolist.innertube.models.YTItem
@@ -461,6 +462,8 @@ class HomeViewModel @Inject constructor(
             .filter { it.artist.isYouTubeArtist }
         if (picked.isEmpty()) {
             onboardingArtists.value = emptyList()
+            onboardingRecommendations.value = emptyList()
+            onboardingSimilarArtists.value = emptyList()
             return
         }
         onboardingArtists.value = picked
@@ -498,6 +501,29 @@ class HomeViewModel @Inject constructor(
 
         onboardingRecommendations.value = recommendations
         onboardingSimilarArtists.value = similar.values.toList().take(20)
+    }
+
+    /**
+     * JixOne: keep the Explore personalization in sync with the onboarding
+     * picks (stored as bookmarked artists). A one-shot load raced the
+     * first-run onboarding — the picks are saved only after "Done" — so the
+     * personalized sections stayed hidden until an app restart. Watching the
+     * bookmarked-artists flow makes the sections appear the moment the picks
+     * land in the database, and keeps them in sync when artists are
+     * bookmarked/un-bookmarked later. Only a change in the picked ID set
+     * triggers the heavy per-artist fetches.
+     */
+    private fun startOnboardingWatcher() {
+        viewModelScope.launch(Dispatchers.IO) {
+            database.artistsBookmarkedByCreateDateAsc()
+                .map { artists -> artists.filter { it.artist.isYouTubeArtist }.map { it.id } }
+                .distinctUntilChanged()
+                .collectLatest {
+                    val hideExplicit = context.dataStore.get(HideExplicitKey, false)
+                    val hideVideoSongs = context.dataStore.get(HideVideoSongsKey, false)
+                    getOnboardingRecommendations(hideExplicit, hideVideoSongs)
+                }
+        }
     }
 
     private suspend fun load() {
@@ -557,7 +583,11 @@ class HomeViewModel @Inject constructor(
 
         viewModelScope.launch(Dispatchers.IO) { getCommunityPlaylists() }
 
-        viewModelScope.launch(Dispatchers.IO) { getOnboardingRecommendations(hideExplicit, hideVideoSongs) }
+        // NOTE: onboarding personalization is NOT loaded here — it lives in a
+        // reactive collector started in init{} (see startOnboardingWatcher),
+        // because on a first run this load() races the onboarding screen: the
+        // picks are only persisted after "Done", so a one-shot read here
+        // always found an empty list and Explore stayed generic.
 
         viewModelScope.launch(Dispatchers.IO) {
             YouTube.explore().onSuccess { page ->
@@ -798,6 +828,8 @@ class HomeViewModel @Inject constructor(
                 }
             }
         }
+
+        startOnboardingWatcher()
 
         // Prepare wrapped data in background
         viewModelScope.launch(Dispatchers.IO) {

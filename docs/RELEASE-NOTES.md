@@ -1,3 +1,14 @@
+## 🎯 JixOne 5.0.3 (native) — n5.0.3
+
+دو خواسته‌ی شما — شخصی‌سازی اکسپلور سرانجام واقعاً کار می‌کند و ظاهر پلی‌لیست‌ها به سبک یوتیوب‌موزیک/اسپاتیفای.
+
+- **رفع مشکل اکسپلور شخصی‌شده:** علت پیدا شد — در نصبِ اول، لودِ صفحه‌ی اکسپلور قبل از ذخیره‌شدنِ انتخاب‌های آنبوردینگ اجرا می‌شد و دیگر تکرار نمی‌شد؛ بنابراین آرتیست‌های انتخابی هرگز نمایش داده نمی‌شدند تا اپ دوباره باز شود. حالا اکسپلور به‌صورت زنده آرتیست‌های نشان‌شده (همان انتخاب‌های آنبوردینگ) را دنبال می‌کند: به محض زدن «پایان» در آنبوردینگ، ردیف «آرتیست‌های تو»، قفسه‌ی محتوای هر آرتیست و ردیف «شبیه انتخاب‌های تو» بالای اکسپلور ظاهر می‌شوند — بدون ری‌استارت. اگر بعداً آرتیستی را نشان‌گذاری یا حذف کنید، اکسپلور هم به‌روز می‌شود.
+- **ظاهر جدید پلی‌لیست‌ها (سبک یوتیوب‌موزیک/اسپاتیفای):** همه‌ی صفحات پلی‌لیست — آنلاین، محلی، لایک‌شده‌ها، برترین‌ها و کش — هدری یکسان و مدرن گرفتند: پس‌زمینه‌ی گرادیانی، کاور بزرگِ گردگوشه کنار عنوان درشت، برچسب «پلی‌لیست»، توضیحات و سازنده، شمار آهنگ و مدت‌زمان؛ و در پایین هدر، دکمه‌ی گردِ بزرگ پخش در رنگ اصلی برنامه در کنار دکمه‌های گردِ پخش‌درهم، لایک و منو. برای پلی‌لیست‌های آنلاین دکمه‌ی پخش‌درهم اضافه شد.
+
+**English:** the Explore personalization actually works now — the one-shot load raced the first-run onboarding (picks are saved only after “Done”), so the personalized shelves never appeared until restart; Explore now watches the bookmarked artists live and the picks render the moment they are saved. All playlist pages (online, local, auto, top, cache) share a new Spotify/YouTube-Music-style header: gradient backdrop, large rounded cover beside the bold title with label/description/creator/song-count, and an action row led by the big primary play circle with shuffle/like/menu circles; online playlists gained a shuffle button.
+
+---
+
 ## 🎯 JixOne 5.0.2 (native) — n5.0.2
 
 سه خواسته‌ی شما — بدون هیچ تغییر اضافه. صفحه‌ی ورودی (آنبوردینگ) دست‌نخورده ماند.

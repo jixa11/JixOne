@@ -32,6 +32,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -534,73 +535,40 @@ private fun TopPlaylistHeader(
     val context = LocalContext.current
     val downloadUtil = LocalDownloadUtil.current
 
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(top = 8.dp, bottom = 20.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        // Playlist Thumbnail - Large centered with shadow
-        Box(
-            modifier = Modifier.padding(top = 8.dp, bottom = 20.dp)
-        ) {
-            androidx.compose.material3.Surface(
-                modifier = Modifier
-                    .size(240.dp)
-                    .shadow(
-                        elevation = 24.dp,
-                        shape = RoundedCornerShape(3.dp),
-                        spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)
-                    ),
-                shape = RoundedCornerShape(3.dp)
-            ) {
-                AsyncImage(
-                    model = songs[0].thumbnailUrl,
-                    contentDescription = null,
-                    contentScale = androidx.compose.ui.layout.ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
-                )
+    ModernPlaylistHeader(
+        modifier = modifier,
+        cover = {
+            AsyncImage(
+                model = songs[0].thumbnailUrl,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
+        },
+        label = stringResource(R.string.playlist_label),
+        title = name,
+        metadata = buildString {
+            append(pluralStringResource(R.plurals.n_song, songs.size, songs.size))
+            if (likeLength > 0) {
+                append(" ")
+                append(makeTimeString(likeLength * 1000L))
             }
-        }
-
-        // Playlist Name
-        Text(
-            text = name,
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold,
-            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(horizontal = 32.dp)
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        // Metadata - Song Count • Duration
-        Text(
-            text = buildString {
-                append(pluralStringResource(R.plurals.n_song, songs.size, songs.size))
-                if (likeLength > 0) {
-                    append(" ")
-                    append(makeTimeString(likeLength * 1000L))
+        },
+        actions = {
+            // Play — the big primary circle that leads the row
+            PlaylistPlayButton(
+                onClick = {
+                    playerConnection.playQueue(
+                        ListQueue(
+                            title = name,
+                            items = songs.map { it.toMediaItem() },
+                        ),
+                    )
                 }
-            },
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
-        )
+            )
 
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // Action Buttons Row
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterHorizontally),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Shuffle Button - Smaller secondary button
-            androidx.compose.material3.Surface(
+            // Shuffle
+            PlaylistIconButton(
                 onClick = {
                     playerConnection.playQueue(
                         ListQueue(
@@ -609,51 +577,12 @@ private fun TopPlaylistHeader(
                         ),
                     )
                 },
-                shape = androidx.compose.foundation.shape.CircleShape,
-                color = MaterialTheme.colorScheme.surfaceVariant,
-                modifier = Modifier.size(48.dp)
-            ) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.shuffle),
-                        contentDescription = stringResource(R.string.shuffle),
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-            }
+                iconRes = R.drawable.shuffle,
+                contentDescription = stringResource(R.string.shuffle)
+            )
 
-            // Play Button - Larger primary circular button
-            Surface(
-                onClick = {
-                    playerConnection.playQueue(
-                        ListQueue(
-                            title = name,
-                            items = songs.map { it.toMediaItem() },
-                        ),
-                    )
-                },
-                color = MaterialTheme.colorScheme.primary,
-                shape = androidx.compose.foundation.shape.CircleShape,
-                modifier = Modifier.size(72.dp)
-            ) {
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.play),
-                        contentDescription = stringResource(R.string.play),
-                        tint = MaterialTheme.colorScheme.onPrimary,
-                        modifier = Modifier.size(32.dp)
-                    )
-                }
-            }
-
-            // Menu Button - Smaller secondary button
-            androidx.compose.material3.Surface(
+            // Overflow menu
+            PlaylistIconButton(
                 onClick = {
                     menuState.show {
                         TopPlaylistMenu(
@@ -685,21 +614,10 @@ private fun TopPlaylistHeader(
                         )
                     }
                 },
-                shape = androidx.compose.foundation.shape.CircleShape,
-                color = MaterialTheme.colorScheme.surfaceVariant,
-                modifier = Modifier.size(48.dp)
-            ) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        painter = painterResource(R.drawable.more_vert),
-                        contentDescription = null,
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-            }
+                iconRes = R.drawable.more_vert,
+                contentDescription = null
+            )
         }
-    }
+    )
 }
+

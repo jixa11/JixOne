@@ -537,6 +537,7 @@ private fun TopPlaylistHeader(
 
     ModernPlaylistHeader(
         modifier = modifier,
+        backdropModel = songs.getOrNull(0)?.thumbnailUrl,
         cover = {
             AsyncImage(
                 model = songs[0].thumbnailUrl,

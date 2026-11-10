@@ -480,6 +480,7 @@ private fun CachePlaylistHeader(
 
     ModernPlaylistHeader(
         modifier = modifier,
+        backdropModel = songs.firstOrNull()?.thumbnailUrl,
         cover = {
             AsyncImage(
                 model = songs.first().thumbnailUrl,

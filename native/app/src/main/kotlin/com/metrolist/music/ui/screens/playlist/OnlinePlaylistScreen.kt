@@ -515,6 +515,7 @@ private fun OnlinePlaylistHeader(
 
     ModernPlaylistHeader(
         modifier = modifier,
+        backdropModel = ImageRequest.Builder(LocalContext.current).data(playlist.thumbnail?.resize(1080, 1080)).build(),
         cover = {
             AsyncImage(
                 model = ImageRequest.Builder(LocalContext.current).data(playlist.thumbnail?.resize(1080, 1080)).build(),

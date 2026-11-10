@@ -850,6 +850,7 @@ private fun AutoPlaylistHeader(
 
     ModernPlaylistHeader(
         modifier = modifier,
+        backdropModel = songs.getOrNull(0)?.song?.thumbnailUrl,
         cover = {
             AsyncImage(
                 model = songs[0].song.thumbnailUrl,

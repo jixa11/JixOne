@@ -1057,6 +1057,7 @@ fun LocalPlaylistHeader(
 
     ModernPlaylistHeader(
         modifier = modifier,
+        backdropModel = overrideThumbnail.value ?: playlist.thumbnails.firstOrNull(),
         cover = {
             when (playlist.thumbnails.size) {
                 0 ->

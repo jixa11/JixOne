@@ -465,6 +465,14 @@ fun PaletteItem(
     // palette readable as a circle, even the light OLED neutral.
     val deep = lerp(palette.seedColor, Color.Black, 0.35f)
 
+    // Ink that reads on the seed — white on dark palettes, black on the
+    // light OLED neutral.
+    val seedLum =
+        0.2126f * palette.seedColor.red +
+            0.7152f * palette.seedColor.green +
+            0.0722f * palette.seedColor.blue
+    val checkTint = if (seedLum > 0.6f) Color.Black else Color.White
+
     Box(
         modifier = Modifier
             .size(48.dp)
@@ -514,7 +522,7 @@ fun PaletteItem(
             Icon(
                 painter = painterResource(R.drawable.check),
                 contentDescription = null,
-                tint = Color.White,
+                tint = checkTint,
                 modifier = Modifier.size(20.dp)
             )
         }

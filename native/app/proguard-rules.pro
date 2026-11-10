@@ -195,3 +195,7 @@
 -keepclasseswithmembers class com.metrolist.shazamkit.models.** {
     kotlinx.serialization.KSerializer serializer(...);
 }
+
+# Vendored tinypinyin (JixOne 6): plain-Java pinyin engine, kept whole so the
+# lyrics search helper always has its dictionary classes after R8.
+-keep class com.github.promeg.pinyinhelper.** { *; }

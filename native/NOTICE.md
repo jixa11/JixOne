@@ -17,3 +17,9 @@ and artwork, and the Farsi-first, right-to-left interface.
 
 Upstream changes are pulled in rather than diverged from, so fork-specific
 edits are kept small and localised on purpose.
+- tinypinyin (com.github.promeg.pinyinhelper), Apache License 2.0 —
+  vendored as Java sources under
+  app/src/main/java/com/github/promeg/pinyinhelper/ since JixOne 6.0
+  (the jitpack binary artifact is broken). Copyright 2015 guyacong.
+  https://github.com/promeG/Tinypinyin
+

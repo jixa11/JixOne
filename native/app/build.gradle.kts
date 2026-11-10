@@ -12,8 +12,8 @@ if (localPropertiesFile.exists()) {
 // installed, and comparing them side by side is the whole point right now.
 // It becomes com.jixone.app when native replaces the WebView build.
 val baseApplicationId = "com.jixone.native"
-val appVersionCode = 510
-val appVersionName = "5.1.0"
+val appVersionCode = 600
+val appVersionName = "6.0.0"
 val applicationIdOverride = System.getenv("METROLIST_APPLICATION_ID")?.takeIf { it.isNotBlank() }
 val appNameOverride = System.getenv("METROLIST_APP_NAME")?.takeIf { it.isNotBlank() }
 val buildCommit =
@@ -337,7 +337,9 @@ dependencies {
 
     implementation(libs.room.runtime)
     implementation(libs.kuromoji.ipadic)
-    implementation(libs.tinypinyin)
+    // tinypinyin: vendored as Java sources under app/src/main/java/com/github/promeg/pinyinhelper
+    // (jitpack's 2.0.3 jar is empty, so the binary dep was silently broken)
+    implementation(libs.ahocorasick)
     ksp(libs.room.compiler)
 
     implementation(libs.hilt)

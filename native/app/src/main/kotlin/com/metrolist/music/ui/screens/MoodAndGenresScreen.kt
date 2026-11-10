@@ -198,7 +198,7 @@ private val moodFallbacks = listOf(
     MoodPalette(Color(0xFFDA97FF), Color(0xFF7B2FBF)),
 )
 
-internal fun moodPaletteFor(title: String): MoodPalette {
+private fun moodPaletteFor(title: String): MoodPalette {
     val lower = title.lowercase()
     moodKeywords.firstOrNull { (k, _) -> k in lower }?.let { return it.second }
     val idx = ((title.hashCode() % moodFallbacks.size) + moodFallbacks.size) % moodFallbacks.size

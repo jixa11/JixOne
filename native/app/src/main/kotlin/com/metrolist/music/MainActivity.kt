@@ -146,6 +146,7 @@ import com.metrolist.music.constants.AppLanguageKey
 import com.metrolist.music.constants.ArtistOnboardingCompletedKey
 import com.metrolist.music.constants.CheckForUpdatesKey
 import com.metrolist.music.constants.DarkModeKey
+import com.metrolist.music.constants.DynamicThemeRemovedKey
 import com.metrolist.music.constants.DefaultOpenTabKey
 import com.metrolist.music.constants.DismissedStandaloneUpdateKey
 import com.metrolist.music.constants.DensityScaleKey
@@ -213,6 +214,7 @@ import com.metrolist.music.ui.theme.JixOneTheme
 import com.metrolist.music.ui.theme.YouTubeSeed
 import com.metrolist.music.ui.theme.DefaultPaletteSeed
 import com.metrolist.music.ui.theme.extractThemeColor
+import com.metrolist.music.ui.theme.LegacyDynamicSentinelColor
 import com.metrolist.music.ui.utils.appBarScrollBehavior
 import com.metrolist.music.ui.utils.resetHeightOffset
 import com.metrolist.music.utils.ReleaseInfo
@@ -621,6 +623,20 @@ class MainActivity : FragmentActivity() {
                     onSelectedThemeColorChange(AuroraSeed.toArgb())
                 }
                 onAuroraThemeMigratedChange(true)
+            }
+        }
+
+        // One-time 6.0 migration: the system-wallpaper "Dynamic" palette is
+        // gone from the picker; installs that still carry its old sentinel
+        // color land on Aurora so they always end up on a real palette.
+        val (dynamicRemovedMigrated, onDynamicRemovedMigratedChange) =
+            rememberPreference(DynamicThemeRemovedKey, defaultValue = false)
+        LaunchedEffect(dynamicRemovedMigrated) {
+            if (!dynamicRemovedMigrated) {
+                if (selectedThemeColorInt == LegacyDynamicSentinelColor.toArgb()) {
+                    onSelectedThemeColorChange(AuroraSeed.toArgb())
+                }
+                onDynamicRemovedMigratedChange(true)
             }
         }
         val selectedThemeColor = Color(selectedThemeColorInt)

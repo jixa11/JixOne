@@ -6,15 +6,12 @@
 package com.metrolist.music.ui.theme
 
 import android.graphics.Bitmap
-import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
 import androidx.compose.material3.Typography
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
@@ -24,7 +21,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.palette.graphics.Palette
@@ -33,10 +29,15 @@ import com.materialkolor.dynamiccolor.ColorSpec
 import com.materialkolor.rememberDynamicColorScheme
 import com.materialkolor.score.Score
 
-// JixOne brand default: the neon blue-violet of the J-Note app icon.
-// Kept identical everywhere via this constant; selecting "Dynamic" in the
-// theme picker stores this value as the "follow system wallpaper" sentinel.
-val DefaultThemeColor = Color(0xFF5F5BF9)
+// JixOne 6: every theme is a curated seed color — the pre-6 "follow system
+// wallpaper" behavior is gone, so the default color is simply Aurora, the
+// app's identity palette (same value as DefaultPaletteSeed).
+val DefaultThemeColor = Color(0xFF7C5CFF)
+
+/** Pre-6.0 sentinel stored when the removed "Dynamic / system color" palette
+ *  was selected — kept only so the one-time migration can move those
+ *  installs to Aurora. */
+val LegacyDynamicSentinelColor = Color(0xFF5F5BF9)
 
 /**
  * JixOne modern shape language: generous, soft corners everywhere —
@@ -104,28 +105,19 @@ fun JixOneTheme(
     showArtwork: Boolean = true,
     content: @Composable () -> Unit,
 ) {
-    val context = LocalContext.current
     // Persian artwork theme (JixOne): web-app backgrounds + full-bleed art
     val persianTheme = if (showArtwork) persianThemeFor(themeColor) else null
-    // Determine if system dynamic colors should be used (Android S+ and default theme color)
-    val useSystemDynamicColor = (themeColor == DefaultThemeColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
 
-    // Select the appropriate color scheme generation method
-    val baseColorScheme = if (useSystemDynamicColor) {
-        // Use standard Material 3 dynamic color functions for system wallpaper colors
-        if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-    } else {
-        // Use materialKolor only when a specific seed color is provided.
-        // 5.1: Expressive — richer secondary/tertiary chroma so the aurora
-        // gradients (primary -> tertiary) actually glow instead of the muted
-        // wallpaper-like tones of TonalSpot.
-        rememberDynamicColorScheme(
-            seedColor = themeColor, // themeColor is guaranteed non-default here
-            isDark = darkTheme,
-            specVersion = ColorSpec.SpecVersion.SPEC_2025,
-            style = PaletteStyle.Expressive
-        )
-    }
+    // JixOne 6: the palette list is a fixed, curated set of seeds — every
+    // scheme is generated from the seed with materialKolor (Expressive for
+    // richer secondary/tertiary chroma so the primary -> tertiary gradients
+    // actually glow). No more system-wallpaper dynamic color.
+    val baseColorScheme = rememberDynamicColorScheme(
+        seedColor = themeColor,
+        isDark = darkTheme,
+        specVersion = ColorSpec.SpecVersion.SPEC_2025,
+        style = PaletteStyle.Expressive
+    )
 
     // Apply pureBlack modification if needed, similar to original logic.
     // When a Persian artwork theme is active the background becomes
@@ -138,6 +130,10 @@ fun JixOneTheme(
             } else {
                 baseColorScheme
             }
+        // JixOne 6 button-clarity pass — run BEFORE the artwork transparency
+        // so every palette (Derafsh violet, OLED neutral, …) keeps readable
+        // controls in both light and dark mode.
+        scheme = scheme.repairButtonContrast()
         if (persianTheme != null) {
             scheme = scheme.copy(background = Color.Transparent)
         }
@@ -254,6 +250,78 @@ fun ColorScheme.pureBlack(apply: Boolean) =
         surface = Color.Black,
         background = Color.Black
     ) else this
+
+// ──────────────────────────────────────────────────────────────────────────
+// JixOne 6: the button-clarity pass.
+//
+// Seed-generated schemes occasionally produce container/content pairs with
+// too little contrast to read a control (the Derafsh Kaviani violet and the
+// OLED neutral were the reported offenders). This pass walks the pairs that
+// drive buttons, chips and toggles and, whenever a pair falls below a 3.5:1
+// ratio, replaces the content color with the black/white variant that reads
+// best on that container. Palettes that already pass are left untouched.
+// ─────────────────────────────────────────────────────────────────────────
+
+private fun Color.relativeLuminance(): Float {
+    fun channel(c: Float) =
+        if (c <= 0.03928f) c / 12.92f
+        else Math.pow(((c + 0.055) / 1.055).toDouble(), 2.4).toFloat()
+    return 0.2126f * channel(red) + 0.7152f * channel(green) + 0.0722f * channel(blue)
+}
+
+private fun contrastRatio(a: Color, b: Color): Float {
+    val la = a.relativeLuminance() + 0.05f
+    val lb = b.relativeLuminance() + 0.05f
+    return maxOf(la, lb) / minOf(la, lb)
+}
+
+/** The black/white variant with the stronger contrast on [container]. */
+private fun bestInkOn(container: Color): Color =
+    if (contrastRatio(Color.Black, container) >= contrastRatio(Color.White, container))
+        Color.Black
+    else
+        Color.White
+
+private const val ButtonContrastFloor = 3.5f
+
+private fun ColorScheme.repairPair(
+    container: Color,
+    content: Color,
+): Color =
+    if (contrastRatio(content, container) < ButtonContrastFloor) bestInkOn(container) else content
+
+fun ColorScheme.repairButtonContrast(): ColorScheme {
+    var s = this
+
+    s = s.copy(onPrimary = s.repairPair(s.primary, s.onPrimary))
+    s = s.copy(onPrimaryContainer = s.repairPair(s.primaryContainer, s.onPrimaryContainer))
+    s = s.copy(onSecondary = s.repairPair(s.secondary, s.onSecondary))
+    s = s.copy(onSecondaryContainer = s.repairPair(s.secondaryContainer, s.onSecondaryContainer))
+    s = s.copy(onTertiary = s.repairPair(s.tertiary, s.onTertiary))
+    s = s.copy(onTertiaryContainer = s.repairPair(s.tertiaryContainer, s.onTertiaryContainer))
+    s = s.copy(onError = s.repairPair(s.error, s.onError))
+    s = s.copy(onBackground = s.repairPair(s.background, s.onBackground))
+    s = s.copy(onSurface = s.repairPair(s.surface, s.onSurface))
+    s = s.copy(onSurfaceVariant = s.repairPair(s.surfaceVariant, s.onSurfaceVariant))
+
+    // Player/list secondary buttons draw onSurface content over these
+    // elevated containers — if the (already-repaired) ink still fails on the
+    // button container, flip it to the variant that reads there; surface
+    // tones stay close enough that the flip keeps both readable.
+    var surfaceInk = s.onSurface
+    if (contrastRatio(surfaceInk, s.surfaceContainerHighest) < ButtonContrastFloor) {
+        surfaceInk = bestInkOn(s.surfaceContainerHighest)
+    }
+    s = s.copy(onSurface = surfaceInk)
+
+    var variantInk = s.onSurfaceVariant
+    if (contrastRatio(variantInk, s.surfaceContainerHigh) < ButtonContrastFloor) {
+        variantInk = bestInkOn(s.surfaceContainerHigh)
+    }
+    s = s.copy(onSurfaceVariant = variantInk)
+
+    return s
+}
 
 val ColorSaver = object : Saver<Color, Int> {
     override fun restore(value: Int): Color = Color(value)

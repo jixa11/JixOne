@@ -31,32 +31,73 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.unit.dp
 
 /**
- * A Material 3 Expressive style settings group component
+ * JixOne 6 curated section accents — mid-tone hues chosen to read on both
+ * light and dark surfaces. Groups get one of these by stable title hash so
+ * every settings screen reads as a set of color-coded category cards.
+ */
+private val SettingsSectionAccents = listOf(
+    Color(0xFF8B5CF6), // violet
+    Color(0xFF0EA5E9), // sky
+    Color(0xFF14B8A6), // teal
+    Color(0xFFF59E0B), // amber
+    Color(0xFFF43F5E), // rose
+    Color(0xFF10B981), // emerald
+    Color(0xFFD946EF), // fuchsia
+    Color(0xFFF97316), // orange
+)
+
+fun settingsGroupAccent(title: String?): Color {
+    if (title == null) return SettingsSectionAccents.first()
+    val idx = ((title.hashCode() % SettingsSectionAccents.size) + SettingsSectionAccents.size) % SettingsSectionAccents.size
+    return SettingsSectionAccents[idx]
+}
+
+/**
+ * A Material 3 Expressive style settings group component — JixOne 6:
+ * color-coded category cards. Each group carries an accent (explicit or
+ * derived from its title) that tints the section title and the leading icon
+ * chips of its rows, turning the plain list into scannable colored blocks.
  * @param title The title of the settings group
  * @param items List of settings items to display
+ * @param accent Optional explicit accent; defaults to a stable per-title hue
  */
 @Composable
 fun Material3SettingsGroup(
     title: String? = null,
     items: List<Material3SettingsItem>,
-    useLowContrast: Boolean = false
+    useLowContrast: Boolean = false,
+    accent: Color? = null
 ) {
+    val groupAccent = accent ?: settingsGroupAccent(title)
     Column(
         modifier = Modifier
             .fillMaxWidth()
     ) {
         // Section title
         title?.let {
-            Text(
-                text = it,
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary,
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.padding(bottom = 8.dp, top = 8.dp)
-            )
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(width = 4.dp, height = 14.dp)
+                        .clip(RoundedCornerShape(2.dp))
+                        .background(groupAccent)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                    color = groupAccent
+                )
+            }
         }
 
         // Settings items
@@ -86,7 +127,7 @@ fun Material3SettingsGroup(
                     ),
                     elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
                 ) {
-                    Material3SettingsItemRow(item = item)
+                    Material3SettingsItemRow(item = item, accent = groupAccent)
                 }
             }
         }
@@ -94,11 +135,13 @@ fun Material3SettingsGroup(
 }
 
 /**
- * Individual settings item row with Material 3 styling
+ * Individual settings item row with Material 3 styling — JixOne 6: the
+ * leading icon chip carries the group accent.
  */
 @Composable
 private fun Material3SettingsItemRow(
-    item: Material3SettingsItem
+    item: Material3SettingsItem,
+    accent: Color
 ) {
     Row(
         modifier = Modifier
@@ -119,11 +162,7 @@ private fun Material3SettingsItemRow(
                 modifier = Modifier
                     .size(40.dp)
                     .clip(RoundedCornerShape(12.dp))
-                    .background(
-                        MaterialTheme.colorScheme.primary.copy(
-                            alpha = if (item.isHighlighted) 0.15f else 0.1f
-                        )
-                    ),
+                    .background(accent.copy(alpha = if (item.isHighlighted) 0.24f else 0.15f)),
                 contentAlignment = Alignment.Center
             ) {
                 if (item.showBadge) {
@@ -139,10 +178,8 @@ private fun Material3SettingsItemRow(
                             contentDescription = null,
                             tint = if (!item.enabled)
                                 MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
-                            else if (item.isHighlighted)
-                                MaterialTheme.colorScheme.primary
                             else
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.9f),
+                                accent,
                             modifier = Modifier.size(24.dp)
                         )
                     }
@@ -152,10 +189,8 @@ private fun Material3SettingsItemRow(
                         contentDescription = null,
                         tint = if (!item.enabled)
                             MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
-                        else if (item.isHighlighted)
-                            MaterialTheme.colorScheme.primary
                         else
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.9f),
+                            accent,
                         modifier = Modifier.size(24.dp)
                     )
                 }

@@ -5,6 +5,8 @@ val useMavenLocalInnerTubeX = providers.gradleProperty("useMavenLocalInnerTubeX"
 pluginManagement {
     repositories {
         mavenLocal()
+        maven { setUrl("https://maven-central.storage-download.googleapis.com/maven2") }
+        maven { setUrl("https://mirrors.cloud.tencent.com/nexus/repository/maven-public") }
         maven { setUrl("https://maven.aliyun.com/repository/google") }
         maven { setUrl("https://maven.aliyun.com/repository/public") }
         google()
@@ -31,6 +33,8 @@ dependencyResolutionManagement {
                 }
             }
         }
+        maven { setUrl("https://maven-central.storage-download.googleapis.com/maven2") }
+        maven { setUrl("https://mirrors.cloud.tencent.com/nexus/repository/maven-public") }
         google()
         mavenCentral()
         maven { setUrl("https://jitpack.io") }

@@ -10,22 +10,35 @@ import android.content.Intent
 import android.os.Build
 import android.provider.Settings
 import android.widget.Toast
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import androidx.navigation.NavController
@@ -38,7 +51,6 @@ import com.metrolist.music.ui.component.Material3SettingsItem
 import com.metrolist.music.ui.component.ReleaseNotesCard
 import com.metrolist.music.ui.utils.backToMain
 import com.metrolist.music.utils.Updater
-import androidx.compose.runtime.remember
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -74,9 +86,13 @@ fun SettingsScreen(
             )
         )
 
+        // JixOne 6: brand header — the app identity card on top of settings.
+        JixOneSettingsHeader()
+
         // User Interface Section
         Material3SettingsGroup(
             title = stringResource(R.string.settings_section_ui),
+            accent = Color(0xFF8B5CF6),
             items = listOf(
                 Material3SettingsItem(
                     icon = painterResource(R.drawable.palette),
@@ -98,6 +114,7 @@ fun SettingsScreen(
         // Player & Content Section (moved up and combined with content)
         Material3SettingsGroup(
             title = stringResource(R.string.settings_section_player_content),
+            accent = Color(0xFF0EA5E9),
             items = listOf(
                 Material3SettingsItem(
                     icon = painterResource(R.drawable.play),
@@ -123,6 +140,7 @@ fun SettingsScreen(
         if (hasAndroidAuto) {
             Material3SettingsGroup(
                 title = "Android Auto",
+                accent = Color(0xFF10B981),
                 items = listOf(
                     Material3SettingsItem(
                         icon = painterResource(R.drawable.ic_android_auto),
@@ -138,6 +156,7 @@ fun SettingsScreen(
         // Privacy & Security Section
         Material3SettingsGroup(
             title = stringResource(R.string.settings_section_privacy),
+            accent = Color(0xFFF43F5E),
             items = listOf(
                 Material3SettingsItem(
                     icon = painterResource(R.drawable.security),
@@ -152,6 +171,7 @@ fun SettingsScreen(
         // Storage & Data Section
         Material3SettingsGroup(
             title = stringResource(R.string.settings_section_storage),
+            accent = Color(0xFFF59E0B),
             items = listOf(
                 Material3SettingsItem(
                     icon = painterResource(R.drawable.storage),
@@ -171,6 +191,7 @@ fun SettingsScreen(
         // System & About Section
         Material3SettingsGroup(
             title = stringResource(R.string.settings_section_system),
+            accent = Color(0xFFD946EF),
             items = buildList {
                 if (isAndroid12OrLater) {
                     add(
@@ -290,4 +311,63 @@ fun SettingsScreen(
             }
         }
     )
+}
+
+/**
+ * JixOne 6: the settings brand header — gradient identity card with the
+ * compass logo, the JixOne wordmark and the running version.
+ */
+@Composable
+private fun JixOneSettingsHeader() {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(24.dp))
+            .background(
+                Brush.linearGradient(
+                    listOf(
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.16f),
+                        MaterialTheme.colorScheme.tertiary.copy(alpha = 0.10f),
+                    )
+                )
+            )
+            .padding(horizontal = 20.dp, vertical = 18.dp),
+    ) {
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .size(52.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .background(
+                    Brush.linearGradient(
+                        listOf(
+                            MaterialTheme.colorScheme.primary,
+                            MaterialTheme.colorScheme.tertiary,
+                        )
+                    )
+                ),
+        ) {
+            Icon(
+                painter = painterResource(R.drawable.jix_compass),
+                contentDescription = null,
+                tint = Color.White,
+                modifier = Modifier.size(28.dp),
+            )
+        }
+        Spacer(modifier = Modifier.width(14.dp))
+        Column {
+            Text(
+                text = "JixOne",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Black,
+            )
+            Text(
+                text = stringResource(R.string.settings_brand_tagline) +
+                    "  •  v" + BuildConfig.BASE_VERSION_NAME,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
 }

@@ -17,7 +17,9 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -58,6 +60,7 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ContainedLoadingIndicator
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledIconButton
@@ -97,6 +100,7 @@ import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
@@ -128,6 +132,8 @@ import androidx.lifecycle.ProcessLifecycleOwner
 import androidx.media3.common.C
 import androidx.media3.common.Player
 import androidx.media3.common.Player.STATE_ENDED
+import androidx.media3.exoplayer.offline.Download
+import androidx.media3.exoplayer.offline.DownloadService
 import androidx.navigation.NavController
 import androidx.palette.graphics.Palette
 import com.metrolist.music.LocalNavController
@@ -140,6 +146,7 @@ import com.metrolist.music.LocalDatabase
 import com.metrolist.music.LocalDownloadUtil
 import com.metrolist.music.LocalListenTogetherManager
 import com.metrolist.music.LocalPlayerConnection
+import com.metrolist.music.playback.ExoDownloadService
 import com.metrolist.music.R
 import com.metrolist.music.constants.CropAlbumArtKey
 import com.metrolist.music.constants.DarkModeKey
@@ -176,6 +183,7 @@ import com.metrolist.music.ui.component.ResizableIconButton
 import com.metrolist.music.ui.component.SquigglySlider
 import com.metrolist.music.ui.component.WavySlider
 import com.metrolist.music.ui.component.rememberBottomSheetState
+import com.metrolist.music.ui.menu.AddToPlaylistDialog
 import com.metrolist.music.ui.menu.PlayerMenu
 import com.metrolist.music.ui.screens.settings.DarkMode
 import com.metrolist.music.ui.theme.PlayerColorExtractor
@@ -592,9 +600,11 @@ fun BottomSheetPlayer(
             }
         }
 
-    val download by LocalDownloadUtil.current
+    val downloadUtil = LocalDownloadUtil.current
+    val download by downloadUtil
         .getDownload(mediaMetadata?.id ?: "")
         .collectAsStateWithLifecycle(initialValue = null)
+    val database = LocalDatabase.current
 
     val sleepTimerEnabled =
         remember(
@@ -748,6 +758,26 @@ fun BottomSheetPlayer(
 
     var showChoosePlaylistDialog by rememberSaveable {
         mutableStateOf(false)
+    }
+
+    // JixOne 6: the add-to-playlist action on the player now opens the real
+    // dialog (the flag existed but nothing rendered it).
+    if (showChoosePlaylistDialog) {
+        AddToPlaylistDialog(
+            isVisible = showChoosePlaylistDialog,
+            onGetSong = {
+                mediaMetadata?.let { metadata ->
+                    database.withTransaction {
+                        insert(metadata)
+                    }
+                }
+                listOfNotNull(mediaMetadata?.id)
+            },
+            onGetSongIds = { listOfNotNull(mediaMetadata?.id) },
+            onDismiss = {
+                showChoosePlaylistDialog = false
+            },
+        )
     }
 
     // Position update - only for local playback
@@ -1144,139 +1174,34 @@ fun BottomSheetPlayer(
                 Spacer(modifier = Modifier.width(12.dp))
 
                 if (useNewPlayerDesign) {
-                    val shareShape =
-                        RoundedCornerShape(
-                            topStart = 50.dp,
-                            bottomStart = 50.dp,
-                            topEnd = 3.dp,
-                            bottomEnd = 3.dp,
-                        )
-                    val favShape =
-                        RoundedCornerShape(
-                            topStart = 3.dp,
-                            bottomStart = 3.dp,
-                            topEnd = 50.dp,
-                            bottomEnd = 50.dp,
-                        )
-
-                    val middleShape = RoundedCornerShape(3.dp)
-
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        AnimatedContent(targetState = showInlineLyrics, label = "ShareButton") { showLyrics ->
-                            if (showLyrics) {
-                                FilledIconButton(
-                                    onClick = { isFullScreen = !isFullScreen },
-                                    shape = shareShape,
-                                    colors =
-                                        IconButtonDefaults.filledIconButtonColors(
-                                            containerColor = textButtonColor,
-                                            contentColor = iconButtonColor,
-                                        ),
-                                    modifier = Modifier.size(42.dp),
-                                ) {
-                                    Icon(
-                                        painter = painterResource(R.drawable.fullscreen),
-                                        contentDescription = null,
-                                        modifier = Modifier.size(24.dp),
-                                    )
-                                }
-                            } else {
-                                FilledIconButton(
-                                    onClick = {
-                                        val intent =
-                                            Intent().apply {
-                                                action = Intent.ACTION_SEND
-                                                type = "text/plain"
-                                                putExtra(
-                                                    Intent.EXTRA_TEXT,
-                                                    "https://music.youtube.com/watch?v=${mediaMetadata.id}",
-                                                )
-                                            }
-                                        context.startActivity(Intent.createChooser(intent, null))
-                                    },
-                                    shape = shareShape,
-                                    colors =
-                                        IconButtonDefaults.filledIconButtonColors(
-                                            containerColor = textButtonColor,
-                                            contentColor = iconButtonColor,
-                                        ),
-                                    modifier = Modifier.size(42.dp),
-                                ) {
-                                    Icon(
-                                        painter = painterResource(R.drawable.share),
-                                        contentDescription = null,
-                                        modifier = Modifier.size(24.dp),
-                                    )
-                                }
+                    // JixOne 6: the info row carries a single overflow dot —
+                    // the four main actions live in the modern action strip
+                    // right below (like / add / download / share).
+                    AnimatedContent(targetState = showInlineLyrics, label = "MoreButton") { showLyrics ->
+                        if (showLyrics) {
+                            FilledIconButton(
+                                onClick = { isFullScreen = !isFullScreen },
+                                shape = RoundedCornerShape(50),
+                                colors =
+                                    IconButtonDefaults.filledIconButtonColors(
+                                        containerColor = textButtonColor,
+                                        contentColor = iconButtonColor,
+                                    ),
+                                modifier = Modifier.size(42.dp),
+                            ) {
+                                Icon(
+                                    painter = painterResource(R.drawable.fullscreen),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(24.dp),
+                                )
                             }
-                        }
-
-                        AnimatedContent(targetState = showInlineLyrics, label = "LikeButton") { showLyrics ->
-                            if (showLyrics) {
-                                val currentLyrics by playerConnection.currentLyrics.collectAsStateWithLifecycle(initialValue = null)
-                                FilledIconButton(
-                                    onClick = {
-                                        menuState.show {
-                                            com.metrolist.music.ui.menu.LyricsMenu(
-                                                lyricsProvider = { currentLyrics },
-                                                songProvider = { currentSong?.song },
-                                                mediaMetadataProvider = { mediaMetadata },
-                                                onDismiss = menuState::dismiss,
-                                                onShowOffsetDialog = {
-                                                    bottomSheetPageState.show {
-                                                        ShowOffsetDialog(
-                                                            songProvider = { currentSong?.song },
-                                                        )
-                                                    }
-                                                },
-                                            )
-                                        }
-                                    },
-                                    shape = favShape,
-                                    colors =
-                                        IconButtonDefaults.filledIconButtonColors(
-                                            containerColor = textButtonColor,
-                                            contentColor = iconButtonColor,
-                                        ),
-                                    modifier = Modifier.size(42.dp),
-                                ) {
-                                    Icon(
-                                        painter = painterResource(R.drawable.more_horiz),
-                                        contentDescription = null,
-                                        modifier = Modifier.size(24.dp),
-                                    )
-                                }
-                            } else {
-                                // For episodes, show saved state (inLibrary); for songs, show liked state
-                                val isEpisode = currentSong?.song?.isEpisode == true
-                                val isFavorite = if (isEpisode) currentSong?.song?.inLibrary != null else currentSong?.song?.liked == true
-                                FilledIconButton(
-                                    onClick = playerConnection::toggleLike,
-                                    shape = favShape,
-                                    colors =
-                                        IconButtonDefaults.filledIconButtonColors(
-                                            containerColor = textButtonColor,
-                                            contentColor = iconButtonColor,
-                                        ),
-                                    modifier = Modifier.size(42.dp),
-                                ) {
-                                    Icon(
-                                        painter =
-                                            painterResource(
-                                                if (isFavorite) {
-                                                    R.drawable.favorite
-                                                } else {
-                                                    R.drawable.favorite_border
-                                                },
-                                            ),
-                                        contentDescription = null,
-                                        modifier = Modifier.size(24.dp),
-                                    )
-                                }
-                            }
+                        } else {
+                            PlayerMoreMenuButton(
+                                mediaMetadata = mediaMetadata,
+                                state = state,
+                                textButtonColor = textButtonColor,
+                                iconButtonColor = iconButtonColor,
+                            )
                         }
                     }
                 } else {
@@ -1380,6 +1305,177 @@ fun BottomSheetPlayer(
                                 iconButtonColor = iconButtonColor,
                             )
                         }
+                    }
+                }
+            }
+
+            // JixOne 6: the modern action strip — animated like, add-to-playlist,
+            // download (state-aware), share. The signature Now-Playing row.
+            if (useNewPlayerDesign && !showInlineLyrics) {
+                Spacer(Modifier.height(14.dp))
+                val isEpisode = currentSong?.song?.isEpisode == true
+                val isFavorite =
+                    if (isEpisode) currentSong?.song?.inLibrary != null
+                    else currentSong?.song?.liked == true
+                val likeScale = remember { Animatable(1f) }
+                LaunchedEffect(isFavorite) {
+                    if (isFavorite) {
+                        likeScale.snapTo(0.55f)
+                        likeScale.animateTo(
+                            1f,
+                            spring(
+                                dampingRatio = Spring.DampingRatioMediumBouncy,
+                                stiffness = 600f,
+                            ),
+                        )
+                    }
+                }
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(18.dp, Alignment.CenterHorizontally),
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = PlayerHorizontalPadding),
+                ) {
+                    // Like — pops and turns red
+                    FilledIconButton(
+                        onClick = playerConnection::toggleLike,
+                        shape = RoundedCornerShape(50),
+                        colors =
+                            IconButtonDefaults.filledIconButtonColors(
+                                containerColor = textButtonColor,
+                                contentColor = iconButtonColor,
+                            ),
+                        modifier =
+                            Modifier
+                                .size(42.dp)
+                                .graphicsLayer {
+                                    scaleX = likeScale.value
+                                    scaleY = likeScale.value
+                                },
+                    ) {
+                        Icon(
+                            painter =
+                                painterResource(
+                                    if (isFavorite) R.drawable.favorite else R.drawable.favorite_border
+                                ),
+                            contentDescription = null,
+                            tint = if (isFavorite) MaterialTheme.colorScheme.error else iconButtonColor,
+                            modifier = Modifier.size(22.dp),
+                        )
+                    }
+
+                    // Add to playlist
+                    FilledIconButton(
+                        onClick = { showChoosePlaylistDialog = true },
+                        shape = RoundedCornerShape(50),
+                        colors =
+                            IconButtonDefaults.filledIconButtonColors(
+                                containerColor = textButtonColor,
+                                contentColor = iconButtonColor,
+                            ),
+                        modifier = Modifier.size(42.dp),
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.playlist_add),
+                            contentDescription = null,
+                            modifier = Modifier.size(22.dp),
+                        )
+                    }
+
+                    // Download — state-aware
+                    when (download?.state) {
+                        Download.STATE_COMPLETED -> {
+                            FilledIconButton(
+                                onClick = {
+                                    mediaMetadata?.let {
+                                        DownloadService.sendRemoveDownload(
+                                            context,
+                                            ExoDownloadService::class.java,
+                                            it.id,
+                                            false,
+                                        )
+                                    }
+                                },
+                                shape = RoundedCornerShape(50),
+                                colors =
+                                    IconButtonDefaults.filledIconButtonColors(
+                                        containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.28f),
+                                        contentColor = MaterialTheme.colorScheme.primary,
+                                    ),
+                                modifier = Modifier.size(42.dp),
+                            ) {
+                                Icon(
+                                    painter = painterResource(R.drawable.offline),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(22.dp),
+                                )
+                            }
+                        }
+
+                        Download.STATE_QUEUED, Download.STATE_DOWNLOADING -> {
+                            Box(
+                                contentAlignment = Alignment.Center,
+                                modifier = Modifier.size(42.dp),
+                            ) {
+                                CircularProgressIndicator(
+                                    strokeWidth = 2.5.dp,
+                                    modifier = Modifier.size(26.dp),
+                                )
+                            }
+                        }
+
+                        else -> {
+                            FilledIconButton(
+                                onClick = {
+                                    mediaMetadata?.let { downloadUtil.download(it) }
+                                },
+                                shape = RoundedCornerShape(50),
+                                colors =
+                                    IconButtonDefaults.filledIconButtonColors(
+                                        containerColor = textButtonColor,
+                                        contentColor = iconButtonColor,
+                                    ),
+                                modifier = Modifier.size(42.dp),
+                            ) {
+                                Icon(
+                                    painter = painterResource(R.drawable.download),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(22.dp),
+                                )
+                            }
+                        }
+                    }
+
+                    // Share
+                    FilledIconButton(
+                        onClick = {
+                            val intent =
+                                Intent().apply {
+                                    action = Intent.ACTION_SEND
+                                    type = "text/plain"
+                                    putExtra(
+                                        Intent.EXTRA_TEXT,
+                                        "https://music.youtube.com/watch?v=${mediaMetadata.id}",
+                                    )
+                                }
+                            context.startActivity(Intent.createChooser(intent, null))
+                        },
+                        shape = RoundedCornerShape(50),
+                        colors =
+                            IconButtonDefaults.filledIconButtonColors(
+                                containerColor = textButtonColor,
+                                contentColor = iconButtonColor,
+                            ),
+                        modifier = Modifier.size(42.dp),
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.share),
+                            contentDescription = null,
+                            modifier = Modifier.size(22.dp),
+                        )
                     }
                 }
             }
@@ -1638,6 +1734,9 @@ fun BottomSheetPlayer(
                             // primary -> tertiary gradient pill with a soft glow,
                             // replacing the flat white pill. Users who explicitly
                             // picked PRIMARY/TERTIARY button styles keep solids.
+                            // JixOne 6: the pill's ink follows the gradient's
+                            // luminance so it stays readable on light palettes
+                            // (OLED neutral, Dubai Sunset) as well as dark ones.
                             val playBrush =
                                 if (playerButtonsStyle == PlayerButtonsStyle.DEFAULT) {
                                     Brush.linearGradient(
@@ -1650,8 +1749,17 @@ fun BottomSheetPlayer(
                                     Brush.linearGradient(listOf(textButtonColor, textButtonColor))
                                 }
                             val playContentColor =
-                                if (playerButtonsStyle == PlayerButtonsStyle.DEFAULT) Color.White
-                                else iconButtonColor
+                                if (playerButtonsStyle == PlayerButtonsStyle.DEFAULT) {
+                                    val mid = lerp(
+                                        MaterialTheme.colorScheme.primary,
+                                        MaterialTheme.colorScheme.tertiary,
+                                        0.5f,
+                                    )
+                                    val lum = 0.2126f * mid.red + 0.7152f * mid.green + 0.0722f * mid.blue
+                                    if (lum > 0.6f) Color.Black else Color.White
+                                } else {
+                                    iconButtonColor
+                                }
 
                             Box(
                                 contentAlignment = Alignment.Center,
@@ -1749,6 +1857,76 @@ fun BottomSheetPlayer(
                                     modifier = Modifier.size(32.dp),
                                 )
                             }
+                        }
+
+                        // JixOne 6: the new bottom utility row — shuffle /
+                        // repeat / queue / sleep timer, the modern Now-Playing
+                        // strip under the transport controls.
+                        val shuffleModeEnabled by playerConnection.shuffleModeEnabled.collectAsStateWithLifecycle()
+
+                        Row(
+                            horizontalArrangement = Arrangement.SpaceEvenly,
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = PlayerHorizontalPadding + 8.dp),
+                        ) {
+                            ResizableIconButton(
+                                icon = R.drawable.shuffle,
+                                color = TextBackgroundColor,
+                                modifier =
+                                    Modifier
+                                        .size(28.dp)
+                                        .alpha(
+                                            when {
+                                                isListenTogetherGuest -> 0.5f
+                                                shuffleModeEnabled -> 1f
+                                                else -> 0.5f
+                                            },
+                                        ),
+                                enabled = !isListenTogetherGuest,
+                                onClick = {
+                                    playerConnection.player.shuffleModeEnabled = !shuffleModeEnabled
+                                },
+                            )
+
+                            ResizableIconButton(
+                                icon =
+                                    when (repeatMode) {
+                                        Player.REPEAT_MODE_OFF, Player.REPEAT_MODE_ALL -> R.drawable.jix_repeat
+                                        Player.REPEAT_MODE_ONE -> R.drawable.jix_repeat_one
+                                        else -> throw IllegalStateException()
+                                    },
+                                color = TextBackgroundColor,
+                                modifier =
+                                    Modifier
+                                        .size(28.dp)
+                                        .alpha(
+                                            if (isListenTogetherGuest || repeatMode == Player.REPEAT_MODE_OFF) 0.5f else 1f,
+                                        ),
+                                enabled = !isListenTogetherGuest,
+                                onClick = {
+                                    playerConnection.player.toggleRepeatMode()
+                                },
+                            )
+
+                            ResizableIconButton(
+                                icon = R.drawable.queue_music,
+                                color = TextBackgroundColor,
+                                modifier = Modifier.size(28.dp),
+                                onClick = { queueSheetState.expandSoft() },
+                            )
+
+                            ResizableIconButton(
+                                icon = R.drawable.bedtime,
+                                color = TextBackgroundColor,
+                                modifier =
+                                    Modifier
+                                        .size(28.dp)
+                                        .alpha(if (sleepTimerEnabled) 1f else 0.5f),
+                                onClick = { showSleepTimerDialog = true },
+                            )
                         }
                     } else {
                         Row(

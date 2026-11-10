@@ -49,6 +49,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
@@ -564,6 +565,13 @@ private fun ThumbnailItem(
         Box(
             modifier = Modifier
                 .size(dimensions.thumbnailSize)
+                // JixOne 6: the cover floats — a soft ambient shadow gives the
+                // big rounded artwork depth over the gradient/blur ground.
+                .shadow(
+                    elevation = 28.dp,
+                    shape = RoundedCornerShape(dimensions.cornerRadius),
+                    clip = false,
+                )
                 .clip(RoundedCornerShape(dimensions.cornerRadius))
         ) {
             if (hidePlayerThumbnail) {

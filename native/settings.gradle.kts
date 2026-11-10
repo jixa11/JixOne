@@ -5,6 +5,8 @@ val useMavenLocalInnerTubeX = providers.gradleProperty("useMavenLocalInnerTubeX"
 pluginManagement {
     repositories {
         mavenLocal()
+        maven { setUrl("https://maven.aliyun.com/repository/google") }
+        maven { setUrl("https://maven.aliyun.com/repository/public") }
         google()
         mavenCentral()
         gradlePluginPortal()

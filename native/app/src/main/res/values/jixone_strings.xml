@@ -1028,4 +1028,7 @@
     <string name="not_now">Not now</string>
     <string name="tap_to_play">Tap to open JixOne</string>
     <string name="playlist_label">Playlist</string>
+    <string name="explore_pick_artists_title">Make Explore yours</string>
+    <string name="explore_pick_artists_subtitle">Pick the artists you love — Explore shows only them and similar artists</string>
+    <string name="explore_pick_artists_button">Choose artists</string>
 </resources>

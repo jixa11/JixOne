@@ -6,10 +6,11 @@ plugins {
 
 buildscript {
     repositories {
+        maven { setUrl("https://maven.aliyun.com/repository/google") }
+        maven { setUrl("https://maven.aliyun.com/repository/public") }
+        maven { setUrl("https://jitpack.io") }
         google()
         mavenCentral()
-        maven { setUrl("https://jitpack.io") }
-        maven { setUrl("https://maven.aliyun.com/repository/public") }
     }
     dependencies {
         classpath(libs.gradle)

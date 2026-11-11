@@ -27,6 +27,18 @@ export function hasNativeAuth(): boolean {
   return typeof bridge()?.ytmAccount === 'function';
 }
 
+/** Optional admin token for helper servers that set JIXONE_ADMIN_TOKEN. */
+export const ADMIN_TOKEN_KEY = 'jixone-admin-token';
+
+function adminHeaders(): Record<string, string> {
+  try {
+    const t = window.localStorage.getItem(ADMIN_TOKEN_KEY);
+    return t ? { 'x-jixone-token': t } : {};
+  } catch {
+    return {};
+  }
+}
+
 let webCache: YTMSession | null = null;
 
 export async function ytmSessionWeb(): Promise<YTMSession> {
@@ -63,7 +75,7 @@ export function ytmLogin(): void {
 export function ytmLogout(): void {
   const b = bridge();
   if (typeof b?.ytmLogout === 'function') b.ytmLogout();
-  else if (typeof window !== 'undefined') fetch('/api/yt/auth', { method: 'DELETE' }).catch(() => { /* offline */ });
+  else if (typeof window !== 'undefined') fetch('/api/yt/auth', { method: 'DELETE', headers: adminHeaders() }).catch(() => { /* offline */ });
 }
 
 /** true when the build accepts a hand-pasted cookie (APK bridge or web) */
@@ -94,7 +106,7 @@ export async function ytmSetCookie(raw: string): Promise<PasteResult> {
     try {
       const r = await fetch('/api/yt/auth', {
         method: 'POST',
-        headers: { 'content-type': 'application/json' },
+        headers: { 'content-type': 'application/json', ...adminHeaders() },
         body: JSON.stringify({ cookie: raw }),
       });
       const d = await r.json();

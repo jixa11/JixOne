@@ -1,33 +1,23 @@
 package com.metrolist.music.utils
 
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
-import org.junit.runner.RunWith
-import org.robolectric.RobolectricTestRunner
 
-@RunWith(RobolectricTestRunner::class)
 class UpdaterTest {
     @Test
-    fun parsesKmpReleaseArtifact() {
-        val response =
-            """
-            {
-              "tag_name": "v1.2.3",
-              "body": null,
-              "published_at": "2026-09-05T12:00:00Z",
-              "assets": [{
-                "name": "Metrolist.apk",
-                "browser_download_url": "https://example.com/Metrolist.apk",
-                "size": 42
-              }]
-            }
-            """.trimIndent()
-        val release = checkNotNull(Updater.parseKmpRelease(response))
+    fun comparesVersionsNumerically() {
+        assertEquals(0, Updater.compareVersions("6.1.0", "6.1.0"))
+        assertEquals(1, Updater.compareVersions("6.10.0", "6.9.0"))
+        assertEquals(-1, Updater.compareVersions("6.1", "6.1.1"))
+        assertEquals(0, Updater.compareVersions("v6.1", "6.1.0"))
+    }
 
-        assertEquals("1.2.3", release.versionName)
-        assertEquals("", release.description)
-        assertEquals("https://example.com/Metrolist.apk", release.assets.single().downloadUrl)
-        assertNull(Updater.parseKmpRelease(response.replace("Metrolist.apk", "Metrolist-with-Google-Cast.apk")))
+    @Test
+    fun offersOnlyNewerVersions() {
+        assertTrue(Updater.isUpdateAvailable(currentVersion = "6.1.0", latestVersion = "6.2.0"))
+        assertFalse(Updater.isUpdateAvailable(currentVersion = "6.1.0", latestVersion = "6.1.0"))
+        assertFalse(Updater.isUpdateAvailable(currentVersion = "6.1.0", latestVersion = "6.0.9"))
     }
 }

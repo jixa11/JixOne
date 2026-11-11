@@ -13,23 +13,32 @@
 
 package com.metrolist.music.viewmodels
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.metrolist.innertube.YouTube
 import com.metrolist.innertube.YouTube.SearchFilter
 import com.metrolist.innertube.models.ArtistItem
+import com.metrolist.music.constants.ArtistOnboardingCompletedKey
 import com.metrolist.music.db.MusicDatabase
 import com.metrolist.music.db.entities.ArtistEntity
 import com.metrolist.music.ui.screens.onboarding.OnboardingSeedArtists
 import com.metrolist.music.ui.screens.onboarding.SeedArtist
 import com.metrolist.music.utils.SyncUtils
+import com.metrolist.music.utils.safeDataStoreEdit
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.withContext
+import timber.log.Timber
 import java.time.LocalDateTime
 import javax.inject.Inject
 
@@ -60,6 +69,7 @@ data class OnboardingUiState(
 class OnboardingViewModel
     @Inject
     constructor(
+        @ApplicationContext private val context: Context,
         private val database: MusicDatabase,
         private val syncUtils: SyncUtils,
     ) : ViewModel() {
@@ -81,6 +91,9 @@ class OnboardingViewModel
 
         private val queryFlow = MutableStateFlow("")
         private var searchJob: Job? = null
+
+        /** Similar-artist fetches still in flight (drives the loading flag). */
+        private var pendingSimilarFetches = 0
 
         init {
             rebuildPool()
@@ -111,6 +124,7 @@ class OnboardingViewModel
                 rebuildPool()
             } else {
                 selected.add(artist)
+                pendingSimilarFetches++
                 _uiState.value = _uiState.value.copy(selected = selected, loading = true)
                 fetchSimilar(artist)
             }
@@ -141,11 +155,16 @@ class OnboardingViewModel
                                 )
                         }
                     }
+                } catch (e: CancellationException) {
+                    throw e
                 } catch (_: Exception) {
                     // Network hiccup: the pool simply keeps what it has.
                 } finally {
+                    pendingSimilarFetches--
                     rebuildPool()
-                    _uiState.value = _uiState.value.copy(loading = false)
+                    if (pendingSimilarFetches <= 0 && searchJob?.isActive != true) {
+                        _uiState.value = _uiState.value.copy(loading = false)
+                    }
                 }
             }
         }
@@ -214,59 +233,69 @@ class OnboardingViewModel
                                 .orEmpty()
                                 .map { OnboardingArtist(it.id, it.title, it.thumbnail, genre = null) }
                         _uiState.value = _uiState.value.copy(searchResults = results)
+                    } catch (e: CancellationException) {
+                        // A newer search replaced this one; it owns the loading flag.
+                        throw e
                     } catch (_: Exception) {
                         _uiState.value = _uiState.value.copy(searchResults = emptyList())
-                    } finally {
-                        _uiState.value = _uiState.value.copy(loading = false)
-                        applyVisibility()
                     }
+                    _uiState.value = _uiState.value.copy(loading = pendingSimilarFetches > 0)
+                    applyVisibility()
                 }
         }
 
         /**
-         * Persist the picks: bookmark every selected artist locally and sync
-         * the subscription to the signed-in YouTube Music account (no-op
-         * when signed out — handled inside SyncUtils). Reports how many
-         * artists were saved.
+         * Persist the picks and mark the onboarding as finished, then report
+         * how many artists were saved.
+         *
+         * Everything runs off the main thread: the Room insert/update calls
+         * are blocking DAO methods, and on the main thread they threw (and the
+         * catch below swallowed it), so no pick was ever stored. The work is
+         * also non-cancellable, because "Done" navigates away immediately and
+         * a cancelled write is what made the onboarding come back on every
+         * launch.
          */
         fun saveSelections(onSaved: (Int) -> Unit) {
             val selected = _uiState.value.selected
-            if (selected.isEmpty()) {
-                onSaved(0)
-                return
-            }
             viewModelScope.launch {
-                var saved = 0
-                selected.forEach { artist ->
-                    try {
-                        val existing = database.artistEntity(artist.id)
-                        if (existing != null) {
-                            if (existing.bookmarkedAt == null) {
-                                database.update(
-                                    existing.copy(
-                                        name = artist.name,
-                                        thumbnailUrl = artist.thumbnail ?: existing.thumbnailUrl,
-                                        bookmarkedAt = LocalDateTime.now(),
-                                    ),
-                                )
+                val saved =
+                    withContext(NonCancellable + Dispatchers.IO) {
+                        var count = 0
+                        // Distinct, increasing timestamps keep the selection order.
+                        val now = LocalDateTime.now()
+                        selected.forEachIndexed { index, artist ->
+                            try {
+                                val bookmarkedAt = now.plusNanos(index * 1_000_000L)
+                                val existing = database.artistEntity(artist.id)
+                                if (existing == null) {
+                                    database.insert(
+                                        ArtistEntity(
+                                            id = artist.id,
+                                            name = artist.name,
+                                            thumbnailUrl = artist.thumbnail,
+                                            channelId = artist.id,
+                                            bookmarkedAt = bookmarkedAt,
+                                        ),
+                                    )
+                                } else if (existing.bookmarkedAt == null) {
+                                    database.update(
+                                        existing.copy(
+                                            name = artist.name,
+                                            thumbnailUrl = artist.thumbnail ?: existing.thumbnailUrl,
+                                            bookmarkedAt = bookmarkedAt,
+                                        ),
+                                    )
+                                }
+                                syncUtils.subscribeChannel(artist.id, true)
+                                count++
+                            } catch (e: Exception) {
+                                // Keep going: one failure must not lose the rest.
+                                Timber.e(e, "Onboarding: failed to save artist %s", artist.id)
                             }
-                        } else {
-                            database.insert(
-                                ArtistEntity(
-                                    id = artist.id,
-                                    name = artist.name,
-                                    thumbnailUrl = artist.thumbnail,
-                                    channelId = artist.id,
-                                    bookmarkedAt = LocalDateTime.now(),
-                                ),
-                            )
                         }
-                        syncUtils.subscribeChannel(artist.id, true)
-                        saved++
-                    } catch (_: Exception) {
-                        // Keep going: one failure must not lose the rest.
+                        context.safeDataStoreEdit { it[ArtistOnboardingCompletedKey] = true }
+                        count
                     }
-                }
                 onSaved(saved)
             }
         }

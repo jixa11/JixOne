@@ -1,8 +1,8 @@
 name: Native APK (JixOne)
 
 # Builds the native (Metrolist-based) JixOne Android app.
-# Trigger: push a tag starting with "n" (e.g. n2.0.0), a push to the
-# native-outertune branch (compile test), or run manually from main.
+# Trigger: push a tag starting with "n" (e.g. n2.0.0), a push or pull
+# request that touches native/ (compile test), or run manually.
 # The in-app updater reads releases whose tag starts with "n" from
 # jixa11/JixOne and expects assets named JixOne-<version>-<abi>.apk plus
 # JixOne-<version>-universal.apk (any JixOne-*.apk without an ABI suffix is
@@ -10,10 +10,22 @@ name: Native APK (JixOne)
 on:
   push:
     branches:
-      - native-outertune
+      - main
+      - 'claude/**'
     tags:
       - 'n*'
+    paths:
+      - 'native/**'
+      - '.github/workflows/native-release.yml'
+  pull_request:
+    paths:
+      - 'native/**'
+      - '.github/workflows/native-release.yml'
   workflow_dispatch:
+
+concurrency:
+  group: native-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref_type != 'tag' }}
 
 permissions:
   contents: write
@@ -48,8 +60,9 @@ jobs:
               -dname "CN=Android Debug,O=Android,C=US"
           fi
 
-      # Optional project signing key — same secret the WebView releases use.
-      # Without it the release APK falls back to the debug key.
+      # Project signing key — same secret the WebView releases use. Compile
+      # test runs fall back to the debug key; a tagged release must not: a
+      # debug-signed build cannot install over the previous version.
       - name: Restore the signing key
         env:
           KEYSTORE_B64: ${{ secrets.JIXONE_KEYSTORE_B64 }}
@@ -57,6 +70,9 @@ jobs:
           if [ -n "$KEYSTORE_B64" ]; then
             echo "$KEYSTORE_B64" | base64 -d > ../android/jixone.keystore
             echo "signing with the project key"
+          elif [ "$GITHUB_REF_TYPE" = "tag" ]; then
+            echo "::error::JIXONE_KEYSTORE_B64 is not set — refusing to publish a debug-signed release"
+            exit 1
           else
             echo "no JIXONE_KEYSTORE_B64 secret — falling back to the debug key"
           fi
@@ -70,6 +86,12 @@ jobs:
           JIXONE_KEY_PASSWORD: ${{ secrets.JIXONE_KEY_PASSWORD }}
           JIXONE_KEY_ALIAS: jixone
         run: ./gradlew --console=plain assembleGmsRelease --warning-mode summary
+
+      # Not on tags yet: the suite never ran in CI before, so it must prove
+      # itself on branch builds before it is allowed to block a release.
+      - name: Unit tests
+        if: github.ref_type != 'tag'
+        run: ./gradlew --console=plain testGmsDebugUnitTest --warning-mode summary
 
       - name: Collect APKs
         run: |

@@ -50,7 +50,10 @@ import com.metrolist.music.utils.get
 import com.metrolist.music.utils.reportException
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -141,35 +144,48 @@ class HomeViewModel @Inject constructor(
         onboardingArtists.value = picked
 
         val pickedIds = picked.map { it.id }.toSet()
-        val similar = LinkedHashMap<String, ArtistItem>()
+        // Shelves come from the most recent picks, so an artist bookmarked
+        // later is not shadowed forever by the first eight.
+        val shelfArtists = picked.takeLast(MAX_ARTIST_SHELVES)
+        // Same order for the whole day: a refresh must not reshuffle the page.
+        val daySeed = LocalDate.now().toEpochDay()
 
-        val recommendations = picked.take(8).mapNotNull { artist ->
-            val items = mutableListOf<YTItem>()
-            try {
-                YouTube.artist(artist.id).onSuccess { page ->
-                    page.sections.takeLast(3).forEach { section -> items += section.items }
-                    page.sections
-                        .firstNotNullOfOrNull { section ->
-                            section.items.filterIsInstance<ArtistItem>().takeIf { it.isNotEmpty() }
-                        }
-                        ?.forEach { item ->
-                            if (item.id !in pickedIds) similar.putIfAbsent(item.id, item)
-                        }
+        val pages = coroutineScope {
+            shelfArtists.map { artist ->
+                async {
+                    // YouTube.artist wraps failures in a Result, so one
+                    // artist's failure cannot lose the rest.
+                    artist to YouTube.artist(artist.id).getOrNull()
                 }
-            } catch (_: Exception) {
-                // One artist's failure must not lose the rest.
-            }
+            }.awaitAll()
+        }
+
+        val similar = LinkedHashMap<String, ArtistItem>()
+        val recommendations = pages.mapNotNull { (artist, page) ->
+            page ?: return@mapNotNull null
+            page.sections
+                .firstNotNullOfOrNull { section ->
+                    section.items.filterIsInstance<ArtistItem>().takeIf { it.isNotEmpty() }
+                }
+                ?.forEach { item ->
+                    if (item.id !in pickedIds) similar.putIfAbsent(item.id, item)
+                }
             SimilarRecommendation(
                 title = artist,
-                items = items
+                items = page.sections.takeLast(3).flatMap { it.items }
                     .distinctBy { it.id }
                     .filterExplicit(hideExplicit)
                     .filterVideoSongs(hideVideoSongs)
-                    .shuffled()
+                    .shuffled(Random(daySeed xor artist.id.hashCode().toLong()))
                     .take(12)
                     .ifEmpty { return@mapNotNull null },
             )
         }
+
+        // Every fetch failed (offline start): keep whatever is on screen and
+        // let the next refresh / reconnect try again.
+        val allFailed = pages.all { it.second == null }
+        if (allFailed && !onboardingRecommendations.value.isNullOrEmpty()) return
 
         onboardingRecommendations.value = recommendations
         onboardingSimilarArtists.value = similar.values.toList().take(20)
@@ -178,25 +194,34 @@ class HomeViewModel @Inject constructor(
         allYtItems.value = recommendations.flatMap { it.items } + similar.values.toList()
     }
 
+    /** Bumped by [refresh] to re-run the personalized fetches on demand. */
+    private val personalizationReload = MutableStateFlow(0)
+
     /**
-     * JixOne: keep the Explore personalization in sync with the onboarding
-     * picks (stored as bookmarked artists). A one-shot load raced the
-     * first-run onboarding — the picks are saved only after "Done" — so the
-     * personalized sections stayed hidden until an app restart. Watching the
-     * bookmarked-artists flow makes the sections appear the moment the picks
-     * land in the database, and keeps them in sync when artists are
-     * bookmarked/un-bookmarked later. Only a change in the picked ID set
-     * triggers the heavy per-artist fetches.
+     * JixOne: keep the Explore personalization in sync with the picked
+     * artists (stored as bookmarked artists). Watching the flow makes the
+     * sections appear the moment the picks land in the database. The heavy
+     * per-artist fetches re-run when the picked ID set changes, when the
+     * content filters change, and on every refresh — the last one is what
+     * recovers from an offline start once the network is back.
      */
     private fun startOnboardingWatcher() {
         viewModelScope.launch(Dispatchers.IO) {
-            database.artistsBookmarkedByCreateDateAsc()
+            val pickedIds = database.artistsBookmarkedByCreateDateAsc()
                 .map { artists -> artists.filter { it.artist.isYouTubeArtist }.map { it.id } }
                 .distinctUntilChanged()
-                .collectLatest {
-                    val hideExplicit = context.dataStore.get(HideExplicitKey, false)
-                    val hideVideoSongs = context.dataStore.get(HideVideoSongsKey, false)
-                    getOnboardingRecommendations(hideExplicit, hideVideoSongs)
+            val filters = context.dataStore.data
+                .map { (it[HideExplicitKey] ?: false) to (it[HideVideoSongsKey] ?: false) }
+                .distinctUntilChanged()
+            combine(pickedIds, filters, personalizationReload) { _, f, _ -> f }
+                .collectLatest { (hideExplicit, hideVideoSongs) ->
+                    try {
+                        getOnboardingRecommendations(hideExplicit, hideVideoSongs)
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (e: Exception) {
+                        reportException(e)
+                    }
                 }
         }
     }
@@ -247,9 +272,13 @@ class HomeViewModel @Inject constructor(
     fun refresh() {
         if (isRefreshing.value) return
         isRefreshing.value = true
+        personalizationReload.value++
         viewModelScope.launch(Dispatchers.IO) {
-            load()
-            isRefreshing.value = false
+            try {
+                load()
+            } finally {
+                isRefreshing.value = false
+            }
         }
         // Run sync when user manually refreshes
         viewModelScope.launch(Dispatchers.IO) {
@@ -321,6 +350,10 @@ class HomeViewModel @Inject constructor(
     }
 
     private var isHomeDataLoaded = false
+
+    private companion object {
+        const val MAX_ARTIST_SHELVES = 8
+    }
 
     fun loadHomeData() {
         if (isHomeDataLoaded) return

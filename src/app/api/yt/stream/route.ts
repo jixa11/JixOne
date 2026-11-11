@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server';
 import { getStream } from '@/lib/yt-server';
+import { isVideoId, withinRateLimit } from '@/lib/api-guard';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -148,6 +149,9 @@ export async function GET(req: NextRequest) {
   const q = Q_INDEX[searchParams.get('q') ?? 'high'] ?? 0;
   const fresh = searchParams.get('fresh') === '1';
   if (!id) return json({ ok: false, error: 'missing id' }, 400);
+  if (!isVideoId(id)) return json({ ok: false, error: 'bad id' }, 400);
+  // Each call costs an extraction plus a proxied download: cap per client.
+  if (!withinRateLimit(req, 'stream', 120)) return json({ ok: false, error: 'RATE_LIMITED' }, 429);
 
   let meta: Meta;
   try {

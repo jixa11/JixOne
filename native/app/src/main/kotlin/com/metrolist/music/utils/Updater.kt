@@ -10,6 +10,7 @@ import com.metrolist.music.BuildConfig
 import io.ktor.client.HttpClient
 import io.ktor.client.request.get
 import io.ktor.client.statement.bodyAsText
+import io.ktor.http.isSuccess
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
@@ -41,6 +42,21 @@ object Updater {
     
     private const val CHECK_INTERVAL_MILLIS = 2 * 60 * 60 * 1000L // 2 hours
     private const val GITHUB_API_BASE = "https://api.github.com/repos/jixa11/JixOne"
+
+    /** A release the updater may offer: published, stable, native ("n" tag). */
+    private fun isNativeRelease(obj: JSONObject): Boolean =
+        obj.optString("tag_name").startsWith("n") &&
+            !obj.optBoolean("draft") &&
+            !obj.optBoolean("prerelease")
+
+    /** GET a GitHub API page; a non-2xx answer (rate limit, outage) is an error. */
+    private suspend fun fetchReleasesPage(query: String): JSONArray {
+        val response = client.get("$GITHUB_API_BASE/releases?$query")
+        if (!response.status.isSuccess()) {
+            throw IllegalStateException("GitHub API answered ${response.status.value}")
+        }
+        return JSONArray(response.bodyAsText())
+    }
 
     /**
      * Compares two version strings.
@@ -141,14 +157,16 @@ object Updater {
                     return@runCatching cachedReleaseInfo!!
                 }
 
-                val response = client.get("$GITHUB_API_BASE/releases?per_page=30")
-                    .bodyAsText()
-                val releases = JSONArray(response)
+                // Count failed attempts too, so a rate-limited or offline
+                // check is not retried on every screen visit.
+                lastCheckTime = System.currentTimeMillis()
+
+                val releases = fetchReleasesPage("per_page=30")
 
                 var latest: JSONObject? = null
                 for (i in 0 until releases.length()) {
                     val obj = releases.getJSONObject(i)
-                    if (obj.optString("tag_name").startsWith("n")) {
+                    if (isNativeRelease(obj)) {
                         latest = obj
                         break
                     }
@@ -166,7 +184,6 @@ object Updater {
                 )
 
                 cachedReleaseInfo = releaseInfo
-                lastCheckTime = System.currentTimeMillis()
                 releaseInfo
             }
         }
@@ -186,9 +203,7 @@ object Updater {
                 var hasMore = true
                 
                 while (hasMore && page <= 10) { // Limit to 10 pages
-                    val response = client.get("$GITHUB_API_BASE/releases?page=$page&per_page=30")
-                        .bodyAsText()
-                    val json = JSONArray(response)
+                    val json = fetchReleasesPage("page=$page&per_page=30")
                     
                     if (json.length() == 0) {
                         hasMore = false
@@ -197,11 +212,18 @@ object Updater {
                     
                     for (i in 0 until json.length()) {
                         val releaseObj = json.getJSONObject(i)
+                        // The changelog is for the native app only: skip the
+                        // web-app era "v*" releases, drafts and prereleases.
+                        if (!isNativeRelease(releaseObj)) continue
+                        val tag = releaseObj.getString("tag_name")
                         releases.add(ReleaseInfo(
-                            tagName = releaseObj.getString("tag_name"),
-                            versionName = releaseObj.getString("name"),
-                            description = releaseObj.getString("body"),
-                            releaseDate = releaseObj.getString("published_at"),
+                            tagName = tag,
+                            versionName = releaseObj.optString("name")
+                                .takeUnless { releaseObj.isNull("name") || it.isBlank() }
+                                ?: tag.removePrefix("n"),
+                            description = releaseObj.optString("body")
+                                .takeUnless { releaseObj.isNull("body") }.orEmpty(),
+                            releaseDate = releaseObj.optString("published_at"),
                             assets = parseAssets(releaseObj.getJSONArray("assets"))
                         ))
                     }
@@ -245,7 +267,10 @@ object Updater {
                     )
                     return@runCatching cachedReleaseInfo!! to hasUpdate
                 }
-                
+                // The last attempt failed recently: wait out the interval
+                // instead of hammering the API.
+                if (!shouldFetch) return@runCatching null to false
+
                 val result = getLatestRelease(forceRefresh = true)
                 if (result.isSuccess) {
                     val releaseInfo = result.getOrThrow()

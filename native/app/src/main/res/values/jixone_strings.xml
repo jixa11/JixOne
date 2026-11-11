@@ -1032,4 +1032,8 @@
     <string name="explore_pick_artists_subtitle">Pick the artists you love — Explore shows only them and similar artists</string>
     <string name="explore_pick_artists_button">Choose artists</string>
     <string name="settings_brand_tagline">Made for your music</string>
+    <string name="jix_hero_title">Your mix</string>
+    <string name="jix_greeting_morning">Good morning</string>
+    <string name="jix_greeting_afternoon">Good afternoon</string>
+    <string name="jix_greeting_evening">Good evening</string>
 </resources>

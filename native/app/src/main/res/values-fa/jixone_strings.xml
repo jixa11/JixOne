@@ -232,4 +232,8 @@
     <string name="explore_pick_artists_subtitle">آرتیست‌های موردعلاقه‌ات رو انتخاب کن — اکسپلور فقط اون‌ها و مشابه‌هاشون رو نشون میده</string>
     <string name="explore_pick_artists_button">انتخاب آرتیست‌ها</string>
     <string name="settings_brand_tagline">ساخته‌شده برای موسیقی تو</string>
+    <string name="jix_hero_title">میکس تو</string>
+    <string name="jix_greeting_morning">صبح بخیر</string>
+    <string name="jix_greeting_afternoon">عصر بخیر</string>
+    <string name="jix_greeting_evening">شب بخیر</string>
 </resources>

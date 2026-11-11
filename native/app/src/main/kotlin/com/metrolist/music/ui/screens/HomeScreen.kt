@@ -85,6 +85,7 @@ import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -147,6 +148,9 @@ import com.metrolist.music.ui.component.SongGridItem
 import com.metrolist.music.ui.component.SongListItem
 import com.metrolist.music.ui.component.SpeedDialGridItem
 import com.metrolist.music.ui.component.YouTubeGridItem
+import com.metrolist.music.ui.jix.JixHeroCard
+import com.metrolist.music.ui.jix.JixMediaCard
+import com.metrolist.music.ui.jix.JixSectionHeader
 import com.metrolist.music.ui.component.YouTubeListItem
 import com.metrolist.music.ui.component.shimmer.GridItemPlaceHolder
 import com.metrolist.music.ui.component.shimmer.ShimmerHost
@@ -279,12 +283,10 @@ fun HomeScreen(
 
 
     val ytGridItem: @Composable (YTItem) -> Unit = { item ->
-        YouTubeGridItem(
+        JixMediaCard(
             item = item,
             isActive = item.id in listOf(mediaMetadata?.album?.id, mediaMetadata?.id),
             isPlaying = isPlaying,
-            coroutineScope = scope,
-            thumbnailRatio = 1f,
             modifier =
                 Modifier
                     .combinedClickable(
@@ -392,6 +394,20 @@ fun HomeScreen(
         )
     }
 
+    val heroSongs = remember(allYtItems) { allYtItems.filterIsInstance<SongItem>() }
+    val heroArtistNames =
+        remember(onboardingArtists) {
+            onboardingArtists.orEmpty().takeLast(3).reversed().joinToString(" • ") { it.artist.name }
+        }
+    val greetingRes =
+        remember {
+            when (java.time.LocalTime.now().hour) {
+                in 5..11 -> R.string.jix_greeting_morning
+                in 12..17 -> R.string.jix_greeting_afternoon
+                else -> R.string.jix_greeting_evening
+            }
+        }
+
     // JixOne 6: Explore shows the onboarding picks — their shelves and
     // similar artists — plus the Mood & Genres grid for manual browsing.
     // The generic YouTube home feed is gone for good.
@@ -437,43 +453,52 @@ fun HomeScreen(
                 contentPadding = LocalPlayerAwareWindowInsets.current.asPaddingValues(),
             ) {
                 item(key = "jixone_header") {
-                    // Web ExploreView header (src/components/views/ExploreView.tsx):
-                    // the Compass icon in the theme accent + the big black
-                    // "Explore" title + its subtitle — the landing identity of
-                    // the web app, on the native engine.
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
+                    // Greeting header: time-of-day line in the accent color,
+                    // the listener's name (or the page title) in heavy type.
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(
-                                start = 20.dp,
-                                end = 20.dp,
-                                top = 14.dp,
-                            ),
+                            .padding(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 4.dp),
                     ) {
-                        Icon(
-                            painter = painterResource(R.drawable.jix_compass),
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier
-                                .size(28.dp)
-                                .padding(1.dp),
+                        Text(
+                            text = stringResource(greetingRes).uppercase(),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 1.4.sp,
+                            color = MaterialTheme.colorScheme.primary,
                         )
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Column {
-                            Text(
-                                text = stringResource(R.string.explore),
-                                style = TextStyle(
-                                    fontSize = 30.sp,
-                                    fontWeight = FontWeight.Black,
-                                ),
-                            )
-                            Text(
-                                text = stringResource(R.string.explore_sub),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
+                        Text(
+                            text = if (isLoggedIn && accountName.isNotBlank() && accountName != "Guest") {
+                                accountName
+                            } else {
+                                stringResource(R.string.explore)
+                            },
+                            style = TextStyle(
+                                fontSize = 34.sp,
+                                fontWeight = FontWeight.Black,
+                            ),
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
+                // Hero: one tap starts a radio seeded from the listener's picks.
+                if (heroSongs.isNotEmpty()) {
+                    item(key = "jixone_hero") {
+                        JixHeroCard(
+                            eyebrow = stringResource(R.string.from_your_picks),
+                            title = stringResource(R.string.jix_hero_title),
+                            subtitle = heroArtistNames,
+                            artistImages = onboardingArtists.orEmpty().takeLast(4).map { it.artist.thumbnailUrl },
+                            onPlay = {
+                                if (!isListenTogetherGuest) {
+                                    playerConnection.playQueue(
+                                        YouTubeQueue.radio(heroSongs.random().toMediaMetadata()),
+                                    )
+                                }
+                            },
+                        )
                     }
                 }
                 // JixOne 6: no artists picked yet? Explore leads with the
@@ -552,9 +577,9 @@ fun HomeScreen(
                             val artists = onboardingArtists
                             if (!artists.isNullOrEmpty()) {
                                 item(key = "your_artists_title") {
-                                    NavigationTitle(
+                                    JixSectionHeader(
                                         title = stringResource(R.string.your_artists),
-                                        label = stringResource(R.string.from_your_picks),
+                                        onClick = { navController.navigate("onboarding") },
                                     )
                                 }
                                 item(key = "your_artists_list") {
@@ -584,27 +609,16 @@ fun HomeScreen(
                             val recommendation = onboardingRecommendations?.getOrNull(section.index)
                             recommendation?.let {
                                 item(key = "from_your_artist_title_${section.index}") {
-                                    NavigationTitle(
-                                        label = stringResource(R.string.from_your_picks),
+                                    JixSectionHeader(
+                                        eyebrow = stringResource(R.string.from_your_picks),
                                         title = recommendation.title.title,
-                                        thumbnail =
-                                            recommendation.title.thumbnailUrl?.let { thumbnailUrl ->
-                                                {
-                                                    AsyncImage(
-                                                        model = thumbnailUrl,
-                                                        contentDescription = null,
-                                                        modifier =
-                                                            Modifier
-                                                                .size(ListThumbnailSize)
-                                                                .clip(CircleShape),
-                                                    )
-                                                }
-                                            },
-                                        onClick = {
+                                        thumbnailUrl = recommendation.title.thumbnailUrl,
+                                        onClick =
                                             if (recommendation.title is Artist) {
-                                                navController.navigate("artist/${recommendation.title.id}")
-                                            }
-                                        },
+                                                { navController.navigate("artist/${recommendation.title.id}") }
+                                            } else {
+                                                null
+                                            },
                                     )
                                 }
                                 item(key = "from_your_artist_list_${section.index}") {
@@ -626,9 +640,8 @@ fun HomeScreen(
                             val similar = onboardingSimilarArtists
                             if (!similar.isNullOrEmpty()) {
                                 item(key = "similar_artists_title") {
-                                    NavigationTitle(
+                                    JixSectionHeader(
                                         title = stringResource(R.string.similar_to_your_picks),
-                                        label = stringResource(R.string.from_your_picks),
                                     )
                                 }
                                 item(key = "similar_artists_list") {
@@ -649,7 +662,7 @@ fun HomeScreen(
                         HomeSection.MoodAndGenres -> {
                             explorePage?.moodAndGenres?.let { moodAndGenres ->
                                 item(key = "mood_and_genres_title") {
-                                    NavigationTitle(
+                                    JixSectionHeader(
                                         title = stringResource(R.string.mood_and_genres),
                                         onClick = {
                                             navController.navigate("mood_and_genres")

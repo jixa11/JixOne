@@ -455,3 +455,81 @@ fun JixHeroCard(
         }
     }
 }
+
+/** A round translucent icon button for use over artwork or blurred grounds. */
+@Composable
+fun JixGlassIconButton(
+    icon: Int,
+    tint: Color,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    size: Dp = 48.dp,
+    iconSize: Dp = 24.dp,
+    enabled: Boolean = true,
+) {
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier =
+            modifier
+                .size(size)
+                .clip(CircleShape)
+                .background(tint.copy(alpha = 0.14f))
+                .border(1.dp, tint.copy(alpha = 0.18f), CircleShape)
+                .clickable(enabled = enabled, onClick = onClick),
+    ) {
+        Icon(
+            painter = painterResource(icon),
+            contentDescription = null,
+            tint = tint.copy(alpha = if (enabled) 1f else 0.4f),
+            modifier = Modifier.size(iconSize),
+        )
+    }
+}
+
+/**
+ * A player transport button. [filled] gives it a soft disc (previous / next);
+ * [active] fills it solid to show a toggle is on (shuffle / repeat).
+ */
+@Composable
+fun JixTransportButton(
+    icon: Int,
+    tint: Color,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    size: Dp = 48.dp,
+    iconSize: Dp = 24.dp,
+    filled: Boolean = false,
+    active: Boolean = false,
+    activeContainer: Color = tint,
+    activeTint: Color = Color.Black,
+    enabled: Boolean = true,
+) {
+    val container =
+        when {
+            active -> activeContainer
+            filled -> tint.copy(alpha = 0.14f)
+            else -> Color.Transparent
+        }
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier =
+            modifier
+                .size(size)
+                .clip(CircleShape)
+                .background(container)
+                .clickable(enabled = enabled, onClick = onClick),
+    ) {
+        Icon(
+            painter = painterResource(icon),
+            contentDescription = null,
+            tint =
+                when {
+                    !enabled -> tint.copy(alpha = 0.35f)
+                    active -> activeTint
+                    filled -> tint
+                    else -> tint.copy(alpha = 0.7f)
+                },
+            modifier = Modifier.size(iconSize),
+        )
+    }
+}

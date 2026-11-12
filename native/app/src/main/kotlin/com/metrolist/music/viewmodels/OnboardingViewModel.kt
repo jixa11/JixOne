@@ -20,6 +20,7 @@ import com.metrolist.innertube.YouTube
 import com.metrolist.innertube.YouTube.SearchFilter
 import com.metrolist.innertube.models.ArtistItem
 import com.metrolist.music.constants.ArtistOnboardingCompletedKey
+import com.metrolist.music.constants.OnboardingArtistGenresKey
 import com.metrolist.music.db.MusicDatabase
 import com.metrolist.music.db.entities.ArtistEntity
 import com.metrolist.music.ui.screens.onboarding.OnboardingSeedArtists
@@ -293,10 +294,29 @@ class OnboardingViewModel
                                 Timber.e(e, "Onboarding: failed to save artist %s", artist.id)
                             }
                         }
-                        context.safeDataStoreEdit { it[ArtistOnboardingCompletedKey] = true }
+                        context.safeDataStoreEdit { prefs ->
+                            prefs[ArtistOnboardingCompletedKey] = true
+                            // Explore groups its shelves by genre, so keep each pick's genre.
+                            val genres = decodeArtistGenres(prefs[OnboardingArtistGenresKey])
+                            selected.forEach { artist -> artist.genre?.let { genres[artist.id] = it } }
+                            prefs[OnboardingArtistGenresKey] = encodeArtistGenres(genres)
+                        }
                         count
                     }
                 onSaved(saved)
             }
         }
     }
+
+/** Parses the stored "id=genre;id=genre" list. */
+fun decodeArtistGenres(raw: String?): MutableMap<String, String> {
+    val map = LinkedHashMap<String, String>()
+    raw?.split(';')?.forEach { pair ->
+        val index = pair.indexOf('=')
+        if (index > 0 && index < pair.length - 1) map[pair.substring(0, index)] = pair.substring(index + 1)
+    }
+    return map
+}
+
+fun encodeArtistGenres(genres: Map<String, String>): String =
+    genres.entries.joinToString(";") { "${it.key}=${it.value}" }

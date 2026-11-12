@@ -5,6 +5,13 @@
 
 package com.metrolist.music.ui.screens.library
 
+import androidx.compose.foundation.border
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.layout.offset
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.horizontalScroll
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -403,26 +410,24 @@ fun LibraryMixScreen(
                         filterContent()
                     }
 
-                    item(
-                        key = "header",
-                        contentType = CONTENT_TYPE_HEADER,
-                    ) {
-                        headerContent()
-                    }
-
-                    // JixOne web LibraryView quick cards — New playlist / Liked /
-                    // Recently played / Downloads, above the library content
                     if (normalizedQuery.isBlank()) {
                         item(
                             key = "jix_quick_cards",
                             contentType = CONTENT_TYPE_HEADER,
                         ) {
-                            JixLibraryQuickCards(
+                            JixLibraryShortcuts(
                                 navController = navController,
                                 topSize = topSize,
                                 onCreatePlaylist = { showCreatePlaylistDialog = true },
                             )
                         }
+                    }
+
+                    item(
+                        key = "header",
+                        contentType = CONTENT_TYPE_HEADER,
+                    ) {
+                        headerContent()
                     }
 
                     items(
@@ -645,103 +650,28 @@ fun LibraryMixScreen(
                         filterContent()
                     }
 
+                    // The shortcuts are one full-width block, so the collection
+                    // grid below always starts on a fresh row.
+                    if (normalizedQuery.isBlank()) {
+                        item(
+                            key = "jix_quick_cards",
+                            span = { GridItemSpan(maxLineSpan) },
+                            contentType = CONTENT_TYPE_HEADER,
+                        ) {
+                            JixLibraryShortcuts(
+                                navController = navController,
+                                topSize = topSize,
+                                onCreatePlaylist = { showCreatePlaylistDialog = true },
+                            )
+                        }
+                    }
+
                     item(
                         key = "header",
                         span = { GridItemSpan(maxLineSpan) },
                         contentType = CONTENT_TYPE_HEADER,
                     ) {
                         headerContent()
-                    }
-
-                    // JixOne web LibraryView quick cards — flow as individual
-                    // grid cells: 2x2 on phones, 4-across on tablets (the web's
-                    // grid-cols-2 / sm:grid-cols-4 behaviour)
-                    if (normalizedQuery.isBlank()) {
-                        item(key = "jix_quick_new", contentType = CONTENT_TYPE_HEADER) {
-                            JixQuickCard(
-                                label = stringResource(R.string.new_playlist),
-                                icon = R.drawable.jix_plus,
-                                iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                iconBackground = JixCardBackground.DASHED,
-                                onClick = { showCreatePlaylistDialog = true },
-                            )
-                        }
-                        item(key = "jix_quick_liked", contentType = CONTENT_TYPE_HEADER) {
-                            JixQuickCard(
-                                label = stringResource(R.string.liked_songs),
-                                icon = R.drawable.jix_heart_filled,
-                                iconTint = Color.White,
-                                iconBackground = JixCardBackground.NEON,
-                                onClick = { navController.navigate("auto_playlist/liked") },
-                            )
-                        }
-                        item(key = "jix_quick_recent", contentType = CONTENT_TYPE_HEADER) {
-                            JixQuickCard(
-                                label = stringResource(R.string.recent_played),
-                                icon = R.drawable.jix_clock,
-                                iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                iconBackground = JixCardBackground.SOFT,
-                                onClick = { navController.navigate("history") },
-                            )
-                        }
-                        item(key = "jix_quick_downloads", contentType = CONTENT_TYPE_HEADER) {
-                            JixQuickCard(
-                                label = stringResource(R.string.downloads_label),
-                                icon = R.drawable.jix_download,
-                                iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                iconBackground = JixCardBackground.SOFT,
-                                onClick = { navController.navigate("auto_playlist/downloaded") },
-                            )
-                        }
-                        // stats + equalizer — formerly top-bar icons, now one tap
-                        // from Library alongside history (2x3 quick grid on phones)
-                        item(key = "jix_quick_stats", contentType = CONTENT_TYPE_HEADER) {
-                            JixQuickCard(
-                                label = stringResource(R.string.stats),
-                                icon = R.drawable.jix_activity,
-                                iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                iconBackground = JixCardBackground.SOFT,
-                                onClick = { navController.navigate("stats") },
-                            )
-                        }
-                        item(key = "jix_quick_equalizer", contentType = CONTENT_TYPE_HEADER) {
-                            JixQuickCard(
-                                label = stringResource(R.string.equalizer),
-                                icon = R.drawable.equalizer,
-                                iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                iconBackground = JixCardBackground.SOFT,
-                                onClick = { navController.navigate("equalizer") },
-                            )
-                        }
-                        // JixOne 6: the big auto-playlist cards are gone from the
-                        // grid — Top 50 / Uploaded / Cached live on as quick cards.
-                        item(key = "jix_quick_top", contentType = CONTENT_TYPE_HEADER) {
-                            JixQuickCard(
-                                label = stringResource(R.string.my_top) + " $topSize",
-                                icon = R.drawable.trending_up,
-                                iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                iconBackground = JixCardBackground.SOFT,
-                                onClick = { navController.navigate("top_playlist/$topSize") },
-                            )
-                        }
-                        item(key = "jix_quick_uploaded", contentType = CONTENT_TYPE_HEADER) {
-                            JixQuickCard(
-                                label = stringResource(R.string.uploaded_playlist),
-                                icon = R.drawable.upload,
-                                iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                iconBackground = JixCardBackground.SOFT,
-                                onClick = { navController.navigate("auto_playlist/uploaded") },
-                            )
-                        }
-                        item(key = "jix_quick_cached", contentType = CONTENT_TYPE_HEADER) {
-                            JixQuickCard(
-                                label = stringResource(R.string.cached_playlist),
-                                icon = R.drawable.cached,
-                                iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                iconBackground = JixCardBackground.SOFT,
-                                onClick = { navController.navigate("cache_playlist/cached") },
-                            )
-                        }
                     }
 
                     items(
@@ -915,198 +845,170 @@ fun LibraryMixScreen(
 }
 
 
-/** Icon-square treatment for the web quick cards. */
-private enum class JixCardBackground { DASHED, NEON, SOFT }
-
 /**
- * One web LibraryView quick card (src/components/views/LibraryView.tsx):
- * a 56dp rounded surface with a 40dp icon square + label — "New playlist"
- * carries the dashed outline, "Liked" the neon gradient square.
+ * Library shortcuts: two large gradient tiles for the places people open most
+ * (liked songs, downloads), then one scrolling row of pills for the rest.
  */
 @Composable
-private fun JixQuickCard(
-    label: String,
-    @DrawableRes icon: Int,
-    iconTint: Color,
-    iconBackground: JixCardBackground,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val shape = RoundedCornerShape(16.dp)
-    // read in composable context — drawBehind's lambda is a draw scope
-    val dashedColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-        modifier = modifier
-            .fillMaxWidth()
-            .height(56.dp)
-            .then(
-                if (iconBackground == JixCardBackground.DASHED) {
-                    // web: border-dashed border-line bg-surface
-                    Modifier
-                        .drawBehind {
-                            drawRoundRect(
-                                color = dashedColor,
-                                cornerRadius = CornerRadius(16.dp.toPx()),
-                                style = Stroke(
-                                    width = 1.dp.toPx(),
-                                    pathEffect = PathEffect.dashPathEffect(
-                                        floatArrayOf(6.dp.toPx(), 4.dp.toPx()),
-                                    ),
-                                ),
-                            )
-                        }
-                } else {
-                    Modifier.background(
-                        MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.55f),
-                        shape,
-                    )
-                },
-            )
-            .clip(shape)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 10.dp, vertical = 8.dp),
-    ) {
-        val iconShape = RoundedCornerShape(12.dp)
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier = Modifier
-                .size(40.dp)
-                .then(
-                    when (iconBackground) {
-                        JixCardBackground.NEON ->
-                            Modifier.background(
-                                Brush.linearGradient(
-                                    listOf(
-                                        MaterialTheme.colorScheme.primary,
-                                        MaterialTheme.colorScheme.tertiary,
-                                    ),
-                                ),
-                                iconShape,
-                            )
-                        else ->
-                            Modifier.background(
-                                MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.7f),
-                                iconShape,
-                            )
-                    },
-                ),
-        ) {
-            Icon(
-                painter = painterResource(icon),
-                contentDescription = null,
-                tint = iconTint,
-                modifier = Modifier.size(18.dp),
-            )
-        }
-        Text(
-            text = label,
-            fontSize = 12.sp,
-            lineHeight = 15.sp,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
-    }
-}
-
-/** The four web quick cards laid out 2x2 (list view; grid view uses cells). */
-@Composable
-private fun JixLibraryQuickCards(
+private fun JixLibraryShortcuts(
     navController: NavController,
     topSize: String,
     onCreatePlaylist: () -> Unit,
 ) {
+    val scheme = MaterialTheme.colorScheme
     Column(
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 4.dp),
+            .padding(top = 10.dp, bottom = 6.dp),
     ) {
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            JixQuickCard(
-                label = stringResource(R.string.new_playlist),
-                icon = R.drawable.jix_plus,
-                iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
-                iconBackground = JixCardBackground.DASHED,
-                onClick = onCreatePlaylist,
-                modifier = Modifier.weight(1f),
-            )
-            JixQuickCard(
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+        ) {
+            JixLibraryTile(
                 label = stringResource(R.string.liked_songs),
                 icon = R.drawable.jix_heart_filled,
-                iconTint = Color.White,
-                iconBackground = JixCardBackground.NEON,
+                colors = listOf(scheme.primary, scheme.tertiary),
                 onClick = { navController.navigate("auto_playlist/liked") },
                 modifier = Modifier.weight(1f),
             )
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            JixQuickCard(
-                label = stringResource(R.string.recent_played),
-                icon = R.drawable.jix_clock,
-                iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
-                iconBackground = JixCardBackground.SOFT,
-                onClick = { navController.navigate("history") },
-                modifier = Modifier.weight(1f),
-            )
-            JixQuickCard(
+            JixLibraryTile(
                 label = stringResource(R.string.downloads_label),
                 icon = R.drawable.jix_download,
-                iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
-                iconBackground = JixCardBackground.SOFT,
+                colors = listOf(scheme.tertiary, scheme.secondary),
                 onClick = { navController.navigate("auto_playlist/downloaded") },
                 modifier = Modifier.weight(1f),
             )
         }
-        // stats + equalizer — formerly top-bar icons, now one tap from Library
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            JixQuickCard(
-                label = stringResource(R.string.stats),
-                icon = R.drawable.jix_activity,
-                iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
-                iconBackground = JixCardBackground.SOFT,
-                onClick = { navController.navigate("stats") },
-                modifier = Modifier.weight(1f),
-            )
-            JixQuickCard(
-                label = stringResource(R.string.equalizer),
-                icon = R.drawable.equalizer,
-                iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
-                iconBackground = JixCardBackground.SOFT,
-                onClick = { navController.navigate("equalizer") },
-                modifier = Modifier.weight(1f),
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp),
+        ) {
+            JixLibraryPill(stringResource(R.string.new_playlist), R.drawable.jix_plus, onCreatePlaylist, highlighted = true)
+            JixLibraryPill(stringResource(R.string.recent_played), R.drawable.jix_clock, { navController.navigate("history") })
+            JixLibraryPill(stringResource(R.string.my_top) + " $topSize", R.drawable.trending_up, { navController.navigate("top_playlist/$topSize") })
+            JixLibraryPill(stringResource(R.string.stats), R.drawable.stats, { navController.navigate("stats") })
+            JixLibraryPill(stringResource(R.string.equalizer), R.drawable.equalizer, { navController.navigate("equalizer") })
+            JixLibraryPill(stringResource(R.string.uploaded_playlist), R.drawable.upload, { navController.navigate("auto_playlist/uploaded") })
+            JixLibraryPill(stringResource(R.string.cached_playlist), R.drawable.cached, { navController.navigate("cache_playlist/cached") })
+        }
+    }
+}
+
+/** A large gradient shortcut tile with a faded oversized icon. */
+@Composable
+private fun JixLibraryTile(
+    label: String,
+    @DrawableRes icon: Int,
+    colors: List<Color>,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val shape = RoundedCornerShape(26.dp)
+    val ink =
+        run {
+            val lum = colors.map { it.luminance() }.average().toFloat()
+            if (lum > 0.45f) Color.Black else Color.White
+        }
+    Box(
+        modifier = modifier
+            .height(104.dp)
+            .shadow(elevation = 10.dp, shape = shape, ambientColor = colors.first(), spotColor = colors.first())
+            .clip(shape)
+            .background(Brush.linearGradient(colors))
+            .clickable(onClick = onClick),
+    ) {
+        Icon(
+            painter = painterResource(icon),
+            contentDescription = null,
+            tint = ink.copy(alpha = 0.22f),
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .offset(x = 14.dp, y = 16.dp)
+                .size(92.dp),
+        )
+        Column(
+            verticalArrangement = Arrangement.SpaceBetween,
+            modifier = Modifier.fillMaxSize().padding(16.dp),
+        ) {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .size(38.dp)
+                    .clip(CircleShape)
+                    .background(ink.copy(alpha = 0.18f)),
+            ) {
+                Icon(
+                    painter = painterResource(icon),
+                    contentDescription = null,
+                    tint = ink,
+                    modifier = Modifier.size(20.dp),
+                )
+            }
+            Text(
+                text = label,
+                fontSize = 16.sp,
+                lineHeight = 19.sp,
+                fontWeight = FontWeight.ExtraBold,
+                color = ink,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
         }
-        // JixOne 6: the big auto-playlist cards are gone from the list —
-        // Top 50 / Uploaded / Cached remain one tap away as quick cards.
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            JixQuickCard(
-                label = stringResource(R.string.my_top) + " $topSize",
-                icon = R.drawable.trending_up,
-                iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
-                iconBackground = JixCardBackground.SOFT,
-                onClick = { navController.navigate("top_playlist/$topSize") },
-                modifier = Modifier.weight(1f),
+    }
+}
+
+/** A compact shortcut pill: tinted icon disc + label. */
+@Composable
+private fun JixLibraryPill(
+    label: String,
+    @DrawableRes icon: Int,
+    onClick: () -> Unit,
+    highlighted: Boolean = false,
+) {
+    val shape = RoundedCornerShape(50)
+    val scheme = MaterialTheme.colorScheme
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .height(46.dp)
+            .clip(shape)
+            .background(
+                if (highlighted) scheme.primary.copy(alpha = 0.18f) else scheme.surfaceContainerHigh,
             )
-            JixQuickCard(
-                label = stringResource(R.string.uploaded_playlist),
-                icon = R.drawable.upload,
-                iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
-                iconBackground = JixCardBackground.SOFT,
-                onClick = { navController.navigate("auto_playlist/uploaded") },
-                modifier = Modifier.weight(1f),
+            .border(
+                1.dp,
+                if (highlighted) scheme.primary.copy(alpha = 0.55f) else scheme.outlineVariant.copy(alpha = 0.35f),
+                shape,
             )
-            JixQuickCard(
-                label = stringResource(R.string.cached_playlist),
-                icon = R.drawable.cached,
-                iconTint = MaterialTheme.colorScheme.onSurfaceVariant,
-                iconBackground = JixCardBackground.SOFT,
-                onClick = { navController.navigate("cache_playlist/cached") },
-                modifier = Modifier.weight(1f),
+            .clickable(onClick = onClick)
+            .padding(start = 6.dp, end = 16.dp),
+    ) {
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .size(34.dp)
+                .clip(CircleShape)
+                .background(scheme.primary.copy(alpha = 0.20f)),
+        ) {
+            Icon(
+                painter = painterResource(icon),
+                contentDescription = null,
+                tint = scheme.primary,
+                modifier = Modifier.size(18.dp),
             )
         }
+        Spacer(Modifier.width(8.dp))
+        Text(
+            text = label,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Bold,
+            color = scheme.onSurface,
+            maxLines = 1,
+        )
     }
 }

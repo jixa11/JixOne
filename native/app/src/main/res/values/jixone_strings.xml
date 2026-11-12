@@ -1036,4 +1036,22 @@
     <string name="jix_greeting_morning">Good morning</string>
     <string name="jix_greeting_afternoon">Good afternoon</string>
     <string name="jix_greeting_evening">Good evening</string>
+    <string name="jix_theme_hint">Pick a look. Each theme sets the colors, background and mood of the whole app.</string>
+    <string name="jix_genre_persian_pop">Persian pop</string>
+    <string name="jix_genre_persian_classic">Persian classical</string>
+    <string name="jix_genre_persian_rap">Persian rap</string>
+    <string name="jix_genre_persian_rock">Persian rock</string>
+    <string name="jix_genre_pop">Pop</string>
+    <string name="jix_genre_rock">Rock</string>
+    <string name="jix_genre_hiphop">Hip-hop</string>
+    <string name="jix_genre_rnb">R&amp;B</string>
+    <string name="jix_genre_electronic">Electronic</string>
+    <string name="jix_genre_kpop">K-pop</string>
+    <string name="jix_genre_latin">Latin</string>
+    <string name="jix_genre_jazz">Jazz</string>
+    <string name="jix_genre_metal">Metal</string>
+    <string name="jix_genre_classical">Classical</string>
+    <string name="jix_genre_arabic">Arabic</string>
+    <string name="jix_genre_turkish">Turkish</string>
+    <string name="jix_genre_other">More from your artists</string>
 </resources>

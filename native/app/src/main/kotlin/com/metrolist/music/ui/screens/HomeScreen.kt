@@ -610,15 +610,8 @@ fun HomeScreen(
                             recommendation?.let {
                                 item(key = "from_your_artist_title_${section.index}") {
                                     JixSectionHeader(
-                                        eyebrow = stringResource(R.string.from_your_picks),
-                                        title = recommendation.title.title,
-                                        thumbnailUrl = recommendation.title.thumbnailUrl,
-                                        onClick =
-                                            if (recommendation.title is Artist) {
-                                                { navController.navigate("artist/${recommendation.title.id}") }
-                                            } else {
-                                                null
-                                            },
+                                        eyebrow = recommendation.artists.take(3).joinToString(" • ") { it.artist.name },
+                                        title = stringResource(jixGenreName(recommendation.genre)),
                                     )
                                 }
                                 item(key = "from_your_artist_list_${section.index}") {
@@ -858,3 +851,25 @@ private fun PickYourArtistsCard(
         }
     }
 }
+
+/** Display name of an onboarding genre slug. */
+private fun jixGenreName(genre: String): Int =
+    when (genre) {
+        "persian_pop" -> R.string.jix_genre_persian_pop
+        "persian_classic" -> R.string.jix_genre_persian_classic
+        "persian_rap" -> R.string.jix_genre_persian_rap
+        "persian_rock" -> R.string.jix_genre_persian_rock
+        "pop" -> R.string.jix_genre_pop
+        "rock" -> R.string.jix_genre_rock
+        "hiphop" -> R.string.jix_genre_hiphop
+        "rnb" -> R.string.jix_genre_rnb
+        "electronic" -> R.string.jix_genre_electronic
+        "kpop" -> R.string.jix_genre_kpop
+        "latin" -> R.string.jix_genre_latin
+        "jazz" -> R.string.jix_genre_jazz
+        "metal" -> R.string.jix_genre_metal
+        "classical" -> R.string.jix_genre_classical
+        "arabic" -> R.string.jix_genre_arabic
+        "turkish" -> R.string.jix_genre_turkish
+        else -> R.string.jix_genre_other
+    }

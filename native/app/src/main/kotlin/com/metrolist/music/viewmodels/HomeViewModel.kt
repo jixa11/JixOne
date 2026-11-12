@@ -10,7 +10,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.metrolist.innertube.YouTube
 import com.metrolist.innertube.models.AlbumItem
-import com.metrolist.innertube.models.Artist
 import com.metrolist.innertube.models.ArtistItem
 import com.metrolist.innertube.models.PlaylistItem
 import com.metrolist.innertube.models.SongItem
@@ -39,7 +38,10 @@ import com.metrolist.music.db.entities.Song
 import com.metrolist.music.db.entities.SpeedDialItem
 import com.metrolist.music.extensions.filterVideoSongs
 import com.metrolist.music.extensions.toEnum
-import com.metrolist.music.models.SimilarRecommendation
+import com.metrolist.music.models.GenreShelf
+import com.metrolist.music.constants.OnboardingArtistGenresKey
+import com.metrolist.music.ui.screens.onboarding.OnboardingSeedArtists
+import com.metrolist.music.db.entities.Artist
 import com.metrolist.music.ui.screens.wrapped.WrappedAudioService
 import com.metrolist.music.ui.screens.wrapped.WrappedManager
 import com.metrolist.music.utils.NetworkConnectivityObserver
@@ -88,7 +90,7 @@ class HomeViewModel @Inject constructor(
     // bookmarked artists). Null = not loaded yet; empty = no picks made, so
     // the personalized sections simply stay hidden.
     val onboardingArtists = MutableStateFlow<List<com.metrolist.music.db.entities.Artist>?>(null)
-    val onboardingRecommendations = MutableStateFlow<List<SimilarRecommendation>?>(null)
+    val onboardingRecommendations = MutableStateFlow<List<GenreShelf>?>(null)
     val onboardingSimilarArtists = MutableStateFlow<List<ArtistItem>?>(null)
 
 
@@ -144,25 +146,44 @@ class HomeViewModel @Inject constructor(
         onboardingArtists.value = picked
 
         val pickedIds = picked.map { it.id }.toSet()
-        // Shelves come from the most recent picks, so an artist bookmarked
-        // later is not shadowed forever by the first eight.
-        val shelfArtists = picked.takeLast(MAX_ARTIST_SHELVES)
+
+        // Group the picks by genre so twenty artists become a handful of
+        // shelves instead of twenty. Seeds carry their genre; other picks use
+        // the genre saved at onboarding, or land in "other".
+        val seedGenres = OnboardingSeedArtists.associate { it.id to it.genre }
+        val savedGenres = decodeArtistGenres(context.dataStore.data.first()[OnboardingArtistGenresKey])
+        val groups = LinkedHashMap<String, MutableList<Artist>>()
+        // Newest picks first, so a fresh choice shows up at the top.
+        picked.asReversed().forEach { artist ->
+            val genre = savedGenres[artist.id] ?: seedGenres[artist.id] ?: GENRE_OTHER
+            groups.getOrPut(genre) { mutableListOf() }.add(artist)
+        }
+        // "other" always goes last.
+        groups.remove(GENRE_OTHER)?.let { groups[GENRE_OTHER] = it }
+
         // Same order for the whole day: a refresh must not reshuffle the page.
         val daySeed = LocalDate.now().toEpochDay()
 
+        // A few artists per genre are enough to fill a shelf, and a cap on
+        // the whole page keeps the number of requests sane.
+        val toFetch = LinkedHashMap<String, Artist>()
+        groups.values.forEach { artists ->
+            artists.take(ARTISTS_PER_SHELF).forEach { toFetch.putIfAbsent(it.id, it) }
+        }
+        val fetchList = toFetch.values.take(MAX_ARTIST_FETCHES)
+
         val pages = coroutineScope {
-            shelfArtists.map { artist ->
+            fetchList.map { artist ->
                 async {
                     // YouTube.artist wraps failures in a Result, so one
                     // artist's failure cannot lose the rest.
-                    artist to YouTube.artist(artist.id).getOrNull()
+                    artist.id to YouTube.artist(artist.id).getOrNull()
                 }
             }.awaitAll()
-        }
+        }.toMap()
 
         val similar = LinkedHashMap<String, ArtistItem>()
-        val recommendations = pages.mapNotNull { (artist, page) ->
-            page ?: return@mapNotNull null
+        pages.values.filterNotNull().forEach { page ->
             page.sections
                 .firstNotNullOfOrNull { section ->
                     section.items.filterIsInstance<ArtistItem>().takeIf { it.isNotEmpty() }
@@ -170,28 +191,41 @@ class HomeViewModel @Inject constructor(
                 ?.forEach { item ->
                     if (item.id !in pickedIds) similar.putIfAbsent(item.id, item)
                 }
-            SimilarRecommendation(
-                title = artist,
-                items = page.sections.takeLast(3).flatMap { it.items }
-                    .distinctBy { it.id }
-                    .filterExplicit(hideExplicit)
-                    .filterVideoSongs(hideVideoSongs)
-                    .shuffled(Random(daySeed xor artist.id.hashCode().toLong()))
-                    .take(12)
-                    .ifEmpty { return@mapNotNull null },
-            )
+        }
+
+        val shelves = groups.mapNotNull { (genre, artists) ->
+            // Each artist's music, shuffled for today, then dealt round-robin
+            // so no single artist owns the shelf.
+            val perArtist = artists.mapNotNull { artist ->
+                pages[artist.id]?.sections
+                    ?.flatMap { it.items }
+                    ?.filter { it !is ArtistItem }
+                    ?.distinctBy { it.id }
+                    ?.filterExplicit(hideExplicit)
+                    ?.filterVideoSongs(hideVideoSongs)
+                    ?.shuffled(Random(daySeed xor artist.id.hashCode().toLong()))
+                    ?.takeIf { it.isNotEmpty() }
+            }
+            val mixed = mutableListOf<YTItem>()
+            var index = 0
+            while (mixed.size < ITEMS_PER_SHELF && perArtist.any { index < it.size }) {
+                perArtist.forEach { list -> list.getOrNull(index)?.let { mixed += it } }
+                index++
+            }
+            val items = mixed.distinctBy { it.id }.take(ITEMS_PER_SHELF)
+            if (items.isEmpty()) null else GenreShelf(genre = genre, artists = artists, items = items)
         }
 
         // Every fetch failed (offline start): keep whatever is on screen and
         // let the next refresh / reconnect try again.
-        val allFailed = pages.all { it.second == null }
+        val allFailed = pages.values.all { it == null }
         if (allFailed && !onboardingRecommendations.value.isNullOrEmpty()) return
 
-        onboardingRecommendations.value = recommendations
+        onboardingRecommendations.value = shelves
         onboardingSimilarArtists.value = similar.values.toList().take(20)
 
-        // The Explore shuffle FAB draws only from the personalized shelves.
-        allYtItems.value = recommendations.flatMap { it.items } + similar.values.toList()
+        // The Explore shuffle and the mix hero draw only from the personalized shelves.
+        allYtItems.value = shelves.flatMap { it.items } + similar.values.toList()
     }
 
     /** Bumped by [refresh] to re-run the personalized fetches on demand. */
@@ -352,7 +386,10 @@ class HomeViewModel @Inject constructor(
     private var isHomeDataLoaded = false
 
     private companion object {
-        const val MAX_ARTIST_SHELVES = 8
+        const val GENRE_OTHER = "other"
+        const val ARTISTS_PER_SHELF = 4
+        const val MAX_ARTIST_FETCHES = 16
+        const val ITEMS_PER_SHELF = 18
     }
 
     fun loadHomeData() {

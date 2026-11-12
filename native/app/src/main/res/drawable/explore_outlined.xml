@@ -1,16 +1,13 @@
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp"
     android:height="24dp"
-    android:tint="@android:color/white"
-    android:viewportWidth="24.0"
-    android:viewportHeight="24.0">
+    android:viewportWidth="256"
+    android:viewportHeight="256">
     <path
         android:fillColor="@android:color/white"
-        android:pathData="M9.8,9.8l-3.83,8.23l8.23,-3.83l3.83,-8.23L9.8,9.8zM13.08,12.77c-0.21,0.29 -0.51,0.48 -0.86,0.54c-0.07,0.01 -0.15,0.02 -0.22,0.02c-0.28,0 -0.54,-0.08 -0.77,-0.25c-0.29,-0.21 -0.48,-0.51 -0.54,-0.86c-0.06,-0.35 0.02,-0.71 0.23,-0.99c0.21,-0.29 0.51,-0.48 0.86,-0.54c0.35,-0.06 0.7,0.02 0.99,0.23c0.29,0.21 0.48,0.51 0.54,0.86C13.37,12.13 13.29,12.48 13.08,12.77z" />
+        android:fillAlpha="0.28"
+        android:pathData="M128,32a96,96,0,1,0,96,96A96,96,0,0,0,128,32Zm16,112L80,176l32-64,64-32Z" />
     <path
         android:fillColor="@android:color/white"
-        android:pathData="M12,3c4.96,0 9,4.04 9,9s-4.04,9 -9,9s-9,-4.04 -9,-9S7.04,3 12,3M12,2C6.48,2 2,6.48 2,12s4.48,10 10,10s10,-4.48 10,-10S17.52,2 12,2L12,2z"
-        android:strokeWidth="1.0"
-        android:strokeColor="@android:color/white"
-        android:strokeLineCap="butt" />
+        android:pathData="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216ZM172.42,72.84l-64,32a8.05,8.05,0,0,0-3.58,3.58l-32,64A8,8,0,0,0,80,184a8.1,8.1,0,0,0,3.58-.84l64-32a8.05,8.05,0,0,0,3.58-3.58l32-64a8,8,0,0,0-10.74-10.74ZM138,138,97.89,158.11,118,118l40.15-20.07Z" />
 </vector>

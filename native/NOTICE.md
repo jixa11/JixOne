@@ -23,3 +23,9 @@ edits are kept small and localised on purpose.
   (the jitpack binary artifact is broken). Copyright 2015 guyacong.
   https://github.com/promeG/Tinypinyin
 
+
+## Icons
+
+The in-app icons are from [Phosphor Icons](https://phosphoricons.com)
+(`@phosphor-icons/core` 2.1.1), MIT License, Copyright (c) 2023 Phosphor Icons,
+converted to Android vector drawables.

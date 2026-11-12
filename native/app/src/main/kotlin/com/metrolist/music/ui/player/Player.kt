@@ -1374,21 +1374,9 @@ fun BottomSheetPlayer(
                 Column {
                     // Transport: shuffle · previous · PLAY · next · repeat.
                     val shuffleModeEnabled by playerConnection.shuffleModeEnabled.collectAsStateWithLifecycle()
-                    // The player ground is always dark with blur/gradient, so
-                    // a light scheme needs its light tones for the accent.
-                    val onDarkGround = playerBackground != PlayerBackgroundStyle.DEFAULT
-                    val playColors =
-                        if (onDarkGround && !useDarkTheme) {
-                            listOf(MaterialTheme.colorScheme.inversePrimary, MaterialTheme.colorScheme.tertiaryContainer)
-                        } else {
-                            listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.tertiary)
-                        }
-                    val playInk =
-                        run {
-                            val mid = lerp(playColors[0], playColors[1], 0.5f)
-                            val lum = 0.2126f * mid.red + 0.7152f * mid.green + 0.0722f * mid.blue
-                            if (lum > 0.6f) Color.Black else Color.White
-                        }
+                    val jixAccent = com.metrolist.music.ui.jix.LocalJixAccent.current
+                    val playColors = listOf(jixAccent.start, jixAccent.end)
+                    val playInk = jixAccent.ink
 
                     Row(
                         horizontalArrangement = Arrangement.SpaceBetween,

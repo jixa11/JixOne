@@ -850,12 +850,13 @@ fun LibraryMixScreen(
  * (liked songs, downloads), then one scrolling row of pills for the rest.
  */
 @Composable
-private fun JixLibraryShortcuts(
+internal fun JixLibraryShortcuts(
     navController: NavController,
     topSize: String,
     onCreatePlaylist: () -> Unit,
 ) {
-    val scheme = MaterialTheme.colorScheme
+    val jixAccent = com.metrolist.music.ui.jix.LocalJixAccent.current
+    val second = com.metrolist.music.ui.jix.jixAccentFor(jixAccent.end)
     Column(
         verticalArrangement = Arrangement.spacedBy(12.dp),
         modifier = Modifier
@@ -869,14 +870,14 @@ private fun JixLibraryShortcuts(
             JixLibraryTile(
                 label = stringResource(R.string.liked_songs),
                 icon = R.drawable.jix_heart_filled,
-                colors = listOf(scheme.primary, scheme.tertiary),
+                colors = listOf(jixAccent.start, jixAccent.end),
                 onClick = { navController.navigate("auto_playlist/liked") },
                 modifier = Modifier.weight(1f),
             )
             JixLibraryTile(
                 label = stringResource(R.string.downloads_label),
                 icon = R.drawable.jix_download,
-                colors = listOf(scheme.tertiary, scheme.secondary),
+                colors = listOf(second.start, second.end),
                 onClick = { navController.navigate("auto_playlist/downloaded") },
                 modifier = Modifier.weight(1f),
             )

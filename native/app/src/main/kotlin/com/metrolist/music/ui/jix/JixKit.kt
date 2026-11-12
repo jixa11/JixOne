@@ -43,6 +43,9 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -61,16 +64,45 @@ import com.metrolist.innertube.models.SongItem
 import com.metrolist.innertube.models.YTItem
 import com.metrolist.music.R
 
-/** The signature accent: primary -> tertiary -> secondary, on a diagonal. */
+/**
+ * The theme's vivid accent. Material's generated dark schemes use pale
+ * pastel tones for primary/tertiary, which wash out as fills; the accent is
+ * built from the theme's own seed color instead, so gradients stay saturated.
+ */
+class JixAccent(
+    val start: Color,
+    val end: Color,
+) {
+    val brush: Brush get() = Brush.linearGradient(listOf(start, end))
+
+    /** Black or white, whichever reads on the gradient. */
+    val ink: Color
+        get() {
+            val lum = (start.luminance() + end.luminance()) / 2f
+            return if (lum > 0.42f) Color.Black else Color.White
+        }
+}
+
+fun jixAccentFor(seed: Color): JixAccent {
+    val hsv = FloatArray(3)
+    android.graphics.Color.colorToHSV(seed.toArgb(), hsv)
+    // A neutral seed (Pure OLED) stays neutral: silver into graphite.
+    if (hsv[1] < 0.12f) return JixAccent(seed, Color(0xFF8E8E98))
+    val saturation = hsv[1].coerceAtLeast(0.62f)
+    val value = hsv[2].coerceIn(0.78f, 1f)
+    val start = Color(android.graphics.Color.HSVToColor(floatArrayOf(hsv[0], saturation, value)))
+    // Yellows and golds drift into a sickly green if pushed forward, so they
+    // warm toward orange instead; every other hue moves forward.
+    val shift = if (hsv[0] in 28f..78f) -32f else 42f
+    val end = Color(android.graphics.Color.HSVToColor(floatArrayOf((hsv[0] + shift + 360f) % 360f, saturation, value)))
+    return JixAccent(start, end)
+}
+
+val LocalJixAccent = staticCompositionLocalOf { jixAccentFor(Color(0xFF7C5CFF)) }
+
+/** The signature accent gradient. */
 @Composable
-fun jixAccentBrush(): Brush =
-    Brush.linearGradient(
-        listOf(
-            MaterialTheme.colorScheme.primary,
-            MaterialTheme.colorScheme.tertiary,
-            MaterialTheme.colorScheme.secondary,
-        ),
-    )
+fun jixAccentBrush(): Brush = LocalJixAccent.current.brush
 
 /** A translucent panel with a faint gradient rim — the kit's "glass". */
 @Composable
@@ -100,7 +132,8 @@ fun JixPlayButton(
     size: Dp = 56.dp,
     onColor: Boolean = false,
 ) {
-    val glow = MaterialTheme.colorScheme.primary
+    val accent = LocalJixAccent.current
+    val glow = accent.start
     Box(
         contentAlignment = Alignment.Center,
         modifier =
@@ -114,7 +147,7 @@ fun JixPlayButton(
         Icon(
             painter = painterResource(R.drawable.play),
             contentDescription = null,
-            tint = if (onColor) MaterialTheme.colorScheme.primary else Color.White,
+            tint = if (onColor) accent.start else accent.ink,
             modifier = Modifier.size(size * 0.46f),
         )
     }
@@ -296,8 +329,8 @@ fun JixMediaCard(
                     .shadow(
                         elevation = if (isActive) 16.dp else 6.dp,
                         shape = shape,
-                        ambientColor = MaterialTheme.colorScheme.primary,
-                        spotColor = MaterialTheme.colorScheme.primary,
+                        ambientColor = LocalJixAccent.current.start,
+                        spotColor = LocalJixAccent.current.start,
                     )
                     .clip(shape)
                     .background(MaterialTheme.colorScheme.surfaceContainerHighest)
@@ -336,7 +369,7 @@ fun JixMediaCard(
                     Icon(
                         painter = painterResource(if (isActive && isPlaying) R.drawable.pause else R.drawable.play),
                         contentDescription = null,
-                        tint = Color.White,
+                        tint = LocalJixAccent.current.ink,
                         modifier = Modifier.size(18.dp),
                     )
                 }
@@ -378,7 +411,8 @@ fun JixHeroCard(
     modifier: Modifier = Modifier,
 ) {
     val shape = RoundedCornerShape(32.dp)
-    val glow = MaterialTheme.colorScheme.primary
+    val ink = LocalJixAccent.current.ink
+    val glow = LocalJixAccent.current.start
     Box(
         modifier =
             modifier
@@ -412,7 +446,7 @@ fun JixHeroCard(
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 1.4.sp,
-                color = Color.White.copy(alpha = 0.85f),
+                color = ink.copy(alpha = 0.85f),
             )
             Spacer(Modifier.height(6.dp))
             Text(
@@ -420,7 +454,7 @@ fun JixHeroCard(
                 fontSize = 30.sp,
                 lineHeight = 34.sp,
                 fontWeight = FontWeight.Black,
-                color = Color.White,
+                color = ink,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -428,7 +462,7 @@ fun JixHeroCard(
             Text(
                 text = subtitle,
                 fontSize = 13.sp,
-                color = Color.White.copy(alpha = 0.88f),
+                color = ink.copy(alpha = 0.88f),
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )

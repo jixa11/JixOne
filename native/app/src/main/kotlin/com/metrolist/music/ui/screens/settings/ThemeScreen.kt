@@ -182,7 +182,8 @@ private fun ThemeCard(
         label = "themeCardScale",
     )
     val shape = RoundedCornerShape(26.dp)
-    val accent = Brush.linearGradient(listOf(scheme.primary, scheme.tertiary))
+    val jixAccent = com.metrolist.music.ui.jix.jixAccentFor(palette.seedColor)
+    val accent = jixAccent.brush
 
     Column(
         modifier =
@@ -231,7 +232,7 @@ private fun ThemeCard(
                     Icon(
                         painter = painterResource(R.drawable.check),
                         contentDescription = null,
-                        tint = scheme.onPrimary,
+                        tint = jixAccent.ink,
                         modifier = Modifier.size(16.dp),
                     )
                 }

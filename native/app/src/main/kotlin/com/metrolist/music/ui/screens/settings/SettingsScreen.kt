@@ -34,6 +34,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
@@ -89,11 +90,18 @@ fun SettingsScreen(
         // JixOne 6: brand header — the app identity card on top of settings.
         JixOneSettingsHeader()
 
+        Spacer(modifier = Modifier.height(8.dp))
+
         // User Interface Section
         Material3SettingsGroup(
             title = stringResource(R.string.settings_section_ui),
             accent = Color(0xFF8B5CF6),
             items = listOf(
+                Material3SettingsItem(
+                    icon = painterResource(R.drawable.contrast),
+                    title = { Text(stringResource(R.string.theme_colors)) },
+                    onClick = { navController.navigate("settings/appearance/theme") }
+                ),
                 Material3SettingsItem(
                     icon = painterResource(R.drawable.palette),
                     title = { Text(stringResource(R.string.appearance)) },
@@ -319,39 +327,29 @@ fun SettingsScreen(
  */
 @Composable
 private fun JixOneSettingsHeader() {
+    val jixAccent = com.metrolist.music.ui.jix.LocalJixAccent.current
+    val start = jixAccent.start
+    val end = jixAccent.end
+    val ink = jixAccent.ink
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(24.dp))
-            .background(
-                Brush.linearGradient(
-                    listOf(
-                        MaterialTheme.colorScheme.primary.copy(alpha = 0.16f),
-                        MaterialTheme.colorScheme.tertiary.copy(alpha = 0.10f),
-                    )
-                )
-            )
-            .padding(horizontal = 20.dp, vertical = 18.dp),
+            .clip(RoundedCornerShape(28.dp))
+            .background(Brush.linearGradient(listOf(start, end)))
+            .padding(horizontal = 20.dp, vertical = 22.dp),
     ) {
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier
-                .size(52.dp)
-                .clip(RoundedCornerShape(16.dp))
-                .background(
-                    Brush.linearGradient(
-                        listOf(
-                            MaterialTheme.colorScheme.primary,
-                            MaterialTheme.colorScheme.tertiary,
-                        )
-                    )
-                ),
+                .size(54.dp)
+                .clip(RoundedCornerShape(18.dp))
+                .background(ink.copy(alpha = 0.16f)),
         ) {
             Icon(
-                painter = painterResource(R.drawable.jix_compass),
+                painter = painterResource(R.drawable.music_note),
                 contentDescription = null,
-                tint = Color.White,
+                tint = ink,
                 modifier = Modifier.size(28.dp),
             )
         }
@@ -359,14 +357,15 @@ private fun JixOneSettingsHeader() {
         Column {
             Text(
                 text = "JixOne",
-                style = MaterialTheme.typography.titleLarge,
+                style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Black,
+                color = ink,
             )
             Text(
                 text = stringResource(R.string.settings_brand_tagline) +
                     "  •  v" + BuildConfig.BASE_VERSION_NAME,
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = ink.copy(alpha = 0.82f),
             )
         }
     }

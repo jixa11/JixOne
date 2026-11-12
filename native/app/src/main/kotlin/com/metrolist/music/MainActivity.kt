@@ -5,6 +5,8 @@
 
 package com.metrolist.music
 
+import com.metrolist.music.constants.ThemeModeMigratedKey
+import com.metrolist.music.ui.screens.settings.PaletteColors
 import android.Manifest
 import android.annotation.SuppressLint
 import android.app.ForegroundServiceStartNotAllowedException
@@ -841,6 +843,21 @@ class MainActivity : FragmentActivity() {
                 val bottomInsetDp = WindowInsets.systemBars.asPaddingValues().calculateBottomPadding()
 
                 val navController = rememberNavController()
+
+                // A theme now carries its own dark/light mode. Apply it once
+                // over whatever the old separate mode setting said.
+                LaunchedEffect(Unit) {
+                    val prefs = dataStore.data.first()
+                    if (prefs[ThemeModeMigratedKey] != true) {
+                        val seed = prefs[SelectedThemeColorKey] ?: DefaultPaletteSeed.toArgb()
+                        val palette = PaletteColors.firstOrNull { it.seedColor.toArgb() == seed }
+                        safeDataStoreEdit {
+                            it[DarkModeKey] = (if (palette?.dark == false) DarkMode.OFF else DarkMode.ON).name
+                            if (palette?.pureBlack == true) it[PureBlackKey] = true
+                            it[ThemeModeMigratedKey] = true
+                        }
+                    }
+                }
 
                 LaunchedEffect(Unit) {
                     val lastSeenVersion = dataStore.data.first()[LastSeenVersionKey] ?: ""

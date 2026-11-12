@@ -189,13 +189,11 @@ fun AppNavigationBar(
     // vertical breathing room around the dock; slim mode stays within its
     // 64dp reserved slot (58 + 2*3), regular fits the 80dp slot (66 + 2*6)
     val barVerticalPadding = if (slimNav) 3.dp else 6.dp
-    val accent = MaterialTheme.colorScheme.primary
-    val accentBrush = Brush.linearGradient(
-        listOf(
-            MaterialTheme.colorScheme.primary,
-            MaterialTheme.colorScheme.tertiary,
-        ),
-    )
+    val jixAccent = com.metrolist.music.ui.jix.LocalJixAccent.current
+    val accent = jixAccent.start
+    val accentBrush = jixAccent.brush
+    val accentInk = jixAccent.ink
+    val labelAccent = MaterialTheme.colorScheme.primary
 
     Box(
         modifier = modifier
@@ -241,13 +239,13 @@ fun AppNavigationBar(
                     }
 
                     val iconColor by animateColorAsState(
-                        targetValue = if (isSelected) Color.White
+                        targetValue = if (isSelected) accentInk
                         else MaterialTheme.colorScheme.onSurfaceVariant,
                         animationSpec = tween(durationMillis = 200),
                         label = "navIconColor",
                     )
                     val labelColor by animateColorAsState(
-                        targetValue = if (isSelected) accent
+                        targetValue = if (isSelected) labelAccent
                         else MaterialTheme.colorScheme.onSurfaceVariant,
                         animationSpec = tween(durationMillis = 200),
                         label = "navLabelColor",
@@ -343,7 +341,7 @@ fun AppNavigationBar(
                                 painter = painterResource(id = iconRes),
                                 contentDescription = stringResource(screen.titleId),
                                 tint = iconColor,
-                                modifier = Modifier.size(if (slimNav) 22.dp else 20.dp),
+                                modifier = Modifier.size(if (slimNav) 26.dp else 24.dp),
                             )
                         }
                         if (!slimNav) {

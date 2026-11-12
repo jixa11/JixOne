@@ -460,27 +460,28 @@ private fun ThumbnailHeader(
                 .align(Alignment.Center)
                 .padding(horizontal = 48.dp)
         ) {
-            // Listen Together indicator
-            if (listenTogetherRoleState?.value != RoomRole.NONE) {
-                Text(
-                    text = if (listenTogetherRoleState?.value == RoomRole.HOST) "Hosting Listen Together" else "Listening Together",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = textColor
-                )
-            } else {
-                Text(
-                    text = stringResource(R.string.now_playing),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = textColor
-                )
-            }
+            // Small accent eyebrow, then what is playing from in heavy type.
+            Text(
+                text =
+                    when (listenTogetherRoleState?.value) {
+                        null, RoomRole.NONE -> stringResource(R.string.now_playing)
+                        RoomRole.HOST -> "Hosting Listen Together"
+                        else -> "Listening Together"
+                    }.uppercase(),
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 1.6.sp,
+                color = textColor.copy(alpha = 0.7f),
+                maxLines = 1,
+            )
             val playingFrom = queueTitle ?: albumTitle
             if (!playingFrom.isNullOrBlank()) {
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     text = playingFrom,
                     style = MaterialTheme.typography.titleMedium,
-                    color = textColor.copy(alpha = 0.8f),
+                    fontWeight = FontWeight.ExtraBold,
+                    color = textColor,
                     maxLines = 1,
                     modifier = Modifier.basicMarquee()
                 )

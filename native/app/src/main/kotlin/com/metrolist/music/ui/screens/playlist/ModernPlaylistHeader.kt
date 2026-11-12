@@ -101,7 +101,7 @@ fun ModernPlaylistHeader(
             modifier
                 .fillMaxWidth()
                 .clip(heroShape)
-                .background(Brush.linearGradient(listOf(base.primary, base.tertiary))),
+                .background(com.metrolist.music.ui.jix.LocalJixAccent.current.brush),
     ) {
         if (backdropModel != null) {
             AsyncImage(
@@ -245,13 +245,10 @@ fun PlaylistPlayButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val start = MaterialTheme.colorScheme.primary
-    val end = MaterialTheme.colorScheme.tertiary
-    val ink =
-        run {
-            val lum = (start.luminance() + end.luminance()) / 2f
-            if (lum > 0.45f) Color.Black else Color.White
-        }
+    val jixAccent = com.metrolist.music.ui.jix.LocalJixAccent.current
+    val start = jixAccent.start
+    val end = jixAccent.end
+    val ink = jixAccent.ink
     Box(
         contentAlignment = Alignment.Center,
         modifier =

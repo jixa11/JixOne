@@ -1757,7 +1757,7 @@ fun InlineLyricsView(
     ) {
         when {
             lyrics == null -> {
-                ContainedLoadingIndicator()
+                com.metrolist.music.ui.jix.JixLoader()
             }
 
             lyrics == LyricsEntity.LYRICS_NOT_FOUND -> {

@@ -10,6 +10,7 @@
 package com.metrolist.music.ui.screens.playlist
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -115,7 +116,7 @@ fun ModernPlaylistHeader(
                             scaleX = 1.35f
                             scaleY = 1.35f
                         }
-                        .blur(52.dp),
+                        .blur(34.dp),
             )
         }
         Box(
@@ -203,14 +204,28 @@ fun ModernPlaylistHeader(
                         authorRow()
                     }
 
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        text = metadata,
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Medium,
-                        color = Color.White.copy(alpha = 0.78f),
-                        textAlign = TextAlign.Center,
-                    )
+                    Spacer(Modifier.height(12.dp))
+                    // Each fact gets its own glass pill: "17 songs", "1:02:27".
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        metadata.split(" • ", " · ").map { it.trim() }.filter { it.isNotEmpty() }.take(3).forEach { fact ->
+                            Text(
+                                text = fact,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color.White,
+                                maxLines = 1,
+                                modifier =
+                                    Modifier
+                                        .clip(RoundedCornerShape(50))
+                                        .background(Color.White.copy(alpha = 0.14f))
+                                        .border(1.dp, Color.White.copy(alpha = 0.16f), RoundedCornerShape(50))
+                                        .padding(horizontal = 12.dp, vertical = 6.dp),
+                            )
+                        }
+                    }
 
                     if (!description.isNullOrBlank()) {
                         Spacer(Modifier.height(8.dp))
@@ -228,7 +243,7 @@ fun ModernPlaylistHeader(
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(14.dp, Alignment.CenterHorizontally),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         actions()
@@ -239,31 +254,44 @@ fun ModernPlaylistHeader(
     }
 }
 
-/** The glowing gradient play button that leads the action row. */
+/**
+ * The wide gradient "Play" pill that leads the action row. It takes all the
+ * width the round secondary buttons leave, so the main action is the biggest
+ * thing in the row.
+ */
 @Composable
-fun PlaylistPlayButton(
+fun RowScope.PlaylistPlayButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val jixAccent = com.metrolist.music.ui.jix.LocalJixAccent.current
-    val start = jixAccent.start
-    val end = jixAccent.end
-    val ink = jixAccent.ink
-    Box(
-        contentAlignment = Alignment.Center,
+    val shape = RoundedCornerShape(50)
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Center,
         modifier =
             modifier
-                .size(70.dp)
-                .shadow(elevation = 16.dp, shape = CircleShape, ambientColor = start, spotColor = start)
-                .clip(CircleShape)
-                .background(Brush.linearGradient(listOf(start, end)))
-                .clickable(onClick = onClick),
+                .weight(1f)
+                .height(56.dp)
+                .shadow(elevation = 16.dp, shape = shape, ambientColor = jixAccent.start, spotColor = jixAccent.start)
+                .clip(shape)
+                .background(jixAccent.brush)
+                .clickable(onClick = onClick)
+                .padding(horizontal = 18.dp),
     ) {
         Icon(
             painter = painterResource(R.drawable.play),
-            contentDescription = stringResource(R.string.play),
-            tint = ink,
-            modifier = Modifier.size(32.dp),
+            contentDescription = null,
+            tint = jixAccent.ink,
+            modifier = Modifier.size(24.dp),
+        )
+        Spacer(Modifier.width(8.dp))
+        Text(
+            text = stringResource(R.string.play),
+            fontSize = 16.sp,
+            fontWeight = FontWeight.ExtraBold,
+            color = jixAccent.ink,
+            maxLines = 1,
         )
     }
 }
@@ -286,7 +314,7 @@ fun PlaylistIconButton(
                 width = 1.dp,
                 color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.55f),
             ),
-        modifier = modifier.size(48.dp),
+        modifier = modifier.size(52.dp),
     ) {
         Box(contentAlignment = Alignment.Center) {
             Icon(

@@ -514,7 +514,7 @@ fun AlbumScreen(
                             .padding(32.dp),
                     contentAlignment = Alignment.Center,
                 ) {
-                    ContainedLoadingIndicator()
+                    com.metrolist.music.ui.jix.JixLoader()
                 }
             }
         }

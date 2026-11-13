@@ -565,7 +565,7 @@ fun HomeScreen(
                                         }
                                     }
                                 } else {
-                                    ContainedLoadingIndicator()
+                                    com.metrolist.music.ui.jix.JixLoader()
                                 }
                             }
                         }

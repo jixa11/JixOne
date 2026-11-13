@@ -92,10 +92,7 @@ fun LocalPlaylistMenu(
                     title = { Text(stringResource(R.string.downloading)) },
                     description = { Text(stringResource(R.string.download_in_progress_desc)) },
                     icon = {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(24.dp),
-                            strokeWidth = 2.dp,
-                        )
+                        com.metrolist.music.ui.jix.JixLoader(height = 24.dp)
                     },
                     onClick = {
                         onDownload()
@@ -351,10 +348,7 @@ fun AutoPlaylistMenu(
                     title = { Text(stringResource(R.string.downloading)) },
                     description = { Text(stringResource(R.string.download_in_progress_desc)) },
                     icon = {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(24.dp),
-                            strokeWidth = 2.dp,
-                        )
+                        com.metrolist.music.ui.jix.JixLoader(height = 24.dp)
                     },
                     onClick = {
                         onDownload()
@@ -531,10 +525,7 @@ fun TopPlaylistMenu(
                     title = { Text(stringResource(R.string.downloading)) },
                     description = { Text(stringResource(R.string.download_in_progress_desc)) },
                     icon = {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(24.dp),
-                            strokeWidth = 2.dp,
-                        )
+                        com.metrolist.music.ui.jix.JixLoader(height = 24.dp)
                     },
                     onClick = {
                         onDownload()
@@ -695,10 +686,7 @@ fun CachePlaylistMenu(
                     title = { Text(stringResource(R.string.downloading)) },
                     description = { Text(stringResource(R.string.download_in_progress_desc)) },
                     icon = {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(24.dp),
-                            strokeWidth = 2.dp,
-                        )
+                        com.metrolist.music.ui.jix.JixLoader(height = 24.dp)
                     },
                     onClick = {
                         onDownload()

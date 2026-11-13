@@ -552,10 +552,7 @@ fun PlayerMenu(
                                 Material3MenuItemData(
                                     title = { Text(text = stringResource(R.string.downloading)) },
                                     icon = {
-                                        CircularProgressIndicator(
-                                            modifier = Modifier.size(24.dp),
-                                            strokeWidth = 2.dp,
-                                        )
+                                        com.metrolist.music.ui.jix.JixLoader(height = 24.dp)
                                     },
                                     onClick = {
                                         DownloadService.sendRemoveDownload(
@@ -1943,11 +1940,7 @@ fun ListenTogetherDialog(
                                 horizontalArrangement = Arrangement.Center,
                                 modifier = Modifier.fillMaxWidth(),
                             ) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(18.dp),
-                                    strokeWidth = 2.dp,
-                                    color = MaterialTheme.colorScheme.primary,
-                                )
+                                com.metrolist.music.ui.jix.JixLoader(height = 18.dp)
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
                                     text = waitingForApprovalText,

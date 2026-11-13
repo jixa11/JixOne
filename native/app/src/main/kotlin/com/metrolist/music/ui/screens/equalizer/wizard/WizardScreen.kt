@@ -165,7 +165,7 @@ private fun ModelSelectionStep(
         ) {
             if (isLoading) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    CircularProgressIndicator()
+                    com.metrolist.music.ui.jix.JixLoader()
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
                         text = stringResource(R.string.eq_downloading),
@@ -218,7 +218,7 @@ private fun ModelSelectionStep(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
-                CircularProgressIndicator()
+                com.metrolist.music.ui.jix.JixLoader()
             }
         } else if (models.isEmpty() && searchQuery.isNotBlank()) {
             Box(
@@ -346,10 +346,7 @@ private fun VariantSelectionStep(
                     .height(56.dp)
             ) {
                 if (isLoading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(24.dp),
-                        color = MaterialTheme.colorScheme.onPrimary
-                    )
+                    com.metrolist.music.ui.jix.JixLoader(height = 24.dp)
                 } else {
                     Text(
                         text = stringResource(R.string.wizard_save_profiles),

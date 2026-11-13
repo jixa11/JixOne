@@ -504,10 +504,7 @@ fun AlbumMenu(
                                 Material3MenuItemData(
                                     title = { Text(text = stringResource(R.string.downloading)) },
                                     icon = {
-                                        CircularProgressIndicator(
-                                            modifier = Modifier.size(24.dp),
-                                            strokeWidth = 2.dp,
-                                        )
+                                        com.metrolist.music.ui.jix.JixLoader(height = 24.dp)
                                     },
                                     onClick = {
                                         songs.forEach { song ->

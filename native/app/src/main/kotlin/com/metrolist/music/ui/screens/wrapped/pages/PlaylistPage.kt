@@ -125,11 +125,7 @@ fun PlaylistPage() {
                         text = stringResource(R.string.wrapped_create_playlist),
                         style = TextStyle(color = Color.Black, fontWeight = FontWeight.Bold)
                     )
-                    is PlaylistCreationState.Creating -> CircularProgressIndicator(
-                        modifier = Modifier.size(24.dp),
-                        color = Color.Black,
-                        strokeWidth = 2.dp
-                    )
+                    is PlaylistCreationState.Creating -> com.metrolist.music.ui.jix.JixLoader(height = 24.dp)
                     is PlaylistCreationState.Success -> Text(
                         text = stringResource(R.string.wrapped_playlist_saved),
                         style = TextStyle(color = Color.Black, fontWeight = FontWeight.Bold)

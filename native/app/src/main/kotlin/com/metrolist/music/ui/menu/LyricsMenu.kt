@@ -343,7 +343,7 @@ fun LyricsMenu(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier.fillMaxWidth(),
                     ) {
-                        CircularProgressIndicator()
+                        com.metrolist.music.ui.jix.JixLoader()
                     }
                 }
             }

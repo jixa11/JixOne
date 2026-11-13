@@ -5,6 +5,16 @@
 
 package com.metrolist.music.ui.screens.search
 
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.height
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.asPaddingValues
@@ -237,26 +247,51 @@ fun SearchScreen(
                                     )
                                 }
                             }
-                            IconButton(
-                                onClick = {
-                                    searchSource =
-                                        if (searchSource == SearchSource.ONLINE) {
-                                            SearchSource.LOCAL
-                                        } else {
-                                            SearchSource.ONLINE
+                            // Where the search runs, spelled out: tap to switch
+                            // between YouTube Music and your own library.
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier =
+                                    Modifier
+                                        .padding(end = 8.dp)
+                                        .height(38.dp)
+                                        .clip(RoundedCornerShape(50))
+                                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.18f))
+                                        .clickable {
+                                            searchSource =
+                                                if (searchSource == SearchSource.ONLINE) {
+                                                    SearchSource.LOCAL
+                                                } else {
+                                                    SearchSource.ONLINE
+                                                }
                                         }
-                                },
+                                        .padding(horizontal = 12.dp),
                             ) {
                                 Icon(
                                     painter =
                                         painterResource(
                                             when (searchSource) {
-                                                SearchSource.LOCAL -> R.drawable.library_music
+                                                SearchSource.LOCAL -> R.drawable.jix_library
                                                 SearchSource.ONLINE -> R.drawable.language
                                             },
                                         ),
                                     contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onSurface,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(18.dp),
+                                )
+                                Spacer(Modifier.width(6.dp))
+                                Text(
+                                    text =
+                                        stringResource(
+                                            when (searchSource) {
+                                                SearchSource.LOCAL -> R.string.filter_library
+                                                SearchSource.ONLINE -> R.string.jix_source_online
+                                            },
+                                        ),
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    maxLines = 1,
                                 )
                             }
                         }

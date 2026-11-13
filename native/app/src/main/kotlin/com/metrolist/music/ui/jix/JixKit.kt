@@ -9,6 +9,13 @@
 
 package com.metrolist.music.ui.jix
 
+import androidx.compose.animation.core.StartOffset
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.BorderStroke
@@ -565,5 +572,87 @@ fun JixTransportButton(
                 },
             modifier = Modifier.size(iconSize),
         )
+    }
+}
+
+/** A menu row: accent-tinted icon disc, bold label. For dropdowns and sheets. */
+@Composable
+fun JixMenuItem(
+    icon: Int,
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .clickable(onClick = onClick)
+                .padding(horizontal = 14.dp, vertical = 9.dp),
+    ) {
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier =
+                Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)),
+        ) {
+            Icon(
+                painter = painterResource(icon),
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(22.dp),
+            )
+        }
+        Spacer(Modifier.width(14.dp))
+        Text(
+            text = text,
+            fontSize = 15.sp,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+/**
+ * The JixOne loading indicator: five accent bars rising and falling like a
+ * level meter. Replaces the stock spinner wherever something is loading.
+ */
+@Composable
+fun JixLoader(
+    modifier: Modifier = Modifier,
+    height: Dp = 34.dp,
+) {
+    val accent = LocalJixAccent.current
+    val transition = rememberInfiniteTransition(label = "jixLoader")
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(height * 0.12f),
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = modifier.height(height),
+    ) {
+        repeat(5) { index ->
+            val level by transition.animateFloat(
+                initialValue = 0.28f,
+                targetValue = 1f,
+                animationSpec =
+                    infiniteRepeatable(
+                        animation = tween(durationMillis = 520, easing = FastOutSlowInEasing),
+                        repeatMode = RepeatMode.Reverse,
+                        initialStartOffset = StartOffset(index * 110),
+                    ),
+                label = "jixLoaderBar$index",
+            )
+            Box(
+                Modifier
+                    .width(height * 0.14f)
+                    .height(height * level)
+                    .clip(RoundedCornerShape(50))
+                    .background(Brush.verticalGradient(listOf(accent.start, accent.end))),
+            )
+        }
     }
 }

@@ -254,4 +254,5 @@
     <string name="jix_genre_arabic">عربی</string>
     <string name="jix_genre_turkish">ترکی</string>
     <string name="jix_genre_other">بیشتر از آرتیست‌های تو</string>
+    <string name="jix_source_online">آنلاین</string>
 </resources>

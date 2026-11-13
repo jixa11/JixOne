@@ -143,7 +143,7 @@ fun OnlinePodcastScreen(
                             .padding(32.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        ContainedLoadingIndicator()
+                        com.metrolist.music.ui.jix.JixLoader()
                     }
                 }
             } else if (error != null) {

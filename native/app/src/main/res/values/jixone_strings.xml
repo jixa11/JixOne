@@ -1054,4 +1054,5 @@
     <string name="jix_genre_arabic">Arabic</string>
     <string name="jix_genre_turkish">Turkish</string>
     <string name="jix_genre_other">More from your artists</string>
+    <string name="jix_source_online">Online</string>
 </resources>

@@ -137,11 +137,7 @@ fun ArtistOnboardingScreen(
                             )
                         }
                     } else if (uiState.loading) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(20.dp),
-                            strokeWidth = 2.5.dp,
-                            color = MaterialTheme.colorScheme.primary,
-                        )
+                        com.metrolist.music.ui.jix.JixLoader(height = 20.dp)
                     }
                 },
                 singleLine = true,
@@ -170,10 +166,7 @@ fun ArtistOnboardingScreen(
         // ---------- artist grid ----------
         Box(modifier = Modifier.weight(1f)) {
             if (!uiState.initialized) {
-                CircularProgressIndicator(
-                    modifier = Modifier.align(Alignment.Center),
-                    color = MaterialTheme.colorScheme.primary,
-                )
+                com.metrolist.music.ui.jix.JixLoader(height = 34.dp)
             } else if (uiState.artists.isEmpty()) {
                 Column(
                     modifier = Modifier.align(Alignment.Center).padding(32.dp),

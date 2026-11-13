@@ -1173,11 +1173,7 @@ private fun JoinCreateRoomSection(
                                 .fillMaxWidth()
                                 .padding(16.dp),
                     ) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(20.dp),
-                            strokeWidth = 2.dp,
-                            color = MaterialTheme.colorScheme.primary,
-                        )
+                        com.metrolist.music.ui.jix.JixLoader(height = 20.dp)
                         Spacer(modifier = Modifier.width(12.dp))
                         Text(
                             text = waitingForApprovalText,

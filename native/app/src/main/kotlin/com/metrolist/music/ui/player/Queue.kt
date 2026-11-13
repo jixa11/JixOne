@@ -352,11 +352,7 @@ fun Queue(
                                     contentAlignment = Alignment.Center,
                                     modifier = Modifier.weight(1f),
                                 ) {
-                                    CircularProgressIndicator(
-                                        strokeWidth = 2.5.dp,
-                                        color = TextBackgroundColor,
-                                        modifier = Modifier.size(22.dp),
-                                    )
+                                    com.metrolist.music.ui.jix.JixLoader(height = 22.dp)
                                 }
 
                             else ->

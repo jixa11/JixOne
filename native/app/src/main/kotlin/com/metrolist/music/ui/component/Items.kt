@@ -1968,12 +1968,7 @@ object Icon {
                     .size(18.dp)
                     .padding(end = 2.dp)
             )
-            STATE_QUEUED, STATE_DOWNLOADING -> CircularProgressIndicator(
-                strokeWidth = 2.dp,
-                modifier = Modifier
-                    .size(16.dp)
-                    .padding(end = 2.dp)
-            )
+            STATE_QUEUED, STATE_DOWNLOADING -> com.metrolist.music.ui.jix.JixLoader(height = 16.dp)
             else -> { /* no icon */ }
         }
     }

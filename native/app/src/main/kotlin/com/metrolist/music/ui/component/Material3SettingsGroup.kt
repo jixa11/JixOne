@@ -34,6 +34,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 
 /**
  * JixOne 6 curated section accents — mid-tone hues chosen to read on both
@@ -73,61 +74,44 @@ fun Material3SettingsGroup(
     useLowContrast: Boolean = false,
     accent: Color? = null
 ) {
-    val groupAccent = accent ?: settingsGroupAccent(title)
+    // One accent for every group: the theme's own. A settings page is a
+    // list to scan, not a rainbow.
+    val groupAccent = MaterialTheme.colorScheme.primary
+    val shape = RoundedCornerShape(24.dp)
     Column(
         modifier = Modifier
             .fillMaxWidth()
     ) {
-        // Section title
         title?.let {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(bottom = 8.dp, top = 8.dp)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(width = 4.dp, height = 14.dp)
-                        .clip(RoundedCornerShape(2.dp))
-                        .background(groupAccent)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = it,
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
-                    color = groupAccent
-                )
-            }
+            Text(
+                text = it.uppercase(),
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                letterSpacing = 1.2.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(start = 12.dp, bottom = 8.dp, top = 10.dp)
+            )
         }
 
-        // Settings items
+        // One solid card per group, rows split by hairlines. Solid, so the
+        // text stays readable over a theme's background artwork.
         Column(
-            modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(shape)
+                .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                .animateContentSize(),
         ) {
             items.forEachIndexed { index, item ->
-                val shape = when {
-                    items.size == 1 -> RoundedCornerShape(24.dp)
-                    index == 0 -> RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp, bottomStart = 6.dp, bottomEnd = 6.dp)
-                    index == items.size - 1 -> RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp, bottomStart = 24.dp, bottomEnd = 24.dp)
-                    else -> RoundedCornerShape(6.dp)
-                }
-
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .animateContentSize(),
-                    shape = shape,
-                    colors = CardDefaults.cardColors(
-                        containerColor = if (!useLowContrast) {
-                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-                        } else {
-                            MaterialTheme.colorScheme.surfaceContainerLow
-                        }
-                    ),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-                ) {
-                    Material3SettingsItemRow(item = item, accent = groupAccent)
+                Material3SettingsItemRow(item = item, accent = groupAccent)
+                if (index != items.lastIndex) {
+                    Box(
+                        modifier = Modifier
+                            .padding(start = 72.dp, end = 16.dp)
+                            .fillMaxWidth()
+                            .height(1.dp)
+                            .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
+                    )
                 }
             }
         }
@@ -150,7 +134,7 @@ private fun Material3SettingsItemRow(
                 enabled = item.enabled && item.onClick != null,
                 onClick = { item.onClick?.invoke() }
             )
-            .padding(horizontal = 20.dp, vertical = 16.dp),
+            .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         // Custom leading content or Icon with background
@@ -161,8 +145,8 @@ private fun Material3SettingsItemRow(
             Box(
                 modifier = Modifier
                     .size(40.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(accent.copy(alpha = if (item.isHighlighted) 0.24f else 0.15f)),
+                    .clip(androidx.compose.foundation.shape.CircleShape)
+                    .background(accent.copy(alpha = if (item.isHighlighted) 0.26f else 0.16f)),
                 contentAlignment = Alignment.Center
             ) {
                 if (item.showBadge) {
@@ -180,7 +164,7 @@ private fun Material3SettingsItemRow(
                                 MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
                             else
                                 accent,
-                            modifier = Modifier.size(24.dp)
+                            modifier = Modifier.size(22.dp)
                         )
                     }
                 } else {
@@ -191,7 +175,7 @@ private fun Material3SettingsItemRow(
                             MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
                         else
                             accent,
-                        modifier = Modifier.size(24.dp)
+                        modifier = Modifier.size(22.dp)
                     )
                 }
             }
@@ -231,10 +215,18 @@ private fun Material3SettingsItemRow(
             }
         }
 
-        // Trailing content
-        item.trailingContent?.let { trailing ->
+        // Trailing content, or a chevron on rows that open something
+        if (item.trailingContent != null) {
             Spacer(modifier = Modifier.width(8.dp))
-            trailing()
+            item.trailingContent.invoke()
+        } else if (item.onClick != null) {
+            Spacer(modifier = Modifier.width(8.dp))
+            Icon(
+                painter = androidx.compose.ui.res.painterResource(com.metrolist.music.R.drawable.navigate_next),
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f),
+                modifier = Modifier.size(18.dp)
+            )
         }
     }
 }

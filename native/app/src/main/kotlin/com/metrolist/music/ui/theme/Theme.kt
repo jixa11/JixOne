@@ -5,6 +5,8 @@
 
 package com.metrolist.music.ui.theme
 
+import com.metrolist.music.ui.jix.LocalJixAccent
+import com.metrolist.music.ui.jix.jixAccentFor
 import android.graphics.Bitmap
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -217,6 +219,7 @@ fun JixOneTheme(
     CompositionLocalProvider(
         LocalThemeArtwork provides artwork,
         LocalThemeMesh provides mesh,
+        LocalJixAccent provides remember(themeColor) { jixAccentFor(themeColor) },
     ) {
         MaterialTheme(
             colorScheme = colorScheme,

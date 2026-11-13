@@ -5,6 +5,15 @@
 
 package com.metrolist.music
 
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.BorderStroke
+import com.metrolist.music.ui.jix.jixAccentBrush
+import com.metrolist.music.ui.jix.JixMenuItem
+import com.metrolist.music.constants.ThemeModeMigratedKey
+import com.metrolist.music.ui.screens.settings.PaletteColors
 import android.Manifest
 import android.annotation.SuppressLint
 import android.app.ForegroundServiceStartNotAllowedException
@@ -591,7 +600,7 @@ class MainActivity : FragmentActivity() {
             }
         }
 
-        val darkTheme by rememberEnumPreference(DarkModeKey, defaultValue = DarkMode.AUTO)
+        val darkTheme by rememberEnumPreference(DarkModeKey, defaultValue = DarkMode.ON)
         val isSystemInDarkTheme = isSystemInDarkTheme()
         val useDarkTheme =
             remember(darkTheme, isSystemInDarkTheme) {
@@ -841,6 +850,21 @@ class MainActivity : FragmentActivity() {
                 val bottomInsetDp = WindowInsets.systemBars.asPaddingValues().calculateBottomPadding()
 
                 val navController = rememberNavController()
+
+                // A theme now carries its own dark/light mode. Apply it once
+                // over whatever the old separate mode setting said.
+                LaunchedEffect(Unit) {
+                    val prefs = dataStore.data.first()
+                    if (prefs[ThemeModeMigratedKey] != true) {
+                        val seed = prefs[SelectedThemeColorKey] ?: DefaultPaletteSeed.toArgb()
+                        val palette = PaletteColors.firstOrNull { it.seedColor.toArgb() == seed }
+                        safeDataStoreEdit {
+                            it[DarkModeKey] = (if (palette?.dark == false) DarkMode.OFF else DarkMode.ON).name
+                            if (palette?.pureBlack == true) it[PureBlackKey] = true
+                            it[ThemeModeMigratedKey] = true
+                        }
+                    }
+                }
 
                 LaunchedEffect(Unit) {
                     val lastSeenVersion = dataStore.data.first()[LastSeenVersionKey] ?: ""
@@ -1202,102 +1226,114 @@ class MainActivity : FragmentActivity() {
                                             // top-bar action is consolidated into its
                                             // dropdown menu (Account, Settings, Listen
                                             // Together, Equalizer, Integrations).
-                                            Box {
-                                                IconButton(onClick = { profileMenuExpanded = true }) {
-                                                    BadgedBox(badge = {
-                                                        if (latestVersionName != BuildConfig.BASE_VERSION_NAME) {
-                                                            Badge()
-                                                        }
-                                                    }) {
-                                                        if (accountImageUrl != null) {
-                                                            AsyncImage(
-                                                                model = accountImageUrl,
-                                                                contentDescription = stringResource(R.string.account),
-                                                                modifier =
-                                                                    Modifier
-                                                                        .size(24.dp)
-                                                                        .clip(CircleShape),
-                                                            )
-                                                        } else {
-                                                            Icon(
-                                                                painter = painterResource(R.drawable.account),
-                                                                contentDescription = stringResource(R.string.account),
-                                                                modifier = Modifier.size(24.dp),
-                                                            )
-                                                        }
+                                            Box(modifier = Modifier.padding(end = 8.dp)) {
+                                                // One menu button for everything that is
+                                                // not a tab: a glass disc with a menu icon.
+                                                BadgedBox(badge = {
+                                                    if (latestVersionName != BuildConfig.BASE_VERSION_NAME) {
+                                                        Badge()
+                                                    }
+                                                }) {
+                                                    Box(
+                                                        contentAlignment = Alignment.Center,
+                                                        modifier =
+                                                            Modifier
+                                                                .size(42.dp)
+                                                                .clip(CircleShape)
+                                                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.16f))
+                                                                .clickable { profileMenuExpanded = true },
+                                                    ) {
+                                                        Icon(
+                                                            painter = painterResource(R.drawable.jix_menu),
+                                                            contentDescription = stringResource(R.string.settings),
+                                                            tint = MaterialTheme.colorScheme.primary,
+                                                            modifier = Modifier.size(22.dp),
+                                                        )
                                                     }
                                                 }
                                                 DropdownMenu(
                                                     expanded = profileMenuExpanded,
                                                     onDismissRequest = { profileMenuExpanded = false },
+                                                    shape = RoundedCornerShape(26.dp),
+                                                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                                    border =
+                                                        BorderStroke(
+                                                            1.dp,
+                                                            MaterialTheme.colorScheme.primary.copy(alpha = 0.30f),
+                                                        ),
+                                                    modifier = Modifier.width(248.dp),
                                                 ) {
-                                                    DropdownMenuItem(
-                                                        text = { Text(stringResource(R.string.account)) },
-                                                        leadingIcon = {
-                                                            Icon(
-                                                                painter = painterResource(R.drawable.account),
-                                                                contentDescription = null,
-                                                            )
-                                                        },
-                                                        onClick = {
-                                                            profileMenuExpanded = false
-                                                            showAccountDialog = true
-                                                        },
-                                                    )
-                                                    DropdownMenuItem(
-                                                        text = { Text(stringResource(R.string.settings)) },
-                                                        leadingIcon = {
-                                                            Icon(
-                                                                painter = painterResource(R.drawable.jix_settings),
-                                                                contentDescription = null,
-                                                            )
-                                                        },
-                                                        onClick = {
-                                                            profileMenuExpanded = false
-                                                            navController.navigate("settings")
-                                                        },
-                                                    )
-                                                    if (listenTogetherInTopBar) {
-                                                        DropdownMenuItem(
-                                                            text = { Text(stringResource(R.string.together)) },
-                                                            leadingIcon = {
-                                                                Icon(
-                                                                    painter = painterResource(R.drawable.jix_users),
+                                                    // Account header: avatar (or icon) and name.
+                                                    Row(
+                                                        verticalAlignment = Alignment.CenterVertically,
+                                                        modifier =
+                                                            Modifier
+                                                                .fillMaxWidth()
+                                                                .clickable {
+                                                                    profileMenuExpanded = false
+                                                                    showAccountDialog = true
+                                                                }
+                                                                .padding(horizontal = 14.dp, vertical = 10.dp),
+                                                    ) {
+                                                        Box(
+                                                            contentAlignment = Alignment.Center,
+                                                            modifier =
+                                                                Modifier
+                                                                    .size(46.dp)
+                                                                    .clip(CircleShape)
+                                                                    .background(jixAccentBrush()),
+                                                        ) {
+                                                            if (accountImageUrl != null) {
+                                                                AsyncImage(
+                                                                    model = accountImageUrl,
                                                                     contentDescription = null,
+                                                                    modifier = Modifier.size(42.dp).clip(CircleShape),
                                                                 )
-                                                            },
-                                                            onClick = {
-                                                                profileMenuExpanded = false
-                                                                navController.navigate("listen_together_from_topbar")
-                                                            },
+                                                            } else {
+                                                                Icon(
+                                                                    painter = painterResource(R.drawable.person),
+                                                                    contentDescription = null,
+                                                                    tint = Color.White,
+                                                                    modifier = Modifier.size(24.dp),
+                                                                )
+                                                            }
+                                                        }
+                                                        Spacer(Modifier.width(12.dp))
+                                                        Text(
+                                                            text = stringResource(R.string.account),
+                                                            style = MaterialTheme.typography.titleMedium,
+                                                            fontWeight = FontWeight.ExtraBold,
                                                         )
                                                     }
-                                                    DropdownMenuItem(
-                                                        text = { Text(stringResource(R.string.equalizer)) },
-                                                        leadingIcon = {
-                                                            Icon(
-                                                                painter = painterResource(R.drawable.equalizer),
-                                                                contentDescription = null,
-                                                            )
-                                                        },
-                                                        onClick = {
-                                                            profileMenuExpanded = false
-                                                            navController.navigate("equalizer")
-                                                        },
+                                                    Box(
+                                                        Modifier
+                                                            .padding(horizontal = 14.dp, vertical = 4.dp)
+                                                            .fillMaxWidth()
+                                                            .height(1.dp)
+                                                            .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)),
                                                     )
-                                                    DropdownMenuItem(
-                                                        text = { Text(stringResource(R.string.integrations)) },
-                                                        leadingIcon = {
-                                                            Icon(
-                                                                painter = painterResource(R.drawable.integration),
-                                                                contentDescription = null,
-                                                            )
-                                                        },
-                                                        onClick = {
+                                                    JixMenuItem(R.drawable.jix_settings, stringResource(R.string.settings), {
+                                                        profileMenuExpanded = false
+                                                        navController.navigate("settings")
+                                                    })
+                                                    JixMenuItem(R.drawable.contrast, stringResource(R.string.theme_colors), {
+                                                        profileMenuExpanded = false
+                                                        navController.navigate("settings/appearance/theme")
+                                                    })
+                                                    if (listenTogetherInTopBar) {
+                                                        JixMenuItem(R.drawable.jix_users, stringResource(R.string.together), {
                                                             profileMenuExpanded = false
-                                                            navController.navigate("settings/integrations")
-                                                        },
-                                                    )
+                                                            navController.navigate("listen_together_from_topbar")
+                                                        })
+                                                    }
+                                                    JixMenuItem(R.drawable.equalizer, stringResource(R.string.equalizer), {
+                                                        profileMenuExpanded = false
+                                                        navController.navigate("equalizer")
+                                                    })
+                                                    JixMenuItem(R.drawable.integration, stringResource(R.string.integrations), {
+                                                        profileMenuExpanded = false
+                                                        navController.navigate("settings/integrations")
+                                                    })
                                                 }
                                             }
                                         },

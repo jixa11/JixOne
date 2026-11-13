@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { mayChangeSession } from '@/lib/api-guard';
 import { setYtmCookie, clearYtmCookie, ytmSignedInDeep, effectiveYtmCookie, probeAccountName } from '@/lib/ytm-auth';
 
 export const runtime = 'nodejs';
@@ -28,6 +29,7 @@ export async function GET() {
  *  the YouTube Music session. `cookie` may be the plain cookie string or a
  *  JSON bundle; visitorData/dataSyncId fields are merged in when present. */
 export async function POST(req: NextRequest) {
+  if (!mayChangeSession(req)) return NextResponse.json({ ok: false, code: 'FORBIDDEN' }, { status: 403 });
   let body: { cookie?: string; visitorData?: string; dataSyncId?: string } = {};
   try { body = await req.json(); } catch { /* empty body */ }
   const raw = typeof body.cookie === 'string' ? body.cookie : '';
@@ -46,7 +48,8 @@ export async function POST(req: NextRequest) {
 }
 
 /** DELETE /api/yt/auth → sign out (removes the stored cookie). */
-export async function DELETE() {
+export async function DELETE(req: NextRequest) {
+  if (!mayChangeSession(req)) return NextResponse.json({ ok: false, code: 'FORBIDDEN' }, { status: 403 });
   await clearYtmCookie();
   return NextResponse.json({ ok: true });
 }

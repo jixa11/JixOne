@@ -109,7 +109,7 @@ fun ChangelogScreen(
                 if (isLoading) {
                     item {
                         Box(modifier = Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
-                            CircularProgressIndicator()
+                            com.metrolist.music.ui.jix.JixLoader()
                         }
                     }
                 } else if (releases.isEmpty()) {

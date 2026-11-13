@@ -112,6 +112,12 @@ val UpdateNotificationsEnabledKey = booleanPreferencesKey("updateNotifications")
 /** True once the artist onboarding (Spotify-style taste setup) has been finished. */
 val ArtistOnboardingCompletedKey = booleanPreferencesKey("artistOnboardingCompleted")
 
+/** Genre of each picked artist, as "id=genre" pairs joined by ';' (Explore groups shelves by it). */
+val OnboardingArtistGenresKey = stringPreferencesKey("onboardingArtistGenres")
+
+/** True once the theme's own dark/light mode has been applied over the old mode setting. */
+val ThemeModeMigratedKey = booleanPreferencesKey("themeModeMigrated")
+
 val AudioQualityKey = stringPreferencesKey("audioQuality")
 
 enum class AudioQuality {

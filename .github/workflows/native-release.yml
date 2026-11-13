@@ -1,8 +1,8 @@
 name: Native APK (JixOne)
 
 # Builds the native (Metrolist-based) JixOne Android app.
-# Trigger: push a tag starting with "n" (e.g. n2.0.0), a push to the
-# native-outertune branch (compile test), or run manually from main.
+# Trigger: push a tag starting with "n" (e.g. n2.0.0), a push or pull
+# request that touches native/ (compile test), or run manually.
 # The in-app updater reads releases whose tag starts with "n" from
 # jixa11/JixOne and expects assets named JixOne-<version>-<abi>.apk plus
 # JixOne-<version>-universal.apk (any JixOne-*.apk without an ABI suffix is
@@ -10,10 +10,30 @@ name: Native APK (JixOne)
 on:
   push:
     branches:
-      - native-outertune
+      - main
+      - 'claude/**'
     tags:
       - 'n*'
+    paths:
+      - 'native/**'
+      - '.github/workflows/native-release.yml'
+  pull_request:
+    paths:
+      - 'native/**'
+      - '.github/workflows/native-release.yml'
+  # Manual run. Leave release_version empty for a plain build; give a version
+  # (e.g. 6.2.0) to publish that commit as release n<version>, exactly like
+  # pushing the tag would.
   workflow_dispatch:
+    inputs:
+      release_version:
+        description: 'Publish as a release: version without the leading n (e.g. 6.2.0). Empty = build only.'
+        required: false
+        default: ''
+
+concurrency:
+  group: native-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref_type != 'tag' }}
 
 permissions:
   contents: write
@@ -21,11 +41,24 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      # "n6.2.0" for a tag push or a manual release run, empty otherwise.
+      RELEASE_TAG: ${{ github.ref_type == 'tag' && github.ref_name || (inputs.release_version && format('n{0}', inputs.release_version)) || '' }}
     defaults:
       run:
         working-directory: native
     steps:
       - uses: actions/checkout@v4
+
+      - name: Check the release version
+        if: env.RELEASE_TAG != ''
+        run: |
+          if ! [[ "$RELEASE_TAG" =~ ^n[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::release version must look like 6.2.0 (got '$RELEASE_TAG')"; exit 1
+          fi
+          if ! grep -q "val appVersionName = \"${RELEASE_TAG#n}\"" app/build.gradle.kts; then
+            echo "::error::$RELEASE_TAG does not match appVersionName in app/build.gradle.kts"; exit 1
+          fi
 
       - name: Set up JDK 21
         uses: actions/setup-java@v4
@@ -48,8 +81,9 @@ jobs:
               -dname "CN=Android Debug,O=Android,C=US"
           fi
 
-      # Optional project signing key — same secret the WebView releases use.
-      # Without it the release APK falls back to the debug key.
+      # Project signing key — same secret the WebView releases use. Compile
+      # test runs fall back to the debug key; a tagged release must not: a
+      # debug-signed build cannot install over the previous version.
       - name: Restore the signing key
         env:
           KEYSTORE_B64: ${{ secrets.JIXONE_KEYSTORE_B64 }}
@@ -57,6 +91,9 @@ jobs:
           if [ -n "$KEYSTORE_B64" ]; then
             echo "$KEYSTORE_B64" | base64 -d > ../android/jixone.keystore
             echo "signing with the project key"
+          elif [ -n "$RELEASE_TAG" ]; then
+            echo "::error::JIXONE_KEYSTORE_B64 is not set — refusing to publish a debug-signed release"
+            exit 1
           else
             echo "no JIXONE_KEYSTORE_B64 secret — falling back to the debug key"
           fi
@@ -71,6 +108,12 @@ jobs:
           JIXONE_KEY_ALIAS: jixone
         run: ./gradlew --console=plain assembleGmsRelease --warning-mode summary
 
+      # Not on tags yet: the suite never ran in CI before, so it must prove
+      # itself on branch builds before it is allowed to block a release.
+      - name: Unit tests
+        if: env.RELEASE_TAG == ''
+        run: ./gradlew --console=plain testGmsDebugUnitTest --warning-mode summary
+
       - name: Collect APKs
         run: |
           set -e
@@ -78,8 +121,8 @@ jobs:
           # must NOT match here: the branch "native-outertune" also starts
           # with "n", which used to strip its "n" and produce the nonsense
           # version "ative-outertune". Match tags via GITHUB_REF_TYPE.
-          if [[ "$GITHUB_REF_TYPE" == "tag" && "$GITHUB_REF_NAME" == n* ]]; then
-            VERSION="${GITHUB_REF_NAME#n}"
+          if [[ -n "$RELEASE_TAG" ]]; then
+            VERSION="${RELEASE_TAG#n}"
           else
             VERSION="dev-$(date +%Y%m%d)"
           fi
@@ -121,11 +164,21 @@ jobs:
           name: JixOne-native-release
           path: native/out/JixOne-*.apk
 
-      - name: Attach APK to release (tag builds)
-        if: startsWith(github.ref, 'refs/tags/')
+      # The release description is the newest section of the release notes
+      # (everything above the first "---" line). The in-app changelog shows it.
+      - name: Extract release notes (release builds)
+        if: env.RELEASE_TAG != ''
+        working-directory: .
+        run: awk '/^---[[:space:]]*$/ { exit } { print }' docs/RELEASE-NOTES.md > release-body.md
+
+      - name: Attach APK to release (release builds)
+        if: env.RELEASE_TAG != ''
         uses: softprops/action-gh-release@v2
         with:
-          name: JixOne ${{ github.ref_name }} (native)
+          tag_name: ${{ env.RELEASE_TAG }}
+          target_commitish: ${{ github.sha }}
+          name: JixOne ${{ env.RELEASE_TAG }} (native)
+          body_path: release-body.md
           generate_release_notes: false
           files: |
             native/out/JixOne-*.apk

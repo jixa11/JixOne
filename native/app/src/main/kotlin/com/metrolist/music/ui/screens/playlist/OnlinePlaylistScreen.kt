@@ -205,7 +205,7 @@ fun OnlinePlaylistScreen(
                                     .padding(32.dp),
                             contentAlignment = Alignment.Center,
                         ) {
-                            ContainedLoadingIndicator()
+                            com.metrolist.music.ui.jix.JixLoader()
                         }
                     }
                 } else if (error != null) {
@@ -351,7 +351,7 @@ fun OnlinePlaylistScreen(
                                         .padding(16.dp),
                                 contentAlignment = Alignment.Center,
                             ) {
-                                ContainedLoadingIndicator()
+                                com.metrolist.music.ui.jix.JixLoader()
                             }
                         }
                     }

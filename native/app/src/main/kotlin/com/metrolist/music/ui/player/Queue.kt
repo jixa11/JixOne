@@ -5,6 +5,15 @@
 
 package com.metrolist.music.ui.player
 
+import com.metrolist.music.LocalDownloadUtil
+import com.metrolist.music.playback.ExoDownloadService
+import androidx.media3.exoplayer.offline.DownloadService
+import androidx.media3.exoplayer.offline.Download
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.RowScope
 import android.annotation.SuppressLint
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
@@ -215,11 +224,7 @@ fun Queue(
 
     var locked by rememberPreference(QueueEditLockKey, defaultValue = true)
 
-    val (useNewPlayerDesign, onUseNewPlayerDesignChange) =
-        rememberPreference(
-            UseNewPlayerDesignKey,
-            defaultValue = true,
-        )
+    val useNewPlayerDesign = true
 
     val snackbarHostState = remember { SnackbarHostState() }
     var dismissJob: Job? by remember { mutableStateOf(null) }
@@ -264,154 +269,118 @@ fun Queue(
         },
         collapsedContent = {
             if (useNewPlayerDesign) {
-                // New design
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalAlignment = Alignment.CenterVertically,
+                // One glass bar: queue · lyrics · sleep timer · download · more.
+                // Shuffle and repeat live beside the play button, so nothing
+                // here repeats a control that is already on screen.
+                val downloadUtil = LocalDownloadUtil.current
+                val download by downloadUtil
+                    .getDownload(mediaMetadata?.id ?: "")
+                    .collectAsStateWithLifecycle(initialValue = null)
+                val barShape = RoundedCornerShape(24.dp)
+                Box(
                     modifier =
                         Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 30.dp, vertical = 12.dp)
                             .windowInsetsPadding(
                                 WindowInsets.systemBars.only(
                                     WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal,
                                 ),
-                            ),
+                            )
+                            .padding(horizontal = 24.dp, vertical = 8.dp),
                 ) {
-                    val buttonSize = 42.dp
-                    val iconSize = 24.dp
-                    val queueShape =
-                        RoundedCornerShape(
-                            topStart = 50.dp,
-                            bottomStart = 50.dp,
-                            topEnd = 3.dp,
-                            bottomEnd = 3.dp,
-                        )
-                    val middleShape = RoundedCornerShape(3.dp)
-                    val repeatShape =
-                        RoundedCornerShape(
-                            topStart = 3.dp,
-                            bottomStart = 3.dp,
-                            topEnd = 50.dp,
-                            bottomEnd = 50.dp,
-                        )
-
-                    PlayerQueueButton(
-                        icon = R.drawable.queue_music,
-                        onClick = { state.expandSoft() },
-                        isActive = false,
-                        shape = queueShape,
-                        modifier = Modifier.size(buttonSize),
-                        textButtonColor = textButtonColor,
-                        iconButtonColor = iconButtonColor,
-                        iconSize = iconSize,
-                        textBackgroundColor = TextBackgroundColor,
-                        playerBackground = playerBackground,
-                    )
-
-                    PlayerQueueButton(
-                        icon = R.drawable.bedtime,
-                        onClick = {
-                            if (sleepTimerEnabled) {
-                                playerConnection.service.sleepTimer?.clear()
-                            } else {
-                                showSleepTimerDialog = true
-                            }
-                        },
-                        isActive = sleepTimerEnabled,
-                        enabled = !isListenTogetherGuest,
-                        shape = middleShape,
-                        modifier = Modifier.size(buttonSize),
-                        textButtonColor = textButtonColor,
-                        iconButtonColor = iconButtonColor,
-                        text = if (sleepTimerEnabled) makeTimeString(sleepTimerTimeLeft) else null,
-                        iconSize = iconSize,
-                        textBackgroundColor = TextBackgroundColor,
-                        playerBackground = playerBackground,
-                    )
-
-                    val shuffleModeEnabled by playerConnection.shuffleModeEnabled.collectAsStateWithLifecycle()
-                    PlayerQueueButton(
-                        icon = R.drawable.shuffle,
-                        onClick = {
-                            playerConnection.player.shuffleModeEnabled = !shuffleModeEnabled
-                        },
-                        isActive = shuffleModeEnabled,
-                        enabled = !isListenTogetherGuest,
-                        shape = middleShape,
-                        modifier = Modifier.size(buttonSize),
-                        textButtonColor = textButtonColor,
-                        iconButtonColor = iconButtonColor,
-                        iconSize = iconSize,
-                        textBackgroundColor = TextBackgroundColor,
-                        playerBackground = playerBackground,
-                    )
-
-                    PlayerQueueButton(
-                        icon = R.drawable.lyrics,
-                        onClick = { onToggleLyrics() },
-                        isActive = showInlineLyrics,
-                        shape = middleShape,
-                        modifier = Modifier.size(buttonSize),
-                        textButtonColor = textButtonColor,
-                        iconButtonColor = iconButtonColor,
-                        iconSize = iconSize,
-                        textBackgroundColor = TextBackgroundColor,
-                        playerBackground = playerBackground,
-                    )
-
-                    PlayerQueueButton(
-                        icon =
-                            when (repeatMode) {
-                                Player.REPEAT_MODE_ALL -> R.drawable.repeat
-                                Player.REPEAT_MODE_ONE -> R.drawable.repeat_one
-                                else -> R.drawable.repeat
-                            },
-                        onClick = {
-                            playerConnection.player.toggleRepeatMode()
-                        },
-                        isActive = repeatMode != Player.REPEAT_MODE_OFF,
-                        enabled = !isListenTogetherGuest,
-                        shape = repeatShape,
-                        modifier = Modifier.size(buttonSize),
-                        textButtonColor = textButtonColor,
-                        iconButtonColor = iconButtonColor,
-                        iconSize = iconSize,
-                        textBackgroundColor = TextBackgroundColor,
-                        playerBackground = playerBackground,
-                    )
-
-                    Spacer(modifier = Modifier.weight(1f))
-
-                    Box(
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
                         modifier =
                             Modifier
-                                .size(buttonSize)
-                                .clip(CircleShape)
-                                .background(textButtonColor)
-                                .clickable {
-                                    menuState.show {
-                                        PlayerMenu(
-                                            mediaMetadata = mediaMetadata,
-                                            playerBottomSheetState = playerBottomSheetState,
-                                            onShowDetailsDialog = {
-                                                mediaMetadata?.id?.let {
-                                                    bottomSheetPageState.show {
-                                                        ShowMediaInfo(it)
-                                                    }
-                                                }
-                                            },
-                                            onDismiss = menuState::dismiss,
-                                        )
-                                    }
-                                },
-                        contentAlignment = Alignment.Center,
+                                .fillMaxWidth()
+                                .height(48.dp)
+                                .clip(barShape)
+                                .background(TextBackgroundColor.copy(alpha = 0.12f))
+                                .border(1.dp, TextBackgroundColor.copy(alpha = 0.16f), barShape),
                     ) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.more_vert),
-                            contentDescription = null,
-                            modifier = Modifier.size(iconSize),
-                            tint = iconButtonColor,
+                        JixBarItem(
+                            icon = R.drawable.queue_music,
+                            tint = TextBackgroundColor,
+                            onClick = { state.expandSoft() },
+                        )
+                        JixBarItem(
+                            icon = R.drawable.lyrics,
+                            tint = TextBackgroundColor,
+                            active = showInlineLyrics,
+                            activeContainer = textButtonColor,
+                            activeTint = iconButtonColor,
+                            onClick = { onToggleLyrics() },
+                        )
+                        JixBarItem(
+                            icon = R.drawable.bedtime,
+                            tint = TextBackgroundColor,
+                            active = sleepTimerEnabled,
+                            activeContainer = textButtonColor,
+                            activeTint = iconButtonColor,
+                            text = if (sleepTimerEnabled) makeTimeString(sleepTimerTimeLeft) else null,
+                            enabled = !isListenTogetherGuest,
+                            onClick = {
+                                if (sleepTimerEnabled) {
+                                    playerConnection.service.sleepTimer?.clear()
+                                } else {
+                                    showSleepTimerDialog = true
+                                }
+                            },
+                        )
+                        when (download?.state) {
+                            Download.STATE_COMPLETED ->
+                                JixBarItem(
+                                    icon = R.drawable.offline,
+                                    tint = TextBackgroundColor,
+                                    active = true,
+                                    activeContainer = textButtonColor,
+                                    activeTint = iconButtonColor,
+                                    onClick = {
+                                        mediaMetadata?.let {
+                                            DownloadService.sendRemoveDownload(
+                                                context,
+                                                ExoDownloadService::class.java,
+                                                it.id,
+                                                false,
+                                            )
+                                        }
+                                    },
+                                )
+
+                            Download.STATE_QUEUED, Download.STATE_DOWNLOADING ->
+                                Box(
+                                    contentAlignment = Alignment.Center,
+                                    modifier = Modifier.weight(1f),
+                                ) {
+                                    com.metrolist.music.ui.jix.JixLoader(height = 22.dp)
+                                }
+
+                            else ->
+                                JixBarItem(
+                                    icon = R.drawable.download,
+                                    tint = TextBackgroundColor,
+                                    onClick = { mediaMetadata?.let { downloadUtil.download(it) } },
+                                )
+                        }
+                        JixBarItem(
+                            icon = R.drawable.more_horiz,
+                            tint = TextBackgroundColor,
+                            onClick = {
+                                menuState.show {
+                                    PlayerMenu(
+                                        mediaMetadata = mediaMetadata,
+                                        playerBottomSheetState = playerBottomSheetState,
+                                        onShowDetailsDialog = {
+                                            mediaMetadata?.id?.let {
+                                                bottomSheetPageState.show {
+                                                    ShowMediaInfo(it)
+                                                }
+                                            }
+                                        },
+                                        onDismiss = menuState::dismiss,
+                                    )
+                                }
+                            },
                         )
                     }
                 }
@@ -1343,6 +1312,57 @@ private fun PlayerQueueButton(
                 modifier = Modifier.size(iconSize),
                 tint = finalTint,
             )
+        }
+    }
+}
+
+/** One slot of the player's bottom bar. */
+@Composable
+private fun RowScope.JixBarItem(
+    icon: Int,
+    tint: Color,
+    onClick: () -> Unit,
+    active: Boolean = false,
+    activeContainer: Color = tint,
+    activeTint: Color = Color.Black,
+    text: String? = null,
+    enabled: Boolean = true,
+) {
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier =
+            Modifier
+                .weight(1f)
+                .fillMaxHeight()
+                .clickable(enabled = enabled, onClick = onClick)
+                .alpha(if (enabled) 1f else 0.4f),
+    ) {
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier =
+                Modifier
+                    .height(36.dp)
+                    .widthIn(min = 36.dp)
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(if (active) activeContainer else Color.Transparent)
+                    .padding(horizontal = if (text != null) 10.dp else 0.dp),
+        ) {
+            if (text != null) {
+                Text(
+                    text = text,
+                    color = if (active) activeTint else tint,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                )
+            } else {
+                Icon(
+                    painter = painterResource(icon),
+                    contentDescription = null,
+                    tint = if (active) activeTint else tint,
+                    modifier = Modifier.size(22.dp),
+                )
+            }
         }
     }
 }

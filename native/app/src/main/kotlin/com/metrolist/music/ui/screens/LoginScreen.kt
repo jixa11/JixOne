@@ -362,7 +362,7 @@ fun LoginScreen(
         )
 
         if (loginStage == LoginStage.CheckingAccounts || loginStage == LoginStage.Completing) {
-            CircularProgressIndicator(Modifier.align(Alignment.Center))
+            com.metrolist.music.ui.jix.JixLoader(Modifier.align(Alignment.Center))
         }
 
         TopAppBar(

@@ -232,4 +232,27 @@
     <string name="explore_pick_artists_subtitle">آرتیست‌های موردعلاقه‌ات رو انتخاب کن — اکسپلور فقط اون‌ها و مشابه‌هاشون رو نشون میده</string>
     <string name="explore_pick_artists_button">انتخاب آرتیست‌ها</string>
     <string name="settings_brand_tagline">ساخته‌شده برای موسیقی تو</string>
+    <string name="jix_hero_title">میکس تو</string>
+    <string name="jix_greeting_morning">صبح بخیر</string>
+    <string name="jix_greeting_afternoon">عصر بخیر</string>
+    <string name="jix_greeting_evening">شب بخیر</string>
+    <string name="jix_theme_hint">یک ظاهر انتخاب کن. هر تم رنگ‌ها، پس‌زمینه و حال‌وهوای کل برنامه را عوض می‌کند.</string>
+    <string name="jix_genre_persian_pop">پاپ ایرانی</string>
+    <string name="jix_genre_persian_classic">سنتی ایرانی</string>
+    <string name="jix_genre_persian_rap">رپ فارسی</string>
+    <string name="jix_genre_persian_rock">راک ایرانی</string>
+    <string name="jix_genre_pop">پاپ</string>
+    <string name="jix_genre_rock">راک</string>
+    <string name="jix_genre_hiphop">هیپ‌هاپ</string>
+    <string name="jix_genre_rnb">آر اند بی</string>
+    <string name="jix_genre_electronic">الکترونیک</string>
+    <string name="jix_genre_kpop">کی‌پاپ</string>
+    <string name="jix_genre_latin">لاتین</string>
+    <string name="jix_genre_jazz">جز</string>
+    <string name="jix_genre_metal">متال</string>
+    <string name="jix_genre_classical">کلاسیک</string>
+    <string name="jix_genre_arabic">عربی</string>
+    <string name="jix_genre_turkish">ترکی</string>
+    <string name="jix_genre_other">بیشتر از آرتیست‌های تو</string>
+    <string name="jix_source_online">آنلاین</string>
 </resources>

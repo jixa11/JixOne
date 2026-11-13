@@ -1,104 +1,103 @@
 package com.metrolist.music.ui.screens.settings
 
-import android.os.Build
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.scaleIn
-import androidx.compose.animation.scaleOut
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
-import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.materialkolor.PaletteStyle
+import com.materialkolor.dynamiccolor.ColorSpec
 import com.materialkolor.rememberDynamicColorScheme
+import com.metrolist.music.LocalPlayerAwareWindowInsets
 import com.metrolist.music.R
 import com.metrolist.music.constants.DarkModeKey
 import com.metrolist.music.constants.PureBlackKey
 import com.metrolist.music.constants.PureBlackMiniPlayerKey
 import com.metrolist.music.constants.SelectedThemeColorKey
 import com.metrolist.music.ui.theme.DefaultPaletteSeed
+import com.metrolist.music.ui.theme.persianThemeFor
 import com.metrolist.music.utils.rememberEnumPreference
 import com.metrolist.music.utils.rememberPreference
 
+/**
+ * A JixOne theme is a complete look: its color seed, whether it is dark or
+ * light, and whether it uses a pure-black ground. Picking one sets all three,
+ * so there is nothing else to configure.
+ */
 data class ThemePalette(
     val nameRes: Int,
-    val seedColor: Color
+    val seedColor: Color,
+    val dark: Boolean = true,
+    val pureBlack: Boolean = false,
 )
 
-//
-// JixOne 6: exactly twelve curated palettes — the JixOne identity set.
-// The pre-6 "Dynamic / system wallpaper" entry and the extra "YouTube
-// Light" variant are gone; every palette is a fixed, hand-tuned seed.
-//
 val PaletteColors = listOf(
-    ThemePalette(R.string.palette_aurora, Color(0xFF7C5CFF)), // JixOne 5.1: Aurora — the app default
-    ThemePalette(R.string.palette_jixone_carpet, Color(0xFFD9A441)), // JixOne: Persian carpet gold
-    ThemePalette(R.string.palette_jixone_tile, Color(0xFF33C5D6)), // JixOne: Isfahan tile turquoise
-    ThemePalette(R.string.palette_jixone_derafsh, Color(0xFF9A5BE0)), // JixOne: Derafsh Kaviani violet
-    ThemePalette(R.string.palette_jixone_cyrus, Color(0xFF2A5D9F)), // JixOne: Cyrus blue
-    ThemePalette(R.string.palette_neon_crimson, Color(0xFFFF2D55)), // JixOne web: Neon Crimson
-    ThemePalette(R.string.palette_neo_tokyo, Color(0xFF22D3EE)), // JixOne web: Neo Tokyo
-    ThemePalette(R.string.palette_synthwave, Color(0xFFFF2FA0)), // JixOne web: Synthwave
-    ThemePalette(R.string.palette_classic_spotify, Color(0xFF1DB954)), // JixOne web: Classic Spotify
-    ThemePalette(R.string.palette_pure_oled, Color(0xFFE4E4E7)), // JixOne web: Pure OLED (neutral)
-    ThemePalette(R.string.palette_dubai_sunset, Color(0xFFFF6B35)), // JixOne web: Dubai Sunset
-    ThemePalette(R.string.palette_youtube, Color(0xFFFF0033)), // JixOne web: YouTube
+    ThemePalette(R.string.palette_aurora, Color(0xFF7C5CFF)),
+    ThemePalette(R.string.palette_jixone_carpet, Color(0xFFD9A441)),
+    ThemePalette(R.string.palette_jixone_tile, Color(0xFF33C5D6)),
+    ThemePalette(R.string.palette_jixone_derafsh, Color(0xFF9A5BE0)),
+    // Cyrus is the one light theme: gold and lapis on parchment.
+    ThemePalette(R.string.palette_jixone_cyrus, Color(0xFF2A5D9F), dark = false),
+    ThemePalette(R.string.palette_neon_crimson, Color(0xFFFF2D55)),
+    ThemePalette(R.string.palette_neo_tokyo, Color(0xFF22D3EE)),
+    ThemePalette(R.string.palette_synthwave, Color(0xFFFF2FA0)),
+    ThemePalette(R.string.palette_classic_spotify, Color(0xFF1DB954)),
+    ThemePalette(R.string.palette_pure_oled, Color(0xFFE4E4E7), pureBlack = true),
+    ThemePalette(R.string.palette_dubai_sunset, Color(0xFFFF6B35)),
+    ThemePalette(R.string.palette_youtube, Color(0xFFFF0033)),
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -106,47 +105,47 @@ val PaletteColors = listOf(
 fun ThemeScreen(
     navController: NavController,
 ) {
-    val (darkMode, onDarkModeChange) = rememberEnumPreference(DarkModeKey, DarkMode.AUTO)
-    val (pureBlack, onPureBlackChangeRaw) = rememberPreference(PureBlackKey, defaultValue = false)
-    val (_, onPureBlackMiniPlayerChange) = rememberPreference(
-        PureBlackMiniPlayerKey,
-        defaultValue = false
-    )
+    val (_, onDarkModeChange) = rememberEnumPreference(DarkModeKey, DarkMode.ON)
+    val (_, onPureBlackChange) = rememberPreference(PureBlackKey, defaultValue = false)
+    val (_, onPureBlackMiniPlayerChange) = rememberPreference(PureBlackMiniPlayerKey, defaultValue = false)
+    val (selectedSeed, onSelectedSeedChange) =
+        rememberPreference(SelectedThemeColorKey, DefaultPaletteSeed.toArgb())
 
-    val onPureBlackChange: (Boolean) -> Unit = { enabled ->
-        onPureBlackChangeRaw(enabled)
-        onPureBlackMiniPlayerChange(enabled)
-    }
-    val (selectedThemeColorInt, onSelectedThemeColorChangeInt) = rememberPreference(
-        SelectedThemeColorKey,
-        DefaultPaletteSeed.toArgb()
-    )
-    val onSelectedThemeColorChange: (Color) -> Unit = { color ->
-        onSelectedThemeColorChangeInt(color.toArgb())
-    }
+    val insets = LocalPlayerAwareWindowInsets.current.asPaddingValues()
+    val layoutDirection = LocalLayoutDirection.current
 
-    val selectedThemeColor = Color(selectedThemeColorInt)
-
-    // JixOne 6: one simple scrollable layout for every orientation — the
-    // phone mockup preview is gone, the palette circles are the preview.
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState()),
-        horizontalAlignment = Alignment.CenterHorizontally,
+    LazyVerticalGrid(
+        columns = GridCells.Fixed(2),
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
+        verticalArrangement = Arrangement.spacedBy(18.dp),
+        contentPadding =
+            PaddingValues(
+                start = insets.calculateStartPadding(layoutDirection) + 18.dp,
+                end = insets.calculateEndPadding(layoutDirection) + 18.dp,
+                top = insets.calculateTopPadding() + 12.dp,
+                bottom = insets.calculateBottomPadding() + 24.dp,
+            ),
+        modifier = Modifier.fillMaxSize(),
     ) {
-        Spacer(modifier = Modifier.height(16.dp))
-
-        ThemeControls(
-            darkMode = darkMode,
-            onDarkModeChange = onDarkModeChange,
-            pureBlack = pureBlack,
-            onPureBlackChange = onPureBlackChange,
-            selectedThemeColor = selectedThemeColor,
-            onSelectedThemeColorChange = onSelectedThemeColorChange
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
+        item(span = { GridItemSpan(maxLineSpan) }) {
+            Text(
+                text = stringResource(R.string.jix_theme_hint),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        items(PaletteColors, key = { it.nameRes }) { palette ->
+            ThemeCard(
+                palette = palette,
+                selected = selectedSeed == palette.seedColor.toArgb(),
+                onClick = {
+                    onSelectedSeedChange(palette.seedColor.toArgb())
+                    onDarkModeChange(if (palette.dark) DarkMode.ON else DarkMode.OFF)
+                    onPureBlackChange(palette.pureBlack)
+                    onPureBlackMiniPlayerChange(palette.pureBlack)
+                },
+            )
+        }
     }
 
     TopAppBar(
@@ -155,376 +154,255 @@ fun ThemeScreen(
             IconButton(onClick = { navController.navigateUp() }) {
                 Icon(
                     painter = painterResource(R.drawable.arrow_back),
-                    contentDescription = stringResource(R.string.cd_back)
+                    contentDescription = stringResource(R.string.cd_back),
                 )
             }
-        }
+        },
     )
 }
 
+/** A miniature of the app in this theme, with its name underneath. */
 @Composable
-fun ThemeControls(
-    darkMode: DarkMode,
-    onDarkModeChange: (DarkMode) -> Unit,
-    pureBlack: Boolean,
-    onPureBlackChange: (Boolean) -> Unit,
-    selectedThemeColor: Color,
-    onSelectedThemeColorChange: (Color) -> Unit
+private fun ThemeCard(
+    palette: ThemePalette,
+    selected: Boolean,
+    onClick: () -> Unit,
 ) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
-        Column(
-            modifier = Modifier.padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(24.dp)
-        ) {
-            // ── Mode ────────────────────────────────────────────────
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text(
-                    text = stringResource(R.string.theme_mode),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterHorizontally),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // System mode (AUTO)
-                    ModeCircle(
-                        darkMode = darkMode,
-                        pureBlack = pureBlack,
-                        targetMode = DarkMode.AUTO,
-                        targetPureBlack = pureBlack,
-                        onClick = {
-                            onDarkModeChange(DarkMode.AUTO)
-                        },
-                        showIcon = true
-                    )
-
-                    // Vertical divider to separate System from manual modes
-                    Box(
-                        modifier = Modifier
-                            .width(1.dp)
-                            .height(32.dp)
-                            .background(MaterialTheme.colorScheme.outlineVariant)
-                    )
-
-                    // Manual modes (Light, Dark, Pure Black)
-                    ModeCircle(
-                        darkMode = darkMode,
-                        pureBlack = pureBlack,
-                        targetMode = DarkMode.OFF,
-                        targetPureBlack = false,
-                        onClick = {
-                            onDarkModeChange(DarkMode.OFF)
-                            onPureBlackChange(false)
-                        },
-                        showIcon = false
-                    )
-
-                    ModeCircle(
-                        darkMode = darkMode,
-                        pureBlack = pureBlack,
-                        targetMode = DarkMode.ON,
-                        targetPureBlack = false,
-                        onClick = {
-                            onDarkModeChange(DarkMode.ON)
-                            onPureBlackChange(false)
-                        },
-                        showIcon = false
-                    )
-
-                    ModeCircle(
-                        darkMode = darkMode,
-                        pureBlack = pureBlack,
-                        targetMode = DarkMode.ON,
-                        targetPureBlack = true,
-                        onClick = {
-                            onDarkModeChange(DarkMode.ON)
-                            onPureBlackChange(true)
-                        },
-                        showIcon = false
-                    )
-                }
-            }
-
-            // ── Palette ─────────────────────────────────────────────
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text(
-                    text = stringResource(R.string.color_palette),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
-                    contentPadding = PaddingValues(horizontal = 4.dp)
-                ) {
-                    items(PaletteColors) { palette ->
-                        PaletteItem(
-                            palette = palette,
-                            isSelected = selectedThemeColor == palette.seedColor,
-                            onClick = { onSelectedThemeColorChange(palette.seedColor) }
-                        )
-                    }
-                }
-
-                // The active palette's name — instant feedback for the circles.
-                val selectedName =
-                    PaletteColors.firstOrNull { it.seedColor == selectedThemeColor }?.nameRes
-                Text(
-                    text = selectedName?.let { stringResource(it) }
-                        ?: stringResource(R.string.palette_aurora),
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.primary,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-        }
-    }
-}
-
-@Composable
-fun ModeCircle(
-    darkMode: DarkMode,
-    pureBlack: Boolean,
-    targetMode: DarkMode,
-    targetPureBlack: Boolean,
-    showIcon: Boolean,
-    onClick: () -> Unit
-) {
-    val context = LocalContext.current
-    val isSystemDark = isSystemInDarkTheme()
-    val isSelected = darkMode == targetMode && pureBlack == targetPureBlack
-
-    val effectiveDark = when (targetMode) {
-        DarkMode.AUTO -> isSystemDark
-        DarkMode.ON -> true
-        DarkMode.OFF -> false
-    }
-
-    // Preview colors for the circle fill: system scheme for AUTO on Android
-    // 12+, otherwise the Aurora seed so the preview matches the app default.
-    val modeColorScheme = if (targetMode == DarkMode.AUTO && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-        if (effectiveDark) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-    } else {
+    // The same generator the real theme uses, so the preview shows the real colors.
+    val scheme =
         rememberDynamicColorScheme(
-            seedColor = DefaultPaletteSeed,
-            isDark = effectiveDark,
-            style = PaletteStyle.TonalSpot
+            seedColor = palette.seedColor,
+            isDark = palette.dark,
+            specVersion = ColorSpec.SpecVersion.SPEC_2025,
+            style = PaletteStyle.Expressive,
         )
-    }
-
-    val fillColor = when {
-        targetPureBlack -> Color.Black
-        effectiveDark -> modeColorScheme.surface
-        else -> modeColorScheme.surface
-    }
-
-    // Animated border width
-    val borderWidth by animateDpAsState(
-        targetValue = if (isSelected) 3.dp else 0.dp,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessMedium
-        ),
-        label = "borderWidth"
-    )
-
-    // Animated scale for the entire circle
     val scale by animateFloatAsState(
-        targetValue = if (isSelected) 1.05f else 1f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessMedium
-        ),
-        label = "scale"
+        targetValue = if (selected) 1f else 0.96f,
+        animationSpec = spring(),
+        label = "themeCardScale",
     )
+    val shape = RoundedCornerShape(26.dp)
+    val jixAccent = com.metrolist.music.ui.jix.jixAccentFor(palette.seedColor)
+    val accent = jixAccent.brush
 
-    val interactionSource = remember { MutableInteractionSource() }
-
-    val contentDesc = when {
-        targetPureBlack -> stringResource(R.string.cd_pure_black_mode)
-        targetMode == DarkMode.OFF -> stringResource(R.string.cd_light_mode)
-        targetMode == DarkMode.ON -> stringResource(R.string.cd_dark_mode)
-        else -> stringResource(R.string.cd_system_mode)
-    }
-
-    Box(
-        modifier = Modifier
-            .size(48.dp)
-            .graphicsLayer {
-                scaleX = scale
-                scaleY = scale
-            }
-            .clip(CircleShape)
-            .background(fillColor)
-            .then(
-                if (borderWidth > 0.dp) {
-                    Modifier.border(
-                        width = borderWidth,
-                        color = MaterialTheme.colorScheme.inversePrimary,
-                        shape = CircleShape
-                    )
-                } else {
-                    Modifier
-                }
-            )
-            .clickable(
-                interactionSource = interactionSource,
-                indication = ripple(),
-                onClick = onClick
-            )
-            .semantics {
-                contentDescription = contentDesc
-            },
-        contentAlignment = Alignment.Center
+    Column(
+        modifier =
+            Modifier
+                .scale(scale)
+                .clip(shape)
+                .clickable(onClick = onClick),
     ) {
-        when {
-            showIcon -> {
-                Icon(
-                    painter = painterResource(R.drawable.sync),
-                    contentDescription = null,
-                    tint = modeColorScheme.onSurface,
-                    modifier = Modifier.size(20.dp)
-                )
-            }
-            isSelected -> {
-                AnimatedVisibility(
-                    visible = isSelected,
-                    enter = fadeIn(animationSpec = tween(300)) + scaleIn(
-                        initialScale = 0.3f,
-                        animationSpec = spring(
-                            dampingRatio = Spring.DampingRatioMediumBouncy,
-                            stiffness = Spring.StiffnessMedium
-                        )
+        Box(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(0.62f)
+                    .clip(shape)
+                    .border(
+                        BorderStroke(
+                            if (selected) 3.dp else 1.dp,
+                            if (selected) {
+                                accent
+                            } else {
+                                Brush.linearGradient(
+                                    listOf(
+                                        MaterialTheme.colorScheme.outlineVariant,
+                                        MaterialTheme.colorScheme.outlineVariant,
+                                    ),
+                                )
+                            },
+                        ),
+                        shape,
                     ),
-                    exit = fadeOut(animationSpec = tween(150)) + scaleOut(
-                        targetScale = 0.3f,
-                        animationSpec = tween(150)
-                    )
+        ) {
+            ThemePreviewGround(palette = palette, scheme = scheme)
+            ThemePreviewContent(scheme = scheme, accent = accent)
+
+            if (selected) {
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier =
+                        Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(10.dp)
+                            .size(28.dp)
+                            .clip(CircleShape)
+                            .background(accent),
                 ) {
                     Icon(
                         painter = painterResource(R.drawable.check),
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.inversePrimary,
-                        modifier = Modifier.size(20.dp)
+                        tint = jixAccent.ink,
+                        modifier = Modifier.size(16.dp),
                     )
                 }
             }
+        }
+        Text(
+            text = stringResource(palette.nameRes),
+            fontSize = 14.sp,
+            fontWeight = if (selected) FontWeight.ExtraBold else FontWeight.SemiBold,
+            color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp),
+        )
+    }
+}
+
+/** The theme's background: its artwork under a veil, or its color wash. */
+@Composable
+private fun ThemePreviewGround(
+    palette: ThemePalette,
+    scheme: ColorScheme,
+) {
+    val artwork = persianThemeFor(palette.seedColor)
+    val base =
+        when {
+            palette.pureBlack -> Color.Black
+            artwork != null && palette.dark -> artwork.darkBackground ?: scheme.surface
+            artwork != null -> artwork.lightBackground ?: scheme.surface
+            else -> scheme.surface
+        }
+    Box(Modifier.fillMaxSize().background(base)) {
+        if (artwork != null) {
+            Image(
+                painter = painterResource(artwork.artworkRes),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize(),
+            )
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .background(
+                        base.copy(alpha = if (palette.dark) artwork.veilAlphaDark else artwork.veilAlphaLight),
+                    ),
+            )
+        } else if (!palette.pureBlack) {
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.radialGradient(
+                            listOf(scheme.primary.copy(alpha = 0.38f), Color.Transparent),
+                            radius = 420f,
+                            center = androidx.compose.ui.geometry.Offset(380f, 0f),
+                        ),
+                    ),
+            )
         }
     }
 }
 
-/**
- * JixOne 6: a palette is a plain color circle — a soft vertical gradient of
- * the seed with the palette's own tint, a white check when selected. No
- * artwork thumbnails, no mockup: the circle IS the preview.
- */
+/** The mock screen: greeting, hero card, artist bubbles, two cards, the dock. */
 @Composable
-fun PaletteItem(
-    palette: ThemePalette,
-    isSelected: Boolean,
-    onClick: () -> Unit
+private fun ThemePreviewContent(
+    scheme: ColorScheme,
+    accent: Brush,
 ) {
-    val scale by animateFloatAsState(
-        targetValue = if (isSelected) 1.12f else 1f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessMedium
-        ),
-        label = "scale"
-    )
-
-    val borderWidth by animateDpAsState(
-        targetValue = if (isSelected) 3.dp else 0.dp,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessMedium
-        ),
-        label = "borderWidth"
-    )
-
-    val interactionSource = remember { MutableInteractionSource() }
-
-    val paletteName = stringResource(palette.nameRes)
-    val contentDesc = stringResource(R.string.cd_palette_item, paletteName)
-
-    // Deep end of the gradient: the seed shifted toward black keeps every
-    // palette readable as a circle, even the light OLED neutral.
-    val deep = lerp(palette.seedColor, Color.Black, 0.35f)
-
-    // Ink that reads on the seed — white on dark palettes, black on the
-    // light OLED neutral.
-    val seedLum =
-        0.2126f * palette.seedColor.red +
-            0.7152f * palette.seedColor.green +
-            0.0722f * palette.seedColor.blue
-    val checkTint = if (seedLum > 0.6f) Color.Black else Color.White
-
-    Box(
-        modifier = Modifier
-            .size(48.dp)
-            .graphicsLayer {
-                scaleX = scale
-                scaleY = scale
-            }
-            .clip(CircleShape)
-            .background(
-                Brush.verticalGradient(listOf(palette.seedColor, deep))
-            )
-            .then(
-                if (borderWidth > 0.dp) {
-                    Modifier.border(
-                        width = borderWidth,
-                        color = MaterialTheme.colorScheme.inversePrimary,
-                        shape = CircleShape
-                    )
-                } else {
-                    Modifier
-                }
-            )
-            .clickable(
-                interactionSource = interactionSource,
-                indication = ripple(),
-                onClick = onClick
-            )
-            .semantics {
-                contentDescription = contentDesc
-            },
-        contentAlignment = Alignment.Center
+    Column(
+        modifier = Modifier.fillMaxSize().padding(12.dp),
     ) {
-        AnimatedVisibility(
-            visible = isSelected,
-            enter = fadeIn(animationSpec = tween(200)) + scaleIn(
-                initialScale = 0.3f,
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                    stiffness = Spring.StiffnessMedium
-                )
-            ),
-            exit = fadeOut(animationSpec = tween(150)) + scaleOut(
-                targetScale = 0.3f,
-                animationSpec = tween(150)
-            )
+        Spacer(Modifier.height(4.dp))
+        PreviewBar(color = scheme.primary, widthFraction = 0.3f, height = 5)
+        Spacer(Modifier.height(5.dp))
+        PreviewBar(color = scheme.onSurface, widthFraction = 0.55f, height = 9)
+        Spacer(Modifier.height(10.dp))
+
+        // hero
+        Box(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .weight(1.25f)
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(accent),
         ) {
-            Icon(
-                painter = painterResource(R.drawable.check),
-                contentDescription = null,
-                tint = checkTint,
-                modifier = Modifier.size(20.dp)
+            Box(
+                Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(8.dp)
+                    .size(20.dp)
+                    .clip(CircleShape)
+                    .background(Color.White),
             )
+            Column(Modifier.padding(9.dp)) {
+                PreviewBar(color = Color.White.copy(alpha = 0.7f), widthFraction = 0.3f, height = 4)
+                Spacer(Modifier.height(4.dp))
+                PreviewBar(color = Color.White, widthFraction = 0.5f, height = 8)
+            }
+        }
+        Spacer(Modifier.height(10.dp))
+
+        // artist bubbles
+        Row(horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+            repeat(4) {
+                Box(
+                    Modifier
+                        .size(24.dp)
+                        .border(2.dp, accent, CircleShape)
+                        .padding(4.dp)
+                        .clip(CircleShape)
+                        .background(scheme.surfaceContainerHighest),
+                )
+            }
+        }
+        Spacer(Modifier.height(10.dp))
+
+        // cards
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.fillMaxWidth().weight(1f),
+        ) {
+            repeat(2) { index ->
+                Box(
+                    Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(
+                            if (index == 0) {
+                                lerp(scheme.surfaceContainerHigh, scheme.primary, 0.25f)
+                            } else {
+                                lerp(scheme.surfaceContainerHigh, scheme.tertiary, 0.25f)
+                            },
+                        ),
+                )
+            }
+        }
+        Spacer(Modifier.height(10.dp))
+
+        // dock
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .height(26.dp)
+                    .clip(RoundedCornerShape(13.dp))
+                    .background(scheme.surfaceContainerHigh)
+                    .border(1.dp, scheme.primary.copy(alpha = 0.4f), RoundedCornerShape(13.dp)),
+        ) {
+            Box(Modifier.size(8.dp).clip(CircleShape).background(scheme.onSurfaceVariant.copy(alpha = 0.6f)))
+            Box(Modifier.width(26.dp).height(14.dp).clip(RoundedCornerShape(7.dp)).background(accent))
+            Box(Modifier.size(8.dp).clip(CircleShape).background(scheme.onSurfaceVariant.copy(alpha = 0.6f)))
         }
     }
+}
+
+@Composable
+private fun PreviewBar(
+    color: Color,
+    widthFraction: Float,
+    height: Int,
+) {
+    Box(
+        Modifier
+            .fillMaxWidth(widthFraction)
+            .height(height.dp)
+            .clip(RoundedCornerShape(50))
+            .background(color),
+    )
 }

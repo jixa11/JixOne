@@ -1,3 +1,21 @@
+## ✨ JixOne 6.2.0 (native) — n6.2.0 — «Vivid»
+
+ظاهر تازه برای کل برنامه، و چند باگ مهم که بالاخره حل شد.
+
+- **انتخاب آرتیست‌ها حالا واقعاً کار می‌کند:** انتخاب‌های صفحه‌ی ورودی ذخیره نمی‌شدند و برنامه هر بار دوباره «انتخاب آرتیست‌ها» را نشان می‌داد. هر دو مشکل حل شد.
+- **اکسپلور بر اساس سبک:** به‌جای یک قفسه برای هر آرتیست، آرتیست‌ها بر اساس سبک دسته‌بندی می‌شوند (پاپ ایرانی، رپ فارسی، …). بالای صفحه هم کارت «میکس تو» با یک لمس رادیویی از انتخاب‌هایتان پخش می‌کند.
+- **کشیدن روی آهنگ‌ها:** آهنگ را به راست بکشید تا آهنگ بعدی شود. در پلی‌لیست خودتان، به چپ بکشید تا دکمه‌ی سطل زباله بیاید و با لمس آن آهنگ از لیست حذف شود.
+- **پلیر جدید:** یک ردیف کنترل (شافل، قبلی، پخش، بعدی، تکرار)، لایک کنار عنوان، و یک نوار پایین (صف، متن آهنگ، تایمر خواب، دانلود، بیشتر). هیچ دکمه‌ای دو بار تکرار نمی‌شود.
+- **پلی‌لیست، کتابخانه، تنظیمات:** هدر پلی‌لیست همیشه خوانا با دکمه‌ی پهن پخش؛ کتابخانه با دو کاشی بزرگ و یک ردیف میان‌بر؛ تنظیمات با کارت‌های یکپارچه و یک رنگ.
+- **تم‌ها با پیش‌نمایش:** صفحه‌ی تم فقط ۱۲ تم را با پیش‌نمایش کوچک برنامه نشان می‌دهد. هر تم حالت تیره یا روشن خودش را دارد (فقط «کوروش» روشن است).
+- **آیکون‌های جدید:** همه‌ی آیکون‌های داخل برنامه با یک خانواده‌ی یکدست دورنگ جایگزین شدند. دکمه‌ی بالای صفحه یک منوی همبرگری با پنل جدید شد.
+- **لودینگ جدید:** میله‌های رنگی به‌جای دایره‌ی چرخان.
+- **رفع باگ:** اکسپلور بعد از شروع آفلاین با برگشتن اینترنت پر می‌شود؛ نام خواننده در مینی‌پلیر دیگر بریده نمی‌شود؛ کاور آهنگ‌ها دیگر کشیده یا با نوار رنگی نمایش داده نمی‌شود.
+
+**English:** a new "Vivid" look across the app and several real fixes. The artist onboarding now saves its picks and no longer reappears on every launch. Explore groups your artists into genre shelves under a one-tap "Your mix" card. Swipe a song right to play it next; in a playlist you own, swipe left to reveal a trash button that removes it. The player has one control row, like beside the title, and a single bottom bar with no duplicated buttons. Playlist, library and settings are redesigned; the theme page shows twelve themes with live previews, each carrying its own dark or light mode. Every in-app icon comes from one duotone family (Phosphor), the top bar has a menu button with a new panel, and a level-meter loader replaces the spinners.
+
+---
+
 ## 💿 JixOne 6.1.0 (native) — n6.1.0 — «صفحه‌ی پلی‌لیست از نو»
 
 مکمل ۶.۰ — هشتمین و آخرین خواسته‌ی بازطراحی: همه‌ی ۵ صفحه‌ی پلی‌لیست (آنلاین، لوکال، خودکار/لایک‌شده‌ها، ۵۰ آهنگ برتر، کش) هدر تمام‌صفحه‌ی جدیدی گرفتند.

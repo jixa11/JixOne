@@ -349,10 +349,7 @@ fun SongMenu(
                     enabled = !isDeleting,
                 ) {
                     if (isDeleting) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(16.dp),
-                            strokeWidth = 2.dp,
-                        )
+                        com.metrolist.music.ui.jix.JixLoader(height = 16.dp)
                     } else {
                         Text(
                             text = stringResource(R.string.delete),
@@ -927,10 +924,7 @@ fun SongMenu(
                                 Material3MenuItemData(
                                     title = { Text(text = stringResource(R.string.downloading)) },
                                     icon = {
-                                        CircularProgressIndicator(
-                                            modifier = Modifier.size(24.dp),
-                                            strokeWidth = 2.dp,
-                                        )
+                                        com.metrolist.music.ui.jix.JixLoader(height = 24.dp)
                                     },
                                     onClick = {
                                         DownloadService.sendRemoveDownload(

@@ -67,9 +67,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import com.metrolist.music.LocalPlayerAwareWindowInsets
 import com.metrolist.music.R
-import com.metrolist.music.constants.ArtistOnboardingCompletedKey
 import com.metrolist.music.ui.theme.bbhBartle
-import com.metrolist.music.utils.rememberPreference
 import com.metrolist.music.viewmodels.OnboardingArtist
 import com.metrolist.music.viewmodels.OnboardingViewModel
 
@@ -79,7 +77,6 @@ fun ArtistOnboardingScreen(
     viewModel: OnboardingViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val (_, onCompletedChange) = rememberPreference(ArtistOnboardingCompletedKey, defaultValue = false)
     val insets = LocalPlayerAwareWindowInsets.current
 
     val selectedCountLabel = stringResource(R.string.onboarding_selected_count, uiState.selected.size)
@@ -140,11 +137,7 @@ fun ArtistOnboardingScreen(
                             )
                         }
                     } else if (uiState.loading) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(20.dp),
-                            strokeWidth = 2.5.dp,
-                            color = MaterialTheme.colorScheme.primary,
-                        )
+                        com.metrolist.music.ui.jix.JixLoader(height = 20.dp)
                     }
                 },
                 singleLine = true,
@@ -173,10 +166,7 @@ fun ArtistOnboardingScreen(
         // ---------- artist grid ----------
         Box(modifier = Modifier.weight(1f)) {
             if (!uiState.initialized) {
-                CircularProgressIndicator(
-                    modifier = Modifier.align(Alignment.Center),
-                    color = MaterialTheme.colorScheme.primary,
-                )
+                com.metrolist.music.ui.jix.JixLoader(height = 34.dp)
             } else if (uiState.artists.isEmpty()) {
                 Column(
                     modifier = Modifier.align(Alignment.Center).padding(32.dp),
@@ -255,10 +245,9 @@ fun ArtistOnboardingScreen(
                     Spacer(Modifier.weight(1f))
                     Button(
                         onClick = {
-                            viewModel.saveSelections { _ ->
-                                onCompletedChange(true)
-                                onFinished()
-                            }
+                            // The ViewModel persists the picks and the
+                            // "completed" flag before calling back.
+                            viewModel.saveSelections { _ -> onFinished() }
                         },
                         shape = RoundedCornerShape(20.dp),
                     ) {

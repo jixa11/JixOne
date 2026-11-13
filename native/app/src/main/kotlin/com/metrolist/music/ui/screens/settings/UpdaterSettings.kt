@@ -187,10 +187,7 @@ fun UpdaterScreen(
                         },
                         trailingContent = {
                             if (isChecking) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.padding(end = 16.dp),
-                                    strokeWidth = 2.dp,
-                                )
+                                com.metrolist.music.ui.jix.JixLoader(height = 34.dp)
                             } else if (updateAvailable) {
                                 Icon(
                                     painter = painterResource(R.drawable.download),

@@ -614,6 +614,8 @@ fun LocalPlaylistScreen(
                             isActive = song.song.id == mediaMetadata?.id,
                             isPlaying = isPlaying,
                             showInLibraryIcon = true,
+                            // Your own playlist: swipe left for the trash button.
+                            onSwipeDelete = if (editable && !inSelectMode) ({ deleteFromPlaylist() }) else null,
                             trailingContent = {
                                 if (inSelectMode) {
                                     Checkbox(
@@ -701,18 +703,9 @@ fun LocalPlaylistScreen(
                         )
                     }
 
-                    if (locked || inSelectMode || !swipeRemoveEnabled) {
-                        Box(modifier = Modifier.animateItem()) {
-                            content()
-                        }
-                    } else {
-                        SwipeToDismissBox(
-                            state = dismissBoxState,
-                            backgroundContent = {},
-                            modifier = Modifier.animateItem(),
-                        ) {
-                            content()
-                        }
+                    // Row swipes (play next / reveal trash) live in SongListItem.
+                    Box(modifier = Modifier.animateItem()) {
+                        content()
                     }
                 }
             }

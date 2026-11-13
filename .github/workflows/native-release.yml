@@ -143,11 +143,19 @@ jobs:
           name: JixOne-native-release
           path: native/out/JixOne-*.apk
 
+      # The release description is the newest section of the release notes
+      # (everything above the first "---" line). The in-app changelog shows it.
+      - name: Extract release notes (tag builds)
+        if: startsWith(github.ref, 'refs/tags/')
+        working-directory: .
+        run: awk '/^---[[:space:]]*$/ { exit } { print }' docs/RELEASE-NOTES.md > release-body.md
+
       - name: Attach APK to release (tag builds)
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
           name: JixOne ${{ github.ref_name }} (native)
+          body_path: release-body.md
           generate_release_notes: false
           files: |
             native/out/JixOne-*.apk

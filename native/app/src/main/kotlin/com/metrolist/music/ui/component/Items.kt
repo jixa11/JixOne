@@ -7,6 +7,7 @@
 
 package com.metrolist.music.ui.component
 
+import androidx.compose.ui.platform.LocalDensity
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animate
@@ -521,10 +522,11 @@ fun SongListItem(
     isActive: Boolean = false,
     isPlaying: Boolean = false,
     isSwipeable: Boolean = true,
+    onSwipeDelete: (() -> Unit)? = null,
     trailingContent: @Composable RowScope.() -> Unit = {},
 ) {
     val artistNameAliases = LocalArtistNameAliases.current
-    val swipeEnabled by rememberPreference(SwipeToSongKey, defaultValue = false)
+    val swipeEnabled by rememberPreference(SwipeToSongKey, defaultValue = true)
 
     val content: @Composable () -> Unit = {
          ListItem(
@@ -578,6 +580,7 @@ fun SongListItem(
     if (isSwipeable && swipeEnabled) {
         SwipeToSongBox(
             mediaItem = song.toMediaItem(),
+            onDelete = onSwipeDelete,
             modifier = Modifier.fillMaxWidth()
         ) {
             content()
@@ -1164,7 +1167,7 @@ fun YouTubeListItem(
         }
     },
 ) {
-    val swipeEnabled by rememberPreference(SwipeToSongKey, defaultValue = false)
+    val swipeEnabled by rememberPreference(SwipeToSongKey, defaultValue = true)
     val artistNameAliases = LocalArtistNameAliases.current
     val artistSeparator = " ${stringResource(R.string.and)} "
 
@@ -1829,20 +1832,43 @@ fun BoxScope.AlbumPlayButton(
     }
 }
 
+/**
+ * Swipe actions on a song row.
+ *
+ * Swipe right: the song plays next. Swipe left: with [onDelete] (a playlist
+ * you can edit) the row slides open on a trash button and stays open until
+ * it is tapped or the row is swiped back; without it, the song is added to
+ * the end of the queue.
+ */
 @Composable
 fun SwipeToSongBox(
     modifier: Modifier = Modifier,
     mediaItem: MediaItem,
+    onDelete: (() -> Unit)? = null,
     content: @Composable BoxScope.() -> Unit
 ) {
     val ctx = LocalContext.current
     val player = LocalPlayerConnection.current
     val scope = rememberCoroutineScope()
+    val density = LocalDensity.current
     val offset = remember { mutableFloatStateOf(0f) }
     val threshold = 300f
+    val revealWidth = with(density) { 84.dp.toPx() }
+    // With a delete action the row cannot be dragged further left than the button.
+    val minOffset = if (onDelete != null) -revealWidth else -threshold
+
+    fun settle(target: Float) {
+        scope.launch {
+            animate(
+                initialValue = offset.floatValue,
+                targetValue = target,
+                animationSpec = tween(durationMillis = 220),
+            ) { value, _ -> offset.floatValue = value }
+        }
+    }
 
     val dragState = rememberDraggableState { delta ->
-        offset.floatValue = (offset.floatValue + delta).coerceIn(-threshold, threshold)
+        offset.floatValue = (offset.floatValue + delta).coerceIn(minOffset, threshold)
     }
 
     Box(
@@ -1856,60 +1882,106 @@ fun SwipeToSongBox(
                         offset.floatValue >= threshold -> {
                             player?.playNext(listOf(mediaItem))
                             Toast.makeText(ctx, R.string.play_next, Toast.LENGTH_SHORT).show()
-                            reset(offset, scope)
+                            settle(0f)
                         }
+
+                        onDelete != null ->
+                            // Past halfway the trash stays revealed; otherwise close.
+                            settle(if (offset.floatValue <= -revealWidth / 2f) -revealWidth else 0f)
 
                         offset.floatValue <= -threshold -> {
                             player?.addToQueue(listOf(mediaItem))
                             Toast.makeText(ctx, R.string.add_to_queue, Toast.LENGTH_SHORT).show()
-                            reset(offset, scope)
+                            settle(0f)
                         }
 
-                        else -> reset(offset, scope)
+                        else -> settle(0f)
                     }
                 }
             )
     ) {
-        if (offset.floatValue != 0f) {
-            val (iconRes, bg, tint, align) = if (offset.floatValue > 0)
-                Quadruple(
-                    R.drawable.playlist_play,
-                    MaterialTheme.colorScheme.secondary,
-                    MaterialTheme.colorScheme.onSecondary,
-                    Alignment.CenterStart
-                ) else
-                Quadruple(
-                    R.drawable.queue_music,
-                    MaterialTheme.colorScheme.primary,
-                    MaterialTheme.colorScheme.onPrimary,
-                    Alignment.CenterEnd
-                )
-
+        if (offset.floatValue > 0f) {
+            // Play next: an accent panel that brightens as the swipe completes.
+            val accent = com.metrolist.music.ui.jix.LocalJixAccent.current
             Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(60.dp)
-                    .align(Alignment.Center)
-                    .background(bg),
-                contentAlignment = align
+                    .matchParentSize()
+                    .padding(horizontal = 10.dp, vertical = 4.dp)
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(accent.brush)
+                    .alpha(0.45f + 0.55f * (offset.floatValue / threshold).coerceIn(0f, 1f)),
+                contentAlignment = Alignment.CenterStart
             ) {
-                Icon(
-                    painter = painterResource(id = iconRes),
-                    contentDescription = null,
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(horizontal = 18.dp),
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.playlist_play),
+                        contentDescription = null,
+                        modifier = Modifier.size(26.dp),
+                        tint = accent.ink
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        text = stringResource(R.string.play_next),
+                        color = accent.ink,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                    )
+                }
+            }
+        } else if (offset.floatValue < 0f) {
+            if (onDelete != null) {
+                Box(
+                    modifier = Modifier.matchParentSize(),
+                    contentAlignment = Alignment.CenterEnd
+                ) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .padding(end = 16.dp)
+                            .size(52.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.error)
+                            .clickable {
+                                offset.floatValue = 0f
+                                onDelete()
+                            }
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.delete),
+                            contentDescription = stringResource(R.string.remove_from_playlist),
+                            modifier = Modifier.size(26.dp),
+                            tint = MaterialTheme.colorScheme.onError
+                        )
+                    }
+                }
+            } else {
+                Box(
                     modifier = Modifier
-                        .padding(horizontal = 24.dp)
-                        .size(30.dp)
-                        .alpha(0.9f),
-                    tint = tint
-                )
+                        .matchParentSize()
+                        .padding(horizontal = 10.dp, vertical = 4.dp)
+                        .clip(RoundedCornerShape(18.dp))
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.85f)),
+                    contentAlignment = Alignment.CenterEnd
+                ) {
+                    Icon(
+                        painter = painterResource(R.drawable.queue_music),
+                        contentDescription = null,
+                        modifier = Modifier
+                            .padding(horizontal = 18.dp)
+                            .size(26.dp),
+                        tint = MaterialTheme.colorScheme.onPrimary
+                    )
+                }
             }
         }
 
         Box(
             modifier = Modifier
                 .offset { IntOffset(offset.floatValue.roundToInt(), 0) }
-                .fillMaxWidth()
-                .background(MaterialTheme.colorScheme.surface),
+                .fillMaxWidth(),
             content = content
         )
     }

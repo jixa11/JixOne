@@ -29,11 +29,11 @@ on:
       release_version:
         description: 'Publish as a release: version without the leading n (e.g. 6.2.0). Empty = build only.'
         required: false
-        default: '
+        default: ''
       keep_only_releases:
         description: 'After publishing: delete every other release and its tag, keeping only these tags (comma-separated, e.g. n1.0.0,n1.0.1). Empty = delete nothing.'
         required: false
-        default: '''
+        default: ''
 
 concurrency:
   group: native-${{ github.ref }}

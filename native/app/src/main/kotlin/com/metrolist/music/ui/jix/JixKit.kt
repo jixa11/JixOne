@@ -9,6 +9,14 @@
 
 package com.metrolist.music.ui.jix
 
+import androidx.compose.ui.draw.alpha
+import androidx.compose.runtime.remember
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.material3.SliderDefaults
+import androidx.compose.material3.SliderState
+import androidx.compose.material3.SliderColors
+import androidx.compose.material3.Slider
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.animation.core.StartOffset
@@ -692,4 +700,70 @@ fun JixIconBadge(
             }
         }
     }
+}
+
+/**
+ * The JixOne slider: a thick pill track filled with the accent gradient and a
+ * white thumb ringed in the accent. Same parameters as the Material slider,
+ * so call sites only swap the import.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun JixSlider(
+    value: Float,
+    onValueChange: (Float) -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    valueRange: ClosedFloatingPointRange<Float> = 0f..1f,
+    steps: Int = 0,
+    onValueChangeFinished: (() -> Unit)? = null,
+    colors: SliderColors = SliderDefaults.colors(),
+    interactionSource: MutableInteractionSource = remember { MutableInteractionSource() },
+) {
+    val accent = LocalJixAccent.current
+    val pill = RoundedCornerShape(50)
+    // This Material version takes thumb/track only on the state-based slider.
+    val sliderState = remember(valueRange, steps) {
+        SliderState(value = value, steps = steps, trackRange = valueRange)
+    }
+    sliderState.value = value
+    Slider(
+        state = sliderState,
+        onValueChange = onValueChange,
+        modifier = modifier,
+        enabled = enabled,
+        onValueChangeFinished = onValueChangeFinished,
+        colors = colors,
+        interactionSource = interactionSource,
+        thumb = { _ ->
+            Box(
+                Modifier
+                    .size(26.dp)
+                    .shadow(elevation = 8.dp, shape = CircleShape, ambientColor = accent.start, spotColor = accent.start)
+                    .clip(CircleShape)
+                    .background(Color.White)
+                    .border(5.dp, accent.brush, CircleShape),
+            )
+        },
+        track = { state ->
+            val span = state.trackRange.endInclusive - state.trackRange.start
+            val fraction = if (span > 0f) ((state.value - state.trackRange.start) / span).coerceIn(0f, 1f) else 0f
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .height(12.dp)
+                    .clip(pill)
+                    .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.14f)),
+            ) {
+                Box(
+                    Modifier
+                        .fillMaxWidth(fraction)
+                        .height(12.dp)
+                        .clip(pill)
+                        .background(accent.brush)
+                        .alpha(if (enabled) 1f else 0.4f),
+                )
+            }
+        },
+    )
 }

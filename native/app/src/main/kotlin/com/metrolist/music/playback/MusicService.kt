@@ -4445,6 +4445,15 @@ class MusicService :
                 updateWidgetUI(player.isPlaying)
             }
 
+            MusicWidgetReceiver.ACTION_PLAY_INDEX -> {
+                val index = intent.getIntExtra(MusicWidgetReceiver.EXTRA_INDEX, -1)
+                if (index in 0 until player.mediaItemCount) {
+                    player.seekTo(index, 0)
+                    player.play()
+                }
+                updateWidgetUI(true)
+            }
+
             MusicWidgetReceiver.ACTION_UPDATE_WIDGET,
             PlaylistWidgetReceiver.ACTION_UPDATE_WIDGET -> {
                 updateWidgetUI(player.isPlaying)
@@ -4712,6 +4721,14 @@ class MusicService :
                     val songTitle = song?.title ?: getString(R.string.no_song_playing)
                     val artistName = songData?.artists?.joinToArtistString(getArtistSeparator(this@MusicService)) { it.name } ?: getString(R.string.tap_to_open)
                     val resolvedIsLiked = isLikedRequested == true
+
+                    // Snapshot the queue for the widget's list.
+                    com.metrolist.music.widget.WidgetQueue.items =
+                        (0 until player.mediaItemCount).map { index ->
+                            val metadata = player.getMediaItemAt(index).mediaMetadata
+                            metadata.title?.toString().orEmpty() to metadata.artist?.toString().orEmpty()
+                        }
+                    com.metrolist.music.widget.WidgetQueue.current = player.currentMediaItemIndex
 
                     widgetManager.updateWidgets(
                         title = songTitle,

@@ -58,7 +58,7 @@ fun VolumeSlider(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     onValueChangeFinished: (() -> Unit)? = null,
-    accentColor: Color = MaterialTheme.colorScheme.primary
+    accentColor: Color = com.metrolist.music.ui.jix.LocalJixAccent.current.start
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val sliderState = rememberSliderState(value = value)
@@ -79,8 +79,8 @@ fun VolumeSlider(
     val colors = SliderDefaults.colors(
         thumbColor = accentColor,
         activeTrackColor = accentColor,
-        activeTickColor = MaterialTheme.colorScheme.onPrimary,
-        inactiveTrackColor = MaterialTheme.colorScheme.surfaceVariant,
+        activeTickColor = com.metrolist.music.ui.jix.LocalJixAccent.current.ink,
+        inactiveTrackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.14f),
         inactiveTickColor = MaterialTheme.colorScheme.onSurfaceVariant
     )
     

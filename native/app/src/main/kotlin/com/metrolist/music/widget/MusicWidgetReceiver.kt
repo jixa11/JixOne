@@ -59,7 +59,7 @@ class MusicWidgetReceiver : AppWidgetProvider() {
         super.onReceive(context, intent)
 
         when (intent.action) {
-            ACTION_PLAY_PAUSE, ACTION_LIKE, ACTION_NEXT, ACTION_PREVIOUS -> {
+            ACTION_PLAY_PAUSE, ACTION_LIKE, ACTION_NEXT, ACTION_PREVIOUS, ACTION_PLAY_INDEX -> {
                 // User interactions from widget buttons can start the service
                 // Android allows starting FGS from widget PendingIntent clicks
                 val serviceIntent = Intent(context, MusicService::class.java).apply {
@@ -84,6 +84,8 @@ class MusicWidgetReceiver : AppWidgetProvider() {
         const val ACTION_LIKE = "com.metrolist.music.widget.LIKE"
         const val ACTION_NEXT = "com.metrolist.music.widget.NEXT"
         const val ACTION_PREVIOUS = "com.metrolist.music.widget.PREVIOUS"
+        const val ACTION_PLAY_INDEX = "com.metrolist.music.widget.PLAY_INDEX"
+        const val EXTRA_INDEX = "index"
         const val ACTION_UPDATE_WIDGET = "com.metrolist.music.widget.UPDATE_WIDGET"
     }
 }

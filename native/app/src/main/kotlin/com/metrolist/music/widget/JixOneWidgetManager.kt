@@ -33,6 +33,8 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
+private const val QUEUE_MIN_HEIGHT_DP = 190
+
 class JixOneWidgetManager @Inject constructor(
     @ApplicationContext private val context: Context,
     private val database: MusicDatabase,
@@ -94,6 +96,8 @@ class JixOneWidgetManager @Inject constructor(
                 )
                 appWidgetManager.updateAppWidget(widgetId, views)
             }
+            @Suppress("DEPRECATION")
+            appWidgetManager.notifyAppWidgetViewDataChanged(widgetIds, R.id.widget_queue)
         }
 
         // Update turntable widgets
@@ -176,7 +180,7 @@ class JixOneWidgetManager @Inject constructor(
             }
             else -> {
                 // Full layout
-                createRemoteViews(title, artist, albumArt, isPlaying, isLiked, duration, currentPosition)
+                createRemoteViews(title, artist, albumArt, isPlaying, isLiked, duration, currentPosition, minHeight)
             }
         }
     }
@@ -188,9 +192,30 @@ class JixOneWidgetManager @Inject constructor(
         isPlaying: Boolean,
         isLiked: Boolean,
         duration: Long = 0,
-        currentPosition: Long = 0
+        currentPosition: Long = 0,
+        minHeight: Int = 0,
     ): RemoteViews {
         val views = RemoteViews(context.packageName, R.layout.widget_music_player)
+
+        // Stretched taller than the player block: show the queue underneath.
+        if (minHeight >= QUEUE_MIN_HEIGHT_DP) {
+            views.setViewVisibility(R.id.widget_queue, android.view.View.VISIBLE)
+            views.setRemoteAdapter(R.id.widget_queue, Intent(context, QueueWidgetService::class.java))
+            views.setPendingIntentTemplate(
+                R.id.widget_queue,
+                PendingIntent.getBroadcast(
+                    context,
+                    6,
+                    Intent(context, MusicWidgetReceiver::class.java).apply {
+                        action = MusicWidgetReceiver.ACTION_PLAY_INDEX
+                    },
+                    // Mutable: each row fills in its queue index.
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE,
+                ),
+            )
+        } else {
+            views.setViewVisibility(R.id.widget_queue, android.view.View.GONE)
+        }
 
         // Set song info
         views.setTextViewText(R.id.widget_song_title, title)
@@ -226,8 +251,8 @@ class JixOneWidgetManager @Inject constructor(
         views.setOnClickPendingIntent(R.id.widget_album_art, getOpenAppIntent())
         views.setOnClickPendingIntent(R.id.widget_play_pause_container, getPlayPauseIntent())
         views.setOnClickPendingIntent(R.id.widget_like_button, getLikeIntent())
-        views.setOnClickPendingIntent(R.id.widget_prev, getTurntablePreviousIntent())
-        views.setOnClickPendingIntent(R.id.widget_next, getTurntableNextIntent())
+        views.setOnClickPendingIntent(R.id.widget_prev, getWidgetActionIntent(MusicWidgetReceiver.ACTION_PREVIOUS, 7))
+        views.setOnClickPendingIntent(R.id.widget_next, getWidgetActionIntent(MusicWidgetReceiver.ACTION_NEXT, 8))
 
         return views
     }
@@ -455,6 +480,14 @@ class JixOneWidgetManager @Inject constructor(
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
     }
+
+    private fun getWidgetActionIntent(action: String, requestCode: Int): PendingIntent =
+        PendingIntent.getBroadcast(
+            context,
+            requestCode,
+            Intent(context, MusicWidgetReceiver::class.java).apply { this.action = action },
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
 
     private fun getTurntablePlayPauseIntent(): PendingIntent {
         val intent = Intent(context, TurntableWidgetReceiver::class.java).apply {

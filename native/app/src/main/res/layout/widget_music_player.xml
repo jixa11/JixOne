@@ -152,5 +152,18 @@
                 android:src="@drawable/jw_next"
                 android:contentDescription="@string/next" />
         </LinearLayout>
+
+        <!-- The queue: hidden at the default height, shown when the widget is
+             stretched taller. A taller widget shows more songs; the player
+             block above keeps its size. -->
+        <ListView
+            android:id="@+id/widget_queue"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:layout_marginTop="10dp"
+            android:divider="@null"
+            android:scrollbars="none"
+            android:visibility="gone" />
     </LinearLayout>
 </FrameLayout>

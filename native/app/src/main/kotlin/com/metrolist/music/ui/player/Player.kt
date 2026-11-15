@@ -691,7 +691,7 @@ fun BottomSheetPlayer(
                         style = MaterialTheme.typography.bodyLarge,
                     )
 
-                    Slider(
+                    com.metrolist.music.ui.jix.JixSlider(
                         value = sleepTimerValue,
                         onValueChange = { sleepTimerValue = it },
                         valueRange = 5f..120f,
@@ -1608,6 +1608,28 @@ fun BottomSheetPlayer(
                                 )
                             }
                         }
+
+                        // Sleep timer lives in the top corner: tap to set, tap
+                        // again to cancel. Lit while a timer is running.
+                        JixGlassIconButton(
+                            icon = R.drawable.bedtime,
+                            tint = if (sleepTimerEnabled) Color(0xFFFFD166) else TextBackgroundColor,
+                            size = 40.dp,
+                            iconSize = 20.dp,
+                            enabled = !isListenTogetherGuest,
+                            onClick = {
+                                if (sleepTimerEnabled) {
+                                    playerConnection.service.sleepTimer?.clear()
+                                } else {
+                                    showSleepTimerDialog = true
+                                }
+                            },
+                            modifier =
+                                Modifier
+                                    .align(Alignment.TopEnd)
+                                    .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Top))
+                                    .padding(top = 8.dp, end = 16.dp),
+                        )
                     }
 
                     mediaMetadata?.let {

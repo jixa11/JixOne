@@ -62,7 +62,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Slider
+import com.metrolist.music.ui.jix.JixSlider as Slider
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -269,7 +269,8 @@ fun Queue(
         },
         collapsedContent = {
             if (useNewPlayerDesign) {
-                // One glass bar: queue · lyrics · sleep timer · download · more.
+                // One glass bar: queue · lyrics · download · more. (The sleep timer
+                // sits in the player's top corner.)
                 // Shuffle and repeat live beside the play button, so nothing
                 // here repeats a control that is already on screen.
                 val downloadUtil = LocalDownloadUtil.current
@@ -310,22 +311,6 @@ fun Queue(
                             activeContainer = textButtonColor,
                             activeTint = iconButtonColor,
                             onClick = { onToggleLyrics() },
-                        )
-                        JixBarItem(
-                            icon = R.drawable.bedtime,
-                            tint = TextBackgroundColor,
-                            active = sleepTimerEnabled,
-                            activeContainer = textButtonColor,
-                            activeTint = iconButtonColor,
-                            text = if (sleepTimerEnabled) makeTimeString(sleepTimerTimeLeft) else null,
-                            enabled = !isListenTogetherGuest,
-                            onClick = {
-                                if (sleepTimerEnabled) {
-                                    playerConnection.service.sleepTimer?.clear()
-                                } else {
-                                    showSleepTimerDialog = true
-                                }
-                            },
                         )
                         when (download?.state) {
                             Download.STATE_COMPLETED ->

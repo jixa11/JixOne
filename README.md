@@ -1,38 +1,41 @@
 <div align="center">
   <img src="docs/screenshots/native-hero.png" width="880" alt="JixOne">
+
+# JixOne
+
+**پلیر موسیقی اندروید برای YouTube Music — رایگان، بدون تبلیغ، با ظاهر خودش**
+A free, ad-free Android music player for the YouTube Music catalog
+
+[⬇ دانلود آخرین نسخه · Download](https://github.com/jixa11/JixOne/releases/latest)
+
 </div>
 
-<div align="center">
+## چرا JixOne
 
-**پلیر نیتیو اندروید برای یوتیوب موزیک**
-Native Android client for YouTube Music
+- **اکسپلورِ خودتان:** آرتیست‌هایتان را انتخاب کنید؛ قفسه‌ها بر اساس سبک ساخته می‌شوند، با تازه‌های همان آرتیست‌ها، ترندها و پادکست‌ها.
+- **پخش بدون دردسر:** پخش در پس‌زمینه، دانلود برای آفلاین، صف، متن آهنگ، تایمر خواب و اکولایزر.
+- **ژست‌های سریع:** آهنگ را به راست بکشید تا بعدی پخش شود؛ در پلی‌لیست خودتان به چپ بکشید تا حذف شود.
+- **۱۲ تم:** از Aurora تا فرش ایرانی، کاشی اصفهان، درفش کاویانی و کوروش — هر کدام با پیش‌نمایش.
+- **ویجت و خودرو:** ویجت صفحه‌ی اصلی با کاور آهنگ، و Android Auto.
+- **حساب اختیاری:** بدون ورود هم کار می‌کند؛ با ورود، لایک‌ها و پلی‌لیست‌های YouTube Music همگام می‌شوند.
 
-[⬇ دانلود آخرین نسخه · Download latest](https://github.com/jixa11/JixOne/releases/latest)
+## نصب
 
-</div>
-
-## دانلود · Download
-
-همه‌ی فایل‌ها با حجم دقیق و SHA-256 در صفحه‌ی [Releases](https://github.com/jixa11/JixOne/releases/latest):
+از صفحه‌ی [Releases](https://github.com/jixa11/JixOne/releases/latest) یکی را بردارید:
 
 | فایل | برای |
 | --- | --- |
-| `JixOne-*-arm64-v8a.apk` | **پیشنهادی** — گوشی‌های جدید (تقریباً ۲۰۱۵ به بعد) |
+| `JixOne-*-arm64-v8a.apk` | **پیشنهادی** — بیشتر گوشی‌ها |
+| `JixOne-*-universal.apk` | همه‌ی دستگاه‌ها |
 | `JixOne-*-armeabi-v7a.apk` | گوشی‌های قدیمی ۳۲ بیتی |
-| `JixOne-*-x86_64.apk` | شبیه‌ساز اندروید |
-| `JixOne-*-universal.apk` | **همه‌ی دستگاه‌ها** — روی هر گوشی‌ای نصب می‌شود |
+| `JixOne-*-x86_64.apk` | شبیه‌ساز |
 
-نصب مستقیم APK · اندروید ۸ به بالا · امضای v1 + v2 + v3 · نصب نشد؟ [عیب‌یابی اینجاست](docs/GUIDE.md#install-troubleshooting--عیب‌یابی-نصب)
+اندروید ۸ به بالا. به‌روزرسانی‌های بعدی از داخل خود برنامه می‌آید. نصب نشد؟ [راهنما و عیب‌یابی](docs/GUIDE.md).
 
-- **منبع موسیقی:** کاتالوگ YouTube Music (بدون ساندکلاد و رادیو جوان) — ورود با حساب توصیه می‌شود
-- **تم‌ها:** ۱۲ تم با پیش‌نمایش زنده — فرش ایرانی، کاشی اصفهان، درفش کاویانی، کوروش، Aurora و… (پیش‌فرض: Aurora، تیره)
-- **اکسپلور شخصی:** آرتیست‌هایتان را انتخاب کنید؛ قفسه‌ها بر اساس سبک ساخته می‌شوند و «میکس تو» با یک لمس پخش می‌شود
-- **قابلیت‌ها:** پخش و دانلود آفلاین، پلی‌لیست (و کپی پلی‌لیست)، متن آهنگ، اکولایزر، تایمر خواب، Android Auto، به‌روزرسانی داخل اپ
-- **کشیدن روی آهنگ:** به راست = آهنگ بعدی؛ در پلی‌لیست خودتان به چپ = حذف از لیست
-- بسته‌ی `com.jixone.native` — کنار اپ قدیمی WebView (`com.jixone.app`) نصب می‌شود
+## English
 
-📚 **[راهنمای کامل: نصب، عیب‌یابی، سوالات، بیلد](docs/GUIDE.md)** · Full guide: install, troubleshooting, FAQ, building
+JixOne plays the YouTube Music catalog with its own interface: a personal Explore built from the artists you pick (genre shelves, new releases, trending, podcasts), offline downloads, lyrics, queue, sleep timer and equalizer, swipe gestures on songs, twelve themes, a home-screen widget and Android Auto. Signing in is optional. Install the APK from [Releases](https://github.com/jixa11/JixOne/releases/latest); Android 8 or newer.
 
 ---
 
-JixOne hosts no media — all audio streams from YouTube. Native app based on [Metrolist](https://github.com/Metrolist/Metrolist) (GPL-3.0); attribution preserved in `native/`. · [Changelog](docs/RELEASE-NOTES.md) · [Issues](https://github.com/jixa11/JixOne/issues)
+JixOne hosts no media; all audio streams from YouTube. The app in `native/` is a fork of [Metrolist](https://github.com/Metrolist/Metrolist) (GPL-3.0) and keeps its attribution. Icons: [Phosphor](https://phosphoricons.com) (MIT). · [Changelog](docs/RELEASE-NOTES.md) · [Issues](https://github.com/jixa11/JixOne/issues)

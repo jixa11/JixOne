@@ -133,15 +133,17 @@ fun BottomSheetMenu(
             state.isVisible = false
         },
         sheetState = sheetState,
-        containerColor = background,
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
         contentColor = MaterialTheme.colorScheme.onSurface,
+        shape = RoundedCornerShape(topStart = 34.dp, topEnd = 34.dp),
         dragHandle = {
+            // An accent-gradient grip instead of the stock grey bar.
             Box(
                 modifier = Modifier
-                    .padding(vertical = 12.dp)
-                    .size(width = 40.dp, height = 4.dp)
-                    .clip(RoundedCornerShape(2.dp))
-                    .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
+                    .padding(top = 12.dp, bottom = 14.dp)
+                    .size(width = 48.dp, height = 5.dp)
+                    .clip(RoundedCornerShape(3.dp))
+                    .background(com.metrolist.music.ui.jix.LocalJixAccent.current.brush)
             )
         },
         modifier = modifier.fillMaxHeight()

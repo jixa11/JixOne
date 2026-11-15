@@ -9,6 +9,16 @@
 
 package com.metrolist.music.ui.jix
 
+import androidx.compose.ui.draw.alpha
+import androidx.compose.runtime.remember
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.material3.SliderDefaults
+import androidx.compose.material3.SliderState
+import androidx.compose.material3.SliderColors
+import androidx.compose.material3.Slider
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.animation.core.StartOffset
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -591,18 +601,11 @@ fun JixMenuItem(
                 .clickable(onClick = onClick)
                 .padding(horizontal = 14.dp, vertical = 9.dp),
     ) {
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier =
-                Modifier
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)),
-        ) {
+        JixIconBadge(size = 40.dp) {
             Icon(
                 painter = painterResource(icon),
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
+                tint = LocalJixAccent.current.ink,
                 modifier = Modifier.size(22.dp),
             )
         }
@@ -655,4 +658,112 @@ fun JixLoader(
             )
         }
     }
+}
+
+/**
+ * A gradient icon badge: the accent gradient as the fill, with whatever icon
+ * is drawn inside forced to the color that reads on it. Menus and settings
+ * use it so their rows carry real color instead of a faint tint.
+ */
+@Composable
+fun JixIconBadge(
+    modifier: Modifier = Modifier,
+    size: Dp = 42.dp,
+    shape: Shape = RoundedCornerShape(14.dp),
+    content: @Composable () -> Unit,
+) {
+    val accent = LocalJixAccent.current
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier =
+            modifier
+                .size(size)
+                .shadow(elevation = 6.dp, shape = shape, ambientColor = accent.start, spotColor = accent.start)
+                .clip(shape)
+                .background(accent.brush),
+    ) {
+        // Callers tint their icons with scheme colors; point those at the ink.
+        MaterialTheme(
+            colorScheme =
+                MaterialTheme.colorScheme.copy(
+                    onSurface = accent.ink,
+                    onSurfaceVariant = accent.ink,
+                    primary = accent.ink,
+                    secondary = accent.ink,
+                    onPrimaryContainer = accent.ink,
+                    onSecondaryContainer = accent.ink,
+                    error = accent.ink,
+                ),
+        ) {
+            CompositionLocalProvider(LocalContentColor provides accent.ink) {
+                content()
+            }
+        }
+    }
+}
+
+/**
+ * The JixOne slider: a thick pill track filled with the accent gradient and a
+ * white thumb ringed in the accent. Same parameters as the Material slider,
+ * so call sites only swap the import.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun JixSlider(
+    value: Float,
+    onValueChange: (Float) -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    valueRange: ClosedFloatingPointRange<Float> = 0f..1f,
+    steps: Int = 0,
+    onValueChangeFinished: (() -> Unit)? = null,
+    colors: SliderColors = SliderDefaults.colors(),
+    interactionSource: MutableInteractionSource = remember { MutableInteractionSource() },
+) {
+    val accent = LocalJixAccent.current
+    val pill = RoundedCornerShape(50)
+    // This Material version takes thumb/track only on the state-based slider.
+    val sliderState = remember(valueRange, steps) {
+        SliderState(value = value, steps = steps, trackRange = valueRange)
+    }
+    sliderState.value = value
+    Slider(
+        state = sliderState,
+        onValueChange = onValueChange,
+        modifier = modifier,
+        enabled = enabled,
+        onValueChangeFinished = onValueChangeFinished,
+        colors = colors,
+        interactionSource = interactionSource,
+        thumb = { _ ->
+            Box(
+                Modifier
+                    .size(26.dp)
+                    .shadow(elevation = 8.dp, shape = CircleShape, ambientColor = accent.start, spotColor = accent.start)
+                    .clip(CircleShape)
+                    .background(Color.White)
+                    .border(5.dp, accent.brush, CircleShape),
+            )
+        },
+        track = { state ->
+            val span = state.trackRange.endInclusive - state.trackRange.start
+            val fraction = if (span > 0f) ((state.value - state.trackRange.start) / span).coerceIn(0f, 1f) else 0f
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .height(12.dp)
+                    .clip(pill)
+                    .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.14f)),
+            ) {
+                Box(
+                    Modifier
+                        .fillMaxWidth(fraction)
+                        .height(12.dp)
+                        .clip(pill)
+                        .background(accent.brush)
+                        .alpha(if (enabled) 1f else 0.4f),
+                )
+            }
+        },
+    )
 }

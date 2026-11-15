@@ -5,6 +5,10 @@
 
 package com.metrolist.music.ui.component
 
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Box
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.background
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -30,29 +34,32 @@ import androidx.compose.ui.unit.dp
 fun Material3MenuGroup(
     items: List<Material3MenuItemData>
 ) {
+    // One solid rounded card per group, rows split by hairlines.
     Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(4.dp)
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(24.dp))
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+            .animateContentSize(),
     ) {
         items.forEachIndexed { index, item ->
-            val shape = when {
-                items.size == 1 -> RoundedCornerShape(24.dp)
-                index == 0 -> RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp, bottomStart = 6.dp, bottomEnd = 6.dp)
-                index == items.size - 1 -> RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp, bottomStart = 24.dp, bottomEnd = 24.dp)
-                else -> RoundedCornerShape(6.dp)
-            }
-
-            Card(
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .animateContentSize(),
-                shape = shape,
-                colors = item.cardColors ?: CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-                ),
-                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+                    .then(
+                        item.cardColors?.let { Modifier.background(it.containerColor) } ?: Modifier
+                    )
             ) {
                 Material3MenuItemRow(item = item)
+            }
+            if (index != items.lastIndex) {
+                Box(
+                    modifier = Modifier
+                        .padding(start = 72.dp, end = 16.dp)
+                        .fillMaxWidth()
+                        .height(1.dp)
+                        .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
+                )
             }
         }
     }
@@ -69,18 +76,24 @@ private fun Material3MenuItemRow(
                 enabled = item.onClick != null,
                 onClick = { item.onClick?.invoke() }
             )
-            .padding(horizontal = 20.dp, vertical = 16.dp),
+            .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         item.icon?.let { icon ->
-            icon()
-            Spacer(modifier = Modifier.width(16.dp))
+            com.metrolist.music.ui.jix.JixIconBadge(size = 40.dp) {
+                Box(modifier = Modifier.size(22.dp), contentAlignment = Alignment.Center) {
+                    icon()
+                }
+            }
+            Spacer(modifier = Modifier.width(14.dp))
         }
 
         Column(
             modifier = Modifier.weight(1f)
         ) {
-            ProvideTextStyle(MaterialTheme.typography.titleMedium) {
+            ProvideTextStyle(
+                MaterialTheme.typography.titleMedium.copy(color = MaterialTheme.colorScheme.onSurface)
+            ) {
                 item.title()
             }
 

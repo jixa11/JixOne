@@ -5,6 +5,7 @@
 
 package com.metrolist.music.ui.component
 
+import androidx.compose.ui.draw.alpha
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -142,28 +143,23 @@ private fun Material3SettingsItemRow(
             item.leadingContent.invoke()
             Spacer(modifier = Modifier.width(16.dp))
         } else if (item.icon != null) {
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(androidx.compose.foundation.shape.CircleShape)
-                    .background(accent.copy(alpha = if (item.isHighlighted) 0.26f else 0.16f)),
-                contentAlignment = Alignment.Center
+            val badgeInk = com.metrolist.music.ui.jix.LocalJixAccent.current.ink
+            com.metrolist.music.ui.jix.JixIconBadge(
+                size = 40.dp,
+                modifier = Modifier.alpha(if (item.enabled) 1f else 0.4f),
             ) {
                 if (item.showBadge) {
                     BadgedBox(
                         badge = {
                             Badge(
-                                containerColor = MaterialTheme.colorScheme.error
+                                containerColor = Color(0xFFFF4D6D)
                             )
                         }
                     ) {
                         Icon(
                             painter = item.icon,
                             contentDescription = null,
-                            tint = if (!item.enabled)
-                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
-                            else
-                                accent,
+                            tint = badgeInk,
                             modifier = Modifier.size(22.dp)
                         )
                     }
@@ -171,10 +167,7 @@ private fun Material3SettingsItemRow(
                     Icon(
                         painter = item.icon,
                         contentDescription = null,
-                        tint = if (!item.enabled)
-                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
-                        else
-                            accent,
+                        tint = badgeInk,
                         modifier = Modifier.size(22.dp)
                     )
                 }

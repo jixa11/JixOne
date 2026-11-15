@@ -1269,11 +1269,14 @@ class MainActivity : FragmentActivity() {
                                                         modifier =
                                                             Modifier
                                                                 .fillMaxWidth()
+                                                                .padding(horizontal = 10.dp, vertical = 4.dp)
+                                                                .clip(RoundedCornerShape(20.dp))
+                                                                .background(jixAccentBrush())
                                                                 .clickable {
                                                                     profileMenuExpanded = false
                                                                     showAccountDialog = true
                                                                 }
-                                                                .padding(horizontal = 14.dp, vertical = 10.dp),
+                                                                .padding(horizontal = 12.dp, vertical = 12.dp),
                                                     ) {
                                                         Box(
                                                             contentAlignment = Alignment.Center,
@@ -1281,7 +1284,7 @@ class MainActivity : FragmentActivity() {
                                                                 Modifier
                                                                     .size(46.dp)
                                                                     .clip(CircleShape)
-                                                                    .background(jixAccentBrush()),
+                                                                    .background(Color.White.copy(alpha = 0.25f)),
                                                         ) {
                                                             if (accountImageUrl != null) {
                                                                 AsyncImage(
@@ -1303,6 +1306,7 @@ class MainActivity : FragmentActivity() {
                                                             text = stringResource(R.string.account),
                                                             style = MaterialTheme.typography.titleMedium,
                                                             fontWeight = FontWeight.ExtraBold,
+                                                            color = com.metrolist.music.ui.jix.LocalJixAccent.current.ink,
                                                         )
                                                     }
                                                     Box(
@@ -1316,20 +1320,12 @@ class MainActivity : FragmentActivity() {
                                                         profileMenuExpanded = false
                                                         navController.navigate("settings")
                                                     })
-                                                    JixMenuItem(R.drawable.contrast, stringResource(R.string.theme_colors), {
-                                                        profileMenuExpanded = false
-                                                        navController.navigate("settings/appearance/theme")
-                                                    })
                                                     if (listenTogetherInTopBar) {
                                                         JixMenuItem(R.drawable.jix_users, stringResource(R.string.together), {
                                                             profileMenuExpanded = false
                                                             navController.navigate("listen_together_from_topbar")
                                                         })
                                                     }
-                                                    JixMenuItem(R.drawable.equalizer, stringResource(R.string.equalizer), {
-                                                        profileMenuExpanded = false
-                                                        navController.navigate("equalizer")
-                                                    })
                                                     JixMenuItem(R.drawable.integration, stringResource(R.string.integrations), {
                                                         profileMenuExpanded = false
                                                         navController.navigate("settings/integrations")

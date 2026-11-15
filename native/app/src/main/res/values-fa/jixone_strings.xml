@@ -255,4 +255,8 @@
     <string name="jix_genre_turkish">ترکی</string>
     <string name="jix_genre_other">بیشتر از آرتیست‌های تو</string>
     <string name="jix_source_online">آنلاین</string>
+    <string name="jix_token_howto_title">ورود با توکن چطور است؟</string>
+    <string name="jix_token_howto">۱. در کامپیوتر، سایت music.youtube.com را در کروم باز کنید و وارد حساب شوید.\n۲. کلید F12 را بزنید، تب Network را باز کنید و صفحه را دوباره بارگذاری کنید.\n۳. روی یکی از درخواست‌های music.youtube.com بزنید، در بخش Request Headers مقدار «cookie» را کامل کپی کنید.\n۴. آن را به گوشی بفرستید، اینجا «ورود با توکن» را بزنید، متن را جای‌گذاری و تأیید کنید.\nاین متن را به کسی ندهید: هر کس آن را داشته باشد می‌تواند وارد حساب شما شود.</string>
+    <string name="jix_new_from_your_artists">تازه‌های آرتیست‌های تو</string>
+    <string name="jix_trending_now">ترندهای الان</string>
 </resources>

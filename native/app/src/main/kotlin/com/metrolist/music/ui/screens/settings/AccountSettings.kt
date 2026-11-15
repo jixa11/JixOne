@@ -207,6 +207,10 @@ fun AccountSettings(
                     var accountEmailValue = ""
                     var accountChannelHandleValue = ""
 
+                    // A bare cookie pasted straight from a browser is accepted too.
+                    if ("***INNERTUBE COOKIE***" !in data && "SAPISID" in parseCookieString(data.trim())) {
+                        cookie = data.trim().removePrefix("cookie:").removePrefix("Cookie:").trim()
+                    }
                     data.split("\n").forEach {
                         when {
                             it.startsWith("***INNERTUBE COOKIE*** =") -> cookie = it.substringAfter("=")
@@ -242,12 +246,13 @@ fun AccountSettings(
                     // as a key because the "***INNERTUBE COOKIE*** =" prefix shadowed it.
                     val cookieLine = fullText.lines()
                         .find { it.startsWith("***INNERTUBE COOKIE*** =") }
-                    val cookieValue = cookieLine?.substringAfter("***INNERTUBE COOKIE*** =")?.trim() ?: ""
+                    val cookieValue = cookieLine?.substringAfter("***INNERTUBE COOKIE*** =")?.trim()
+                        ?: fullText.trim()
                     cookieValue.isNotEmpty() && "SAPISID" in parseCookieString(cookieValue)
                 },
                 extraContent = {
                     Spacer(Modifier.height(8.dp))
-                    InfoLabel(text = stringResource(R.string.token_adv_login_description))
+                    InfoLabel(text = stringResource(R.string.jix_token_howto))
                 }
             )
         }
@@ -335,6 +340,12 @@ fun AccountSettings(
                         else if (!showToken) showToken = true
                         else showTokenEditor = true
                     }
+                ),
+                // A short how-to, always visible: token sign-in is the reliable route.
+                Material3SettingsItem(
+                    title = { Text(stringResource(R.string.jix_token_howto_title)) },
+                    description = { Text(stringResource(R.string.jix_token_howto)) },
+                    icon = painterResource(R.drawable.info),
                 ),
                 Material3SettingsItem(
                     title = { Text(stringResource(R.string.more_content)) },

@@ -1,3 +1,19 @@
+## 🎧 JixOne 1.0.0 — n1.0.0
+
+اولین نسخه‌ی عمومی JixOne: پلیر موسیقی اندروید برای کاتالوگ YouTube Music، رایگان و بدون تبلیغ.
+
+- **اکسپلورِ خودتان:** آرتیست‌هایتان را انتخاب کنید؛ قفسه‌ها بر اساس سبک ساخته می‌شوند، همراه با تازه‌های همان آرتیست‌ها، ترندها، آلبوم‌های جدید و پادکست‌ها. کارت «میکس تو» با یک لمس پخش می‌کند.
+- **پلیر:** یک ردیف کنترل، لایک کنار عنوان، تایمر خواب در گوشه‌ی بالا و یک نوار پایین برای صف، متن آهنگ، دانلود و بیشتر.
+- **ویجت:** کاور آهنگ در پس‌زمینه با کنترل‌های پخش؛ اگر ویجت را بلندتر کنید، صف پخش زیر آن می‌آید و با لمس هر آهنگ همان پخش می‌شود.
+- **ژست‌ها:** آهنگ را به راست بکشید تا بعدی پخش شود؛ در پلی‌لیست خودتان به چپ بکشید تا حذف شود.
+- **۱۲ تم با پیش‌نمایش**، آیکون‌های یکدست، منوها و تنظیمات رنگی و اسلایدرهای جدید.
+- **کتابخانه و آفلاین:** پلی‌لیست، لایک‌ها، دانلود برای آفلاین، متن آهنگ، اکولایزر و Android Auto.
+- **ورود اختیاری:** با حساب YouTube Music یا با توکن؛ راهنمای کوتاه ورود با توکن در بخش حساب هست.
+
+**English:** the first public release of JixOne, a free, ad-free Android player for the YouTube Music catalog. A personal Explore built from the artists you pick (genre shelves, your artists' new releases, trending, new albums, podcasts, a one-tap mix); a player with one control row, a sleep timer in the top corner and a single bottom bar; a home-screen widget that shows the play queue when stretched taller; swipe gestures on songs; twelve themes with previews; downloads, lyrics, equalizer and Android Auto. Signing in is optional, by account or by token.
+
+---
+
 ## ✨ JixOne 6.2.0 (native) — n6.2.0 — «Vivid»
 
 ظاهر تازه برای کل برنامه، و چند باگ مهم که بالاخره حل شد.

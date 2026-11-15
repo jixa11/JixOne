@@ -5,6 +5,7 @@
 
 package com.metrolist.music.ui.screens
 
+import androidx.compose.foundation.clickable
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -187,6 +188,12 @@ sealed class HomeSection(
     /** The artists picked in the first-run onboarding, in selection order. */
     data object YourArtists : HomeSection("your_artists", 120)
 
+    /** A plain shelf of items under one title (new releases, trending, podcasts). */
+    data class Shelf(
+        val key: String,
+        val titleRes: Int,
+    ) : HomeSection("shelf_$key", 60)
+
     /** One content shelf per picked artist. */
     data class FromYourArtist(
         val index: Int,
@@ -222,6 +229,9 @@ fun HomeScreen(
     val onboardingSimilarArtists by viewModel.onboardingSimilarArtists.collectAsStateWithLifecycle()
 
     val allYtItems by viewModel.allYtItems.collectAsStateWithLifecycle()
+    val artistNewReleases by viewModel.artistNewReleases.collectAsStateWithLifecycle()
+    val trendingItems by viewModel.trendingItems.collectAsStateWithLifecycle()
+    val podcastItems by viewModel.podcastItems.collectAsStateWithLifecycle()
 
     val isLoading: Boolean by viewModel.isLoading.collectAsStateWithLifecycle()
     val isMoodAndGenresLoading = isLoading && explorePage?.moodAndGenres == null
@@ -417,11 +427,19 @@ fun HomeScreen(
             onboardingRecommendations,
             onboardingSimilarArtists,
             explorePage?.moodAndGenres,
+            explorePage?.newReleaseAlbums,
+            artistNewReleases,
+            trendingItems,
+            podcastItems,
         ) {
             val list = mutableListOf<HomeSection>()
             if (!onboardingArtists.isNullOrEmpty()) list.add(HomeSection.YourArtists)
+            if (artistNewReleases.isNotEmpty()) list.add(HomeSection.Shelf("new_from_artists", R.string.jix_new_from_your_artists))
             onboardingRecommendations?.indices?.forEach { list.add(HomeSection.FromYourArtist(it)) }
             if (!onboardingSimilarArtists.isNullOrEmpty()) list.add(HomeSection.SimilarArtists)
+            if (trendingItems.isNotEmpty()) list.add(HomeSection.Shelf("trending", R.string.jix_trending_now))
+            if (!explorePage?.newReleaseAlbums.isNullOrEmpty()) list.add(HomeSection.Shelf("new_releases", R.string.new_release_albums))
+            if (podcastItems.isNotEmpty()) list.add(HomeSection.Shelf("podcasts", R.string.filter_podcasts))
             if (explorePage?.moodAndGenres != null) list.add(HomeSection.MoodAndGenres)
             list
         }
@@ -599,6 +617,38 @@ fun HomeScreen(
                                                     radioEndpoint = null,
                                                 ),
                                             )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        is HomeSection.Shelf -> {
+                            val shelfItems: List<YTItem> =
+                                when (section.key) {
+                                    "new_from_artists" -> artistNewReleases
+                                    "trending" -> trendingItems
+                                    "new_releases" -> explorePage?.newReleaseAlbums.orEmpty()
+                                    else -> podcastItems
+                                }
+                            if (shelfItems.isNotEmpty()) {
+                                item(key = "shelf_title_${section.key}") {
+                                    JixSectionHeader(
+                                        title = stringResource(section.titleRes),
+                                        onClick =
+                                            when (section.key) {
+                                                "trending" -> ({ navController.navigate("charts_screen") })
+                                                "new_releases" -> ({ navController.navigate("new_release") })
+                                                else -> null
+                                            },
+                                    )
+                                }
+                                item(key = "shelf_list_${section.key}") {
+                                    LazyRow(
+                                        contentPadding = PaddingValues(horizontal = 10.dp),
+                                    ) {
+                                        items(shelfItems, key = { "shelf_${section.key}_${it.id}" }) { item ->
+                                            ytGridItem(item)
                                         }
                                     }
                                 }
@@ -792,62 +842,69 @@ fun HomeScreen(
 private fun PickYourArtistsCard(
     onPick: () -> Unit,
 ) {
-    Card(
+    // Stacked, not side by side: with a large system font the old row left
+    // the text a sliver of width and it wrapped one word per line.
+    val accent = com.metrolist.music.ui.jix.LocalJixAccent.current
+    Column(
         modifier =
             Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-        shape = RoundedCornerShape(24.dp),
-        colors =
-            CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-            ),
+                .padding(horizontal = 16.dp, vertical = 8.dp)
+                .clip(RoundedCornerShape(28.dp))
+                .background(accent.brush)
+                .padding(20.dp),
     ) {
-        Row(
-            modifier = Modifier.padding(20.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
             Box(
                 modifier =
                     Modifier
-                        .size(56.dp)
-                        .clip(RoundedCornerShape(18.dp))
-                        .background(
-                            Brush.linearGradient(
-                                listOf(
-                                    MaterialTheme.colorScheme.primary,
-                                    MaterialTheme.colorScheme.tertiary,
-                                ),
-                            ),
-                        ),
+                        .size(48.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(accent.ink.copy(alpha = 0.16f)),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     painter = painterResource(R.drawable.jix_users),
                     contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.size(30.dp),
+                    tint = accent.ink,
+                    modifier = Modifier.size(26.dp),
                 )
             }
-            Spacer(Modifier.width(16.dp))
-            Column(
-                modifier = Modifier.weight(1f),
-            ) {
-                Text(
-                    text = stringResource(R.string.explore_pick_artists_title),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                )
-                Text(
-                    text = stringResource(R.string.explore_pick_artists_subtitle),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            Spacer(Modifier.width(12.dp))
-            Button(onClick = onPick) {
-                Text(stringResource(R.string.explore_pick_artists_button))
-            }
+            Spacer(Modifier.width(14.dp))
+            Text(
+                text = stringResource(R.string.explore_pick_artists_title),
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Black,
+                color = accent.ink,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        Spacer(Modifier.height(10.dp))
+        Text(
+            text = stringResource(R.string.explore_pick_artists_subtitle),
+            style = MaterialTheme.typography.bodyMedium,
+            color = accent.ink.copy(alpha = 0.86f),
+            maxLines = 3,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Spacer(Modifier.height(16.dp))
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .height(50.dp)
+                    .clip(RoundedCornerShape(50))
+                    .background(if (accent.ink == Color.White) Color.White else Color.Black)
+                    .clickable(onClick = onPick),
+        ) {
+            Text(
+                text = stringResource(R.string.explore_pick_artists_button),
+                fontWeight = FontWeight.ExtraBold,
+                color = if (accent.ink == Color.White) accent.start else Color.White,
+                maxLines = 1,
+            )
         }
     }
 }

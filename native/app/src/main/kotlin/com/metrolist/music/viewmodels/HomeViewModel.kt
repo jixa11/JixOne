@@ -93,6 +93,15 @@ class HomeViewModel @Inject constructor(
     val onboardingRecommendations = MutableStateFlow<List<GenreShelf>?>(null)
     val onboardingSimilarArtists = MutableStateFlow<List<ArtistItem>?>(null)
 
+    /** Latest albums and singles of the picked artists, newest first. */
+    val artistNewReleases = MutableStateFlow<List<YTItem>>(emptyList())
+
+    /** What is trending right now (the charts), for everyone. */
+    val trendingItems = MutableStateFlow<List<YTItem>>(emptyList())
+
+    /** A shelf of podcasts. */
+    val podcastItems = MutableStateFlow<List<YTItem>>(emptyList())
+
 
     val allYtItems = MutableStateFlow<List<YTItem>>(emptyList())
 
@@ -216,6 +225,19 @@ class HomeViewModel @Inject constructor(
             if (items.isEmpty()) null else GenreShelf(genre = genre, artists = artists, items = items)
         }
 
+        // New from your artists: every album or single on the fetched pages,
+        // newest year first.
+        val newReleases = pages.values.filterNotNull()
+            .flatMap { page -> page.sections.flatMap { it.items } }
+            .filterIsInstance<AlbumItem>()
+            .distinctBy { it.id }
+            .filterExplicit(hideExplicit)
+            .sortedByDescending { it.year ?: 0 }
+            .take(24)
+        if (newReleases.isNotEmpty() || artistNewReleases.value.isEmpty()) {
+            artistNewReleases.value = newReleases
+        }
+
         // Every fetch failed (offline start): keep whatever is on screen and
         // let the next refresh / reconnect try again.
         val allFailed = pages.values.all { it == null }
@@ -275,6 +297,25 @@ class HomeViewModel @Inject constructor(
                         moodAndGenres = page.moodAndGenres.filterOutNulls()
                     )
                 }.onFailure { reportException(it) }
+            }
+
+            // Charts and podcasts do not depend on the picks, so Explore has
+            // plenty to play even before any artist is chosen.
+            launch(Dispatchers.IO) {
+                YouTube.getChartsPage().onSuccess { page ->
+                    trendingItems.value = page.sections
+                        .flatMap { it.items }
+                        .filter { it is SongItem || it is AlbumItem || it is PlaylistItem }
+                        .distinctBy { it.id }
+                        .filterExplicit(hideExplicit)
+                        .take(30)
+                }.onFailure { reportException(it) }
+            }
+            launch(Dispatchers.IO) {
+                val found = listOf("پادکست فارسی", "podcast").flatMap { query ->
+                    YouTube.search(query, YouTube.SearchFilter.FILTER_PODCAST).getOrNull()?.items.orEmpty()
+                }
+                if (found.isNotEmpty()) podcastItems.value = found.distinctBy { it.id }.take(24)
             }
 
             if (YouTube.cookie != null) {
@@ -389,7 +430,7 @@ class HomeViewModel @Inject constructor(
         const val GENRE_OTHER = "other"
         const val ARTISTS_PER_SHELF = 4
         const val MAX_ARTIST_FETCHES = 16
-        const val ITEMS_PER_SHELF = 18
+        const val ITEMS_PER_SHELF = 30
     }
 
     fun loadHomeData() {

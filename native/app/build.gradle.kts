@@ -12,8 +12,10 @@ if (localPropertiesFile.exists()) {
 // installed, and comparing them side by side is the whole point right now.
 // It becomes com.jixone.app when native replaces the WebView build.
 val baseApplicationId = "com.jixone.native"
-val appVersionCode = 620
-val appVersionName = "6.2.0"
+// versionCode must keep rising across the rename to 1.0.0: Android refuses
+// to install a lower code over an existing install.
+val appVersionCode = 700
+val appVersionName = "1.0.0"
 val applicationIdOverride = System.getenv("METROLIST_APPLICATION_ID")?.takeIf { it.isNotBlank() }
 val appNameOverride = System.getenv("METROLIST_APP_NAME")?.takeIf { it.isNotBlank() }
 val buildCommit =

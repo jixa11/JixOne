@@ -132,6 +132,7 @@ fun ArtistItemsScreen(
                         },
                     isPlaying = isPlaying,
                     trailingContent = {
+                        (item as? SongItem)?.playCountText?.let { com.metrolist.music.ui.jix.JixPlayCount(it) }
                         IconButton(
                             onClick = {
                                 menuState.show {

@@ -73,7 +73,10 @@ data class ArtistItemsPage(
                 endpoint = renderer.overlay?.musicItemThumbnailOverlayRenderer?.content?.musicPlayButtonRenderer?.playNavigationEndpoint?.watchEndpoint,
                 libraryAddToken = libraryTokens.addToken,
                 libraryRemoveToken = libraryTokens.removeToken,
-                isEpisode = renderer.isEpisode
+                isEpisode = renderer.isEpisode,
+                playCountText = PageHelper.extractPlayCount(
+                    renderer.flexColumns.map { it.musicResponsiveListItemFlexColumnRenderer.text?.runs },
+                )
             )
         }
 

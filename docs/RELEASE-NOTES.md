@@ -1,3 +1,11 @@
+## 🎧 JixOne 1.0.1 — n1.0.1
+
+- **تعداد پخش در صفحه‌ی آرتیست:** کنار آهنگ‌های برتر هر آرتیست (و در فهرست کامل آهنگ‌هایش) تعداد پخش هر آهنگ نوشته می‌شود تا ببینید کدام بیشتر شنیده شده. فقط در صفحه‌ی آرتیست‌ها و کانال‌ها، نه در پلی‌لیست‌ها.
+
+**English:** artist pages now show each song's play count beside it in the top songs and the full song list, so you can see which tracks are played most. Playlists are unchanged.
+
+---
+
 ## 🎧 JixOne 1.0.0 — n1.0.0
 
 اولین نسخه‌ی عمومی JixOne: پلیر موسیقی اندروید برای کاتالوگ YouTube Music، رایگان و بدون تبلیغ.

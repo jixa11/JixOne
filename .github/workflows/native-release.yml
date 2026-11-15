@@ -29,7 +29,11 @@ on:
       release_version:
         description: 'Publish as a release: version without the leading n (e.g. 6.2.0). Empty = build only.'
         required: false
-        default: ''
+        default: '
+      keep_only_releases:
+        description: 'After publishing: delete every other release and its tag, keeping only these tags (comma-separated, e.g. n1.0.0,n1.0.1). Empty = delete nothing.'
+        required: false
+        default: '''
 
 concurrency:
   group: native-${{ github.ref }}
@@ -184,3 +188,21 @@ jobs:
             native/out/JixOne-*.apk
             native/out/JixOne-*.apk.sha256
             native/out/JixOne-*-apk.zip
+
+      # Opt-in cleanup for a manual release run. Runs only after the new
+      # release is published, and never deletes a tag listed to keep.
+      - name: Delete other releases (manual, opt-in)
+        if: env.RELEASE_TAG != '' && inputs.keep_only_releases != ''
+        working-directory: .
+        env:
+          GH_TOKEN: ${{ github.token }}
+          KEEP: ${{ inputs.keep_only_releases }}
+        run: |
+          case ",$KEEP," in *",$RELEASE_TAG,"*) ;; *) echo "::error::keep list must include $RELEASE_TAG"; exit 1 ;; esac
+          gh release list --repo "$GITHUB_REPOSITORY" --limit 200 --json tagName --jq '.[].tagName' |
+          while read -r tag; do
+            case ",$KEEP," in
+              *",$tag,"*) echo "keep $tag" ;;
+              *) echo "delete $tag"; gh release delete "$tag" --repo "$GITHUB_REPOSITORY" --yes --cleanup-tag ;;
+            esac
+          done

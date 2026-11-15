@@ -5,6 +5,11 @@
 
 package com.metrolist.music.ui.component
 
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.basicMarquee
@@ -67,45 +72,45 @@ private fun NewActionButton(
         }
     }
 
-    Card(
+    // A glass tile with a gradient rim and a gradient icon badge.
+    val tileShape = RoundedCornerShape(22.dp)
+    val accent = com.metrolist.music.ui.jix.LocalJixAccent.current
+    Column(
         modifier =
             modifier
-                .clickable(enabled = enabled) { performAction = true },
-        colors =
-            CardDefaults.cardColors(
-                containerColor = animatedBackground,
-            ),
-        shape = RoundedCornerShape(16.dp),
-        elevation =
-            CardDefaults.cardElevation(),
+                .clip(tileShape)
+                .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                .border(
+                    1.dp,
+                    Brush.linearGradient(
+                        listOf(accent.start.copy(alpha = 0.55f), accent.end.copy(alpha = 0.15f)),
+                    ),
+                    tileShape,
+                )
+                .clickable(enabled = enabled) { performAction = true }
+                .alpha(if (enabled) 1f else 0.5f)
+                .padding(horizontal = 8.dp, vertical = 14.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
     ) {
-        Column(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .padding(12.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
-        ) {
-            Box(
-                modifier = Modifier.size(28.dp),
-                contentAlignment = Alignment.Center,
-            ) {
+        com.metrolist.music.ui.jix.JixIconBadge(size = 48.dp, shape = RoundedCornerShape(16.dp)) {
+            Box(modifier = Modifier.size(26.dp), contentAlignment = Alignment.Center) {
                 icon()
             }
-
-            Spacer(modifier = Modifier.height(6.dp))
-
-            Text(
-                text = text,
-                style = MaterialTheme.typography.labelMedium,
-                color = animatedContent,
-                textAlign = TextAlign.Center,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.basicMarquee(),
-            )
         }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface,
+            textAlign = TextAlign.Center,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.basicMarquee(),
+        )
     }
 }
 

@@ -1055,4 +1055,8 @@
     <string name="jix_genre_turkish">Turkish</string>
     <string name="jix_genre_other">More from your artists</string>
     <string name="jix_source_online">Online</string>
+    <string name="jix_token_howto_title">How to sign in with a token</string>
+    <string name="jix_token_howto">1. On a computer, open music.youtube.com in Chrome and sign in.\n2. Press F12, open the Network tab and reload the page.\n3. Click any request to music.youtube.com, find “cookie” under Request Headers and copy its whole value.\n4. Send it to your phone, tap “Login with token” here, paste it and confirm.\nKeep the cookie private: anyone who has it can use your account.</string>
+    <string name="jix_new_from_your_artists">New from your artists</string>
+    <string name="jix_trending_now">Trending now</string>
 </resources>

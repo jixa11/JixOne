@@ -196,21 +196,23 @@ class JixOneWidgetManager @Inject constructor(
         views.setTextViewText(R.id.widget_song_title, title)
         views.setTextViewText(R.id.widget_artist_name, artist)
 
-        // Set album art with rounded corners
+        // Cover on top, and the same cover blurred as the widget's ground.
         if (albumArt != null) {
-            val roundedAlbumArt = getRoundedCornerBitmap(albumArt, 48f)
-            views.setImageViewBitmap(R.id.widget_album_art, roundedAlbumArt)
+            views.setImageViewBitmap(R.id.widget_album_art, getRoundedCornerBitmap(albumArt, 40f))
+            views.setImageViewBitmap(R.id.widget_bg_art, blurredBackground(albumArt))
         } else {
-            views.setImageViewBitmap(R.id.widget_album_art, getRoundedDefaultIcon(48f))
+            views.setImageViewBitmap(R.id.widget_album_art, getRoundedDefaultIcon(40f))
+            views.setImageViewBitmap(R.id.widget_bg_art, null)
         }
 
-        // Set play/pause icon
-        val playPauseIcon = if (isPlaying) R.drawable.ic_widget_pause else R.drawable.ic_widget_play
-        views.setImageViewResource(R.id.widget_play_pause, playPauseIcon)
-
-        // Set like icon - using nav style (purple) for main widget
-        val likeIcon = if (isLiked) R.drawable.ic_widget_heart_nav else R.drawable.ic_widget_heart_outline_nav
-        views.setImageViewResource(R.id.widget_like_button, likeIcon)
+        views.setImageViewResource(
+            R.id.widget_play_pause,
+            if (isPlaying) R.drawable.jw_pause else R.drawable.jw_play,
+        )
+        views.setImageViewResource(
+            R.id.widget_like_button,
+            if (isLiked) R.drawable.jw_heart_fill else R.drawable.jw_heart,
+        )
 
         // Set Progress Level
         if (duration > 0) {
@@ -224,8 +226,21 @@ class JixOneWidgetManager @Inject constructor(
         views.setOnClickPendingIntent(R.id.widget_album_art, getOpenAppIntent())
         views.setOnClickPendingIntent(R.id.widget_play_pause_container, getPlayPauseIntent())
         views.setOnClickPendingIntent(R.id.widget_like_button, getLikeIntent())
+        views.setOnClickPendingIntent(R.id.widget_prev, getTurntablePreviousIntent())
+        views.setOnClickPendingIntent(R.id.widget_next, getTurntableNextIntent())
 
         return views
+    }
+
+    /**
+     * A soft blur without RenderScript: shrink the cover to a handful of
+     * pixels and let bilinear filtering smear it back up, then round the
+     * corners so it sits inside the widget shape on every Android version.
+     */
+    private fun blurredBackground(source: Bitmap): Bitmap {
+        val tiny = Bitmap.createScaledBitmap(source, 12, 12, true)
+        val soft = Bitmap.createScaledBitmap(tiny, 320, 180, true)
+        return getRoundedCornerBitmap(soft, 36f)
     }
 
     private suspend fun loadAlbumArt(artworkUri: String, size: Int = 200): Bitmap? {

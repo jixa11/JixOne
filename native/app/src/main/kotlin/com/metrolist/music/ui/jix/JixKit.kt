@@ -9,6 +9,8 @@
 
 package com.metrolist.music.ui.jix
 
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.animation.core.StartOffset
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -591,18 +593,11 @@ fun JixMenuItem(
                 .clickable(onClick = onClick)
                 .padding(horizontal = 14.dp, vertical = 9.dp),
     ) {
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier =
-                Modifier
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)),
-        ) {
+        JixIconBadge(size = 40.dp) {
             Icon(
                 painter = painterResource(icon),
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
+                tint = LocalJixAccent.current.ink,
                 modifier = Modifier.size(22.dp),
             )
         }
@@ -653,6 +648,48 @@ fun JixLoader(
                     .clip(RoundedCornerShape(50))
                     .background(Brush.verticalGradient(listOf(accent.start, accent.end))),
             )
+        }
+    }
+}
+
+/**
+ * A gradient icon badge: the accent gradient as the fill, with whatever icon
+ * is drawn inside forced to the color that reads on it. Menus and settings
+ * use it so their rows carry real color instead of a faint tint.
+ */
+@Composable
+fun JixIconBadge(
+    modifier: Modifier = Modifier,
+    size: Dp = 42.dp,
+    shape: Shape = RoundedCornerShape(14.dp),
+    content: @Composable () -> Unit,
+) {
+    val accent = LocalJixAccent.current
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier =
+            modifier
+                .size(size)
+                .shadow(elevation = 6.dp, shape = shape, ambientColor = accent.start, spotColor = accent.start)
+                .clip(shape)
+                .background(accent.brush),
+    ) {
+        // Callers tint their icons with scheme colors; point those at the ink.
+        MaterialTheme(
+            colorScheme =
+                MaterialTheme.colorScheme.copy(
+                    onSurface = accent.ink,
+                    onSurfaceVariant = accent.ink,
+                    primary = accent.ink,
+                    secondary = accent.ink,
+                    onPrimaryContainer = accent.ink,
+                    onSecondaryContainer = accent.ink,
+                    error = accent.ink,
+                ),
+        ) {
+            CompositionLocalProvider(LocalContentColor provides accent.ink) {
+                content()
+            }
         }
     }
 }

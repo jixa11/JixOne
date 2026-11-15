@@ -120,7 +120,7 @@ fun LoginScreen(
         val view = webView ?: return null
         var hasAuthCookie = false
         var hasVisitorData = false
-        repeat(20) {
+        repeat(20) { attempt ->
             val cookie = CookieManager.getInstance().getCookie("https://music.youtube.com").orEmpty()
             val cookieMap = runCatching { parseCookieString(cookie) }.getOrDefault(emptyMap())
             val visitorDataDeferred = CompletableDeferred<String?>()
@@ -137,12 +137,16 @@ fun LoginScreen(
             }
 
             view.loadUrl(
+                // yt.config_ is not always populated when the page reports it
+                // has finished; ytcfg carries the same values.
                 "javascript:Android.onRetrieveVisitorData(" +
-                    "window.yt&&window.yt.config_?window.yt.config_.VISITOR_DATA:null)",
+                    "(window.yt&&window.yt.config_&&window.yt.config_.VISITOR_DATA)||" +
+                    "(window.ytcfg&&window.ytcfg.get&&window.ytcfg.get('VISITOR_DATA'))||null)",
             )
             view.loadUrl(
                 "javascript:Android.onRetrieveDataSyncId(" +
-                    "window.yt&&window.yt.config_?window.yt.config_.DATASYNC_ID:null)",
+                    "(window.yt&&window.yt.config_&&window.yt.config_.DATASYNC_ID)||" +
+                    "(window.ytcfg&&window.ytcfg.get&&window.ytcfg.get('DATASYNC_ID'))||null)",
             )
             view.loadUrl(
                 "javascript:Android.onRetrieveAuthUser(" +
@@ -158,14 +162,19 @@ fun LoginScreen(
                     )
                 }
             hasAuthCookie = "SAPISID" in cookieMap
-            val visitorData = pageAuthData?.visitorData
+            // Signed in but the page never exposed its visitor id: after a
+            // few tries fall back to the id the app already uses, instead of
+            // failing a login that has in fact succeeded.
+            val visitorData =
+                pageAuthData?.visitorData?.takeIf { it.isNotBlank() }
+                    ?: YouTube.visitorData?.takeIf { attempt >= 8 && it.isNotBlank() }
             hasVisitorData = !visitorData.isNullOrBlank()
-            if (hasAuthCookie && pageAuthData != null && !visitorData.isNullOrBlank()) {
+            if (hasAuthCookie && !visitorData.isNullOrBlank()) {
                 return AuthData(
                     cookie = cookie,
                     visitorData = visitorData,
-                    dataSyncId = pageAuthData.dataSyncId.orEmpty().substringBefore("||"),
-                    authUser = pageAuthData.authUser.filter(Char::isDigit).ifBlank { "0" },
+                    dataSyncId = pageAuthData?.dataSyncId.orEmpty().substringBefore("||"),
+                    authUser = pageAuthData?.authUser.orEmpty().filter(Char::isDigit).ifBlank { "0" },
                 )
             }
             delay(500)

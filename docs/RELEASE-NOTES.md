@@ -1,3 +1,14 @@
+## 🎧 JixOne 1.0.2 — n1.0.2
+
+- **آرتیست‌های انتخابی دیگر پاک نمی‌شوند:** همگام‌سازی حساب یوتیوب، آرتیست‌هایی را که در شروع انتخاب کرده بودید حذف می‌کرد. حالا دست نمی‌خورند، و آن‌هایی که قبلاً حذف شده بودند یک بار برمی‌گردند.
+- **ویجت وقتی اپ بسته است کار می‌کند:** پخش، قبلی، بعدی و انتخاب آهنگ از صف ویجت، بدون باز کردن اپ. صف ویجت بعد از بسته شدن اپ هم می‌ماند.
+- **شافل و تکرار در ویجت.**
+- **آپدیتر:** اگر سقف درخواست گیت‌هاب پر باشد (رایج روی VPN)، نسخه‌ی جدید از صفحه‌ی ریلیز خوانده می‌شود؛ نصب‌های 6.x هم نسخه‌های 1.x را جدید می‌بینند. وقتی نسخه‌ی جدید بیاید نوتیفیکیشن می‌گیرید.
+
+**English:** onboarding picks are no longer removed by the YouTube account sync (lost ones come back once); the widget plays, skips and starts queue songs while the app is closed and keeps its queue; shuffle and repeat buttons on the widget; the updater falls back to the public release page when the GitHub API is rate limited, and 6.x installs see 1.x as newer.
+
+---
+
 ## 🎧 JixOne 1.0.1 — n1.0.1
 
 - **تعداد پخش در صفحه‌ی آرتیست:** کنار آهنگ‌های برتر هر آرتیست (و در فهرست کامل آهنگ‌هایش) تعداد پخش هر آهنگ نوشته می‌شود تا ببینید کدام بیشتر شنیده شده. فقط در صفحه‌ی آرتیست‌ها و کانال‌ها، نه در پلی‌لیست‌ها.

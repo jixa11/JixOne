@@ -52,6 +52,8 @@ class JixOneWidgetManager @Inject constructor(
     private var cachedCircularAlbumArt: Bitmap? = null
 
     suspend fun updateWidgets(
+        shuffle: Boolean = false,
+        repeatMode: Int = 0,
         title: String,
         artist: String,
         artworkUri: String?,
@@ -86,6 +88,8 @@ class JixOneWidgetManager @Inject constructor(
                 val options = appWidgetManager.getAppWidgetOptions(widgetId)
                 val views = createRemoteViewsForSize(
                     options,
+                    shuffle,
+                    repeatMode,
                     title,
                     artist,
                     albumArt,
@@ -154,6 +158,8 @@ class JixOneWidgetManager @Inject constructor(
 
     private fun createRemoteViewsForSize(
         options: Bundle,
+        shuffle: Boolean,
+        repeatMode: Int,
         title: String,
         artist: String,
         albumArt: Bitmap?,
@@ -180,7 +186,7 @@ class JixOneWidgetManager @Inject constructor(
             }
             else -> {
                 // Full layout
-                createRemoteViews(title, artist, albumArt, isPlaying, isLiked, duration, currentPosition, minHeight)
+                createRemoteViews(title, artist, albumArt, isPlaying, isLiked, duration, currentPosition, minHeight, shuffle, repeatMode)
             }
         }
     }
@@ -194,6 +200,8 @@ class JixOneWidgetManager @Inject constructor(
         duration: Long = 0,
         currentPosition: Long = 0,
         minHeight: Int = 0,
+        shuffle: Boolean = false,
+        repeatMode: Int = 0,
     ): RemoteViews {
         val views = RemoteViews(context.packageName, R.layout.widget_music_player)
 
@@ -251,6 +259,23 @@ class JixOneWidgetManager @Inject constructor(
         views.setOnClickPendingIntent(R.id.widget_album_art, getOpenAppIntent())
         views.setOnClickPendingIntent(R.id.widget_play_pause_container, getPlayPauseIntent())
         views.setOnClickPendingIntent(R.id.widget_like_button, getLikeIntent())
+        views.setImageViewResource(R.id.widget_shuffle, if (shuffle) R.drawable.jw_shuffle_on else R.drawable.jw_shuffle)
+        views.setInt(R.id.widget_shuffle, "setBackgroundResource", if (shuffle) R.drawable.jw_toggle_on_bg else android.R.color.transparent)
+        views.setImageViewResource(
+            R.id.widget_repeat,
+            when (repeatMode) {
+                androidx.media3.common.Player.REPEAT_MODE_ONE -> R.drawable.jw_repeat_one
+                androidx.media3.common.Player.REPEAT_MODE_ALL -> R.drawable.jw_repeat_on
+                else -> R.drawable.jw_repeat
+            },
+        )
+        views.setInt(
+            R.id.widget_repeat,
+            "setBackgroundResource",
+            if (repeatMode != androidx.media3.common.Player.REPEAT_MODE_OFF) R.drawable.jw_toggle_on_bg else android.R.color.transparent,
+        )
+        views.setOnClickPendingIntent(R.id.widget_shuffle, getWidgetActionIntent(MusicWidgetReceiver.ACTION_SHUFFLE, 9))
+        views.setOnClickPendingIntent(R.id.widget_repeat, getWidgetActionIntent(MusicWidgetReceiver.ACTION_REPEAT, 10))
         views.setOnClickPendingIntent(R.id.widget_prev, getWidgetActionIntent(MusicWidgetReceiver.ACTION_PREVIOUS, 7))
         views.setOnClickPendingIntent(R.id.widget_next, getWidgetActionIntent(MusicWidgetReceiver.ACTION_NEXT, 8))
 

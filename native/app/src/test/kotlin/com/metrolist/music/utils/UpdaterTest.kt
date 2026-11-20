@@ -20,4 +20,11 @@ class UpdaterTest {
         assertFalse(Updater.isUpdateAvailable(currentVersion = "6.1.0", latestVersion = "6.1.0"))
         assertFalse(Updater.isUpdateAvailable(currentVersion = "6.1.0", latestVersion = "6.0.9"))
     }
+
+    @Test
+    fun treatsTheRenumberedLineAsNewer() {
+        assertTrue(Updater.isUpdateAvailable(currentVersion = "6.2.0", latestVersion = "1.0.2"))
+        assertTrue(Updater.isUpdateAvailable(currentVersion = "1.0.1", latestVersion = "1.0.2"))
+        assertFalse(Updater.isUpdateAvailable(currentVersion = "1.0.2", latestVersion = "1.0.2"))
+    }
 }

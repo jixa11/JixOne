@@ -7,6 +7,8 @@
 
 package com.metrolist.music.playback
 
+import com.metrolist.music.extensions.toggleRepeatMode
+import kotlinx.coroutines.withTimeoutOrNull
 import android.app.ForegroundServiceStartNotAllowedException
 import android.app.Notification
 import android.app.NotificationChannel
@@ -4394,6 +4396,24 @@ class MusicService :
         }
     }
 
+    /**
+     * Runs a widget action once the player has its queue. Started cold from a
+     * widget tap, the service restores the saved queue asynchronously; acting
+     * before that lands plays nothing.
+     */
+    private fun withRestoredQueue(action: () -> Unit) {
+        scope.launch {
+            playerInitialized.first { it }
+            // shortcut: polls up to 5 s for the restore; a restore signal would be cleaner.
+            withTimeoutOrNull(5_000) {
+                while (player.mediaItemCount == 0) delay(100)
+                delay(300)
+            }
+            action()
+            updateWidgetUI(player.isPlaying)
+        }
+    }
+
     override fun onStartCommand(
         intent: Intent?,
         flags: Int,
@@ -4401,7 +4421,8 @@ class MusicService :
     ): Int {
         if (taskCleared) {
             // A media button press (headset, car) is the user resuming; anything else is a stale restart.
-            if (intent?.action != Intent.ACTION_MEDIA_BUTTON) {
+            // A widget control is a user tap too.
+            if (intent?.action != Intent.ACTION_MEDIA_BUTTON && intent?.action?.startsWith(WIDGET_ACTION_PREFIX) != true) {
                 stopSelf()
                 return START_NOT_STICKY
             }
@@ -4427,8 +4448,9 @@ class MusicService :
             }
 
             MusicWidgetReceiver.ACTION_PLAY_PAUSE -> {
-                if (player.isPlaying) player.pause() else player.play()
-                updateWidgetUI(player.isPlaying)
+                withRestoredQueue {
+                    if (player.isPlaying) player.pause() else player.play()
+                }
             }
 
             MusicWidgetReceiver.ACTION_LIKE -> {
@@ -4436,22 +4458,29 @@ class MusicService :
             }
 
             MusicWidgetReceiver.ACTION_NEXT -> {
-                player.seekToNext()
-                updateWidgetUI(player.isPlaying)
+                withRestoredQueue { player.seekToNext() }
             }
 
             MusicWidgetReceiver.ACTION_PREVIOUS -> {
-                player.seekToPrevious()
-                updateWidgetUI(player.isPlaying)
+                withRestoredQueue { player.seekToPrevious() }
+            }
+
+            MusicWidgetReceiver.ACTION_SHUFFLE -> {
+                withRestoredQueue { player.shuffleModeEnabled = !player.shuffleModeEnabled }
+            }
+
+            MusicWidgetReceiver.ACTION_REPEAT -> {
+                withRestoredQueue { player.toggleRepeatMode() }
             }
 
             MusicWidgetReceiver.ACTION_PLAY_INDEX -> {
                 val index = intent.getIntExtra(MusicWidgetReceiver.EXTRA_INDEX, -1)
-                if (index in 0 until player.mediaItemCount) {
-                    player.seekTo(index, 0)
-                    player.play()
+                withRestoredQueue {
+                    if (index in 0 until player.mediaItemCount) {
+                        player.seekTo(index, 0)
+                        player.play()
+                    }
                 }
-                updateWidgetUI(true)
             }
 
             MusicWidgetReceiver.ACTION_UPDATE_WIDGET,
@@ -4729,8 +4758,11 @@ class MusicService :
                             metadata.title?.toString().orEmpty() to metadata.artist?.toString().orEmpty()
                         }
                     com.metrolist.music.widget.WidgetQueue.current = player.currentMediaItemIndex
+                    com.metrolist.music.widget.WidgetQueue.save(this@MusicService)
 
                     widgetManager.updateWidgets(
+                        shuffle = player.shuffleModeEnabled,
+                        repeatMode = player.repeatMode,
                         title = songTitle,
                         artist = artistName,
                         artworkUri = song?.thumbnailUrl,
@@ -5040,6 +5072,7 @@ class MusicService :
     }
 
     companion object {
+        private const val WIDGET_ACTION_PREFIX = "com.metrolist.music.widget."
         const val ACTION_ALARM_TRIGGER = "com.metrolist.music.action.ALARM_TRIGGER"
         const val EXTRA_ALARM_ID = "extra_alarm_id"
         const val EXTRA_ALARM_PLAYLIST_ID = "extra_alarm_playlist_id"

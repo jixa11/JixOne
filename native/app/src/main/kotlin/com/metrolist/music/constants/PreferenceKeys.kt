@@ -115,6 +115,9 @@ val ArtistOnboardingCompletedKey = booleanPreferencesKey("artistOnboardingComple
 /** Genre of each picked artist, as "id=genre" pairs joined by ';' (Explore groups shelves by it). */
 val OnboardingArtistGenresKey = stringPreferencesKey("onboardingArtistGenres")
 
+/** True once onboarding picks removed by an older account sync were bookmarked again. */
+val OnboardingPicksRestoredKey = booleanPreferencesKey("onboardingPicksRestored")
+
 /** True once the theme's own dark/light mode has been applied over the old mode setting. */
 val ThemeModeMigratedKey = booleanPreferencesKey("themeModeMigrated")
 

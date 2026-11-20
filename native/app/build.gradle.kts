@@ -14,8 +14,8 @@ if (localPropertiesFile.exists()) {
 val baseApplicationId = "com.jixone.native"
 // versionCode must keep rising across the rename to 1.0.0: Android refuses
 // to install a lower code over an existing install.
-val appVersionCode = 700
-val appVersionName = "1.0.0"
+val appVersionCode = 702
+val appVersionName = "1.0.2"
 val applicationIdOverride = System.getenv("METROLIST_APPLICATION_ID")?.takeIf { it.isNotBlank() }
 val appNameOverride = System.getenv("METROLIST_APP_NAME")?.takeIf { it.isNotBlank() }
 val buildCommit =

@@ -10,6 +10,7 @@ import android.appwidget.AppWidgetProvider
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import timber.log.Timber
 import android.os.Bundle
 import com.metrolist.music.playback.MusicService
 
@@ -59,21 +60,23 @@ class MusicWidgetReceiver : AppWidgetProvider() {
         super.onReceive(context, intent)
 
         when (intent.action) {
-            ACTION_PLAY_PAUSE, ACTION_LIKE, ACTION_NEXT, ACTION_PREVIOUS, ACTION_PLAY_INDEX -> {
-                // User interactions from widget buttons can start the service
-                // Android allows starting FGS from widget PendingIntent clicks
+            ACTION_PLAY_PAUSE, ACTION_LIKE, ACTION_NEXT, ACTION_PREVIOUS, ACTION_PLAY_INDEX,
+            ACTION_SHUFFLE, ACTION_REPEAT -> {
+                // A widget tap may start a foreground service even when the
+                // app is not running (plain startService is refused then).
+                // MusicService promotes itself in onStartCommand.
                 val serviceIntent = Intent(context, MusicService::class.java).apply {
                     action = intent.action
                     putExtras(intent)
                 }
                 try {
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                        context.startService(serviceIntent)
+                        context.startForegroundService(serviceIntent)
                     } else {
                         context.startService(serviceIntent)
                     }
                 } catch (e: Exception) {
-                    // Service might be restricted in background
+                    Timber.w(e, "Widget: could not start MusicService")
                 }
             }
         }
@@ -84,6 +87,8 @@ class MusicWidgetReceiver : AppWidgetProvider() {
         const val ACTION_LIKE = "com.metrolist.music.widget.LIKE"
         const val ACTION_NEXT = "com.metrolist.music.widget.NEXT"
         const val ACTION_PREVIOUS = "com.metrolist.music.widget.PREVIOUS"
+        const val ACTION_SHUFFLE = "com.metrolist.music.widget.SHUFFLE"
+        const val ACTION_REPEAT = "com.metrolist.music.widget.REPEAT"
         const val ACTION_PLAY_INDEX = "com.metrolist.music.widget.PLAY_INDEX"
         const val EXTRA_INDEX = "index"
         const val ACTION_UPDATE_WIDGET = "com.metrolist.music.widget.UPDATE_WIDGET"

@@ -767,3 +767,16 @@ fun JixSlider(
         },
     )
 }
+
+/** A song's play count on artist pages, Spotify style: quiet text beside the menu. */
+@Composable
+fun JixPlayCount(text: String) {
+    Text(
+        text = text,
+        fontSize = 12.sp,
+        fontWeight = FontWeight.SemiBold,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        maxLines = 1,
+        modifier = Modifier.padding(end = 2.dp),
+    )
+}

@@ -40,6 +40,7 @@ import com.metrolist.music.extensions.filterVideoSongs
 import com.metrolist.music.extensions.toEnum
 import com.metrolist.music.models.GenreShelf
 import com.metrolist.music.constants.OnboardingArtistGenresKey
+import com.metrolist.music.constants.OnboardingPicksRestoredKey
 import com.metrolist.music.ui.screens.onboarding.OnboardingSeedArtists
 import com.metrolist.music.db.entities.Artist
 import com.metrolist.music.ui.screens.wrapped.WrappedAudioService
@@ -263,6 +264,18 @@ class HomeViewModel @Inject constructor(
      */
     private fun startOnboardingWatcher() {
         viewModelScope.launch(Dispatchers.IO) {
+            // Earlier versions let the account sync un-bookmark onboarding
+            // picks. Put them back once; after that the sync leaves them alone.
+            val prefs = context.dataStore.data.first()
+            if (prefs[OnboardingPicksRestoredKey] != true) {
+                decodeArtistGenres(prefs[OnboardingArtistGenresKey]).keys.forEach { id ->
+                    database.artistEntity(id)?.takeIf { it.bookmarkedAt == null }?.let {
+                        database.update(it.copy(bookmarkedAt = LocalDateTime.now()))
+                    }
+                }
+                context.safeDataStoreEdit { it[OnboardingPicksRestoredKey] = true }
+            }
+
             val pickedIds = database.artistsBookmarkedByCreateDateAsc()
                 .map { artists -> artists.filter { it.artist.isYouTubeArtist }.map { it.id } }
                 .distinctUntilChanged()

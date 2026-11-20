@@ -176,4 +176,18 @@ class PageHelperTest {
             ),
         )
     }
+
+    @Test
+    fun `play count is the plain numeric column after title and artists`() {
+        val columns =
+            listOf(
+                listOf(Run("Song", null)),
+                listOf(Run("Artist", null)),
+                listOf(Run("3:21", null)),
+                listOf(Run("1.2M plays", null)),
+            )
+
+        assertEquals("1.2M plays", PageHelper.extractPlayCount(columns))
+        assertEquals(null, PageHelper.extractPlayCount(columns.take(3)))
+    }
 }

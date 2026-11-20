@@ -693,6 +693,7 @@ fun ArtistScreen(
                                     isActive = mediaMetadata?.id == song.id,
                                     isPlaying = isPlaying,
                                     trailingContent = {
+                                        song.playCountText?.let { com.metrolist.music.ui.jix.JixPlayCount(it) }
                                         IconButton(
                                             onClick = {
                                                 menuState.show {

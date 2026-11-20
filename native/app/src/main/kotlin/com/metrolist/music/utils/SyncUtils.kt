@@ -1107,8 +1107,14 @@ class SyncUtils @Inject constructor(
                     val remoteArtists = page.items.filterIsInstance<ArtistItem>()
                     val remoteIds = remoteArtists.map { it.id }.toSet()
                     val localArtists = database.bookmarkedArtistEntitiesByNameAsc()
+                    // The library's artist list holds artists you have songs
+                    // from, not every channel you follow. Artists picked in
+                    // onboarding must survive the sync, or Explore loses them.
+                    val picks = com.metrolist.music.viewmodels.decodeArtistGenres(
+                        context.dataStore.data.first()[com.metrolist.music.constants.OnboardingArtistGenresKey],
+                    ).keys
 
-                    localArtists.filterNot { it.id in remoteIds }.forEach { artist ->
+                    localArtists.filterNot { it.id in remoteIds || it.id in picks }.forEach { artist ->
                         try {
                             database.update(artist.localToggleLike())
                             delay(DB_OPERATION_DELAY_MS)

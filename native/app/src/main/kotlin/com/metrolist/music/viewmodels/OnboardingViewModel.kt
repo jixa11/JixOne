@@ -298,7 +298,7 @@ class OnboardingViewModel
                             prefs[ArtistOnboardingCompletedKey] = true
                             // Explore groups its shelves by genre, so keep each pick's genre.
                             val genres = decodeArtistGenres(prefs[OnboardingArtistGenresKey])
-                            selected.forEach { artist -> artist.genre?.let { genres[artist.id] = it } }
+                            selected.forEach { artist -> genres[artist.id] = artist.genre ?: "other" }
                             prefs[OnboardingArtistGenresKey] = encodeArtistGenres(genres)
                         }
                         count

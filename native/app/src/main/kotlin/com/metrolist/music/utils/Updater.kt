@@ -58,6 +58,25 @@ object Updater {
         return JSONArray(response.bodyAsText())
     }
 
+    private val noRedirectClient = HttpClient { followRedirects = false }
+
+    /**
+     * Latest native release without the API: github.com/<repo>/releases/latest
+     * redirects to /releases/tag/<tag>, and the APK names follow the release
+     * workflow's pattern.
+     */
+    private suspend fun latestFromReleasePage(): ReleaseInfo? {
+        val location = noRedirectClient.get("https://github.com/jixa11/JixOne/releases/latest")
+            .headers["Location"] ?: return null
+        val tag = location.substringAfterLast("/tag/", "").takeIf { it.startsWith("n") } ?: return null
+        val version = tag.removePrefix("n")
+        val base = "https://github.com/jixa11/JixOne/releases/download/$tag/JixOne-$version"
+        val assets = listOf("arm64-v8a", "armeabi-v7a", "x86_64", "universal").map { abi ->
+            ReleaseAsset("JixOne-$version-$abi.apk", "$base-$abi.apk", 0, abi, "gms")
+        }
+        return ReleaseInfo(tag, version, "", "", assets)
+    }
+
     /**
      * Compares two version strings.
      * Returns: 1 if v1 > v2, -1 if v1 < v2, 0 if equal
@@ -83,6 +102,11 @@ object Updater {
      * Returns true if an update is available (latestVersion > currentVersion)
      */
     fun isUpdateAvailable(currentVersion: String, latestVersion: String): Boolean {
+        // shortcut: the app was renumbered from 6.x to 1.0.0; a 6.x install
+        // must still see 1.x as newer. Drop once nobody runs 6.x.
+        val currentMajor = currentVersion.removePrefix("v").substringBefore('.').toIntOrNull() ?: 0
+        val latestMajor = latestVersion.removePrefix("v").substringBefore('.').toIntOrNull() ?: 0
+        if (currentMajor >= 6 && latestMajor < 6) return true
         return compareVersions(latestVersion, currentVersion) > 0
     }
 
@@ -161,7 +185,15 @@ object Updater {
                 // check is not retried on every screen visit.
                 lastCheckTime = System.currentTimeMillis()
 
-                val releases = fetchReleasesPage("per_page=30")
+                // The API is rate limited per IP (60 an hour), which shared
+                // VPN addresses exhaust; then read the latest release's tag
+                // from the public page's redirect instead.
+                val releases = runCatching { fetchReleasesPage("per_page=30") }
+                    .getOrElse { error ->
+                        val fallback = latestFromReleasePage() ?: throw error
+                        cachedReleaseInfo = fallback
+                        return@runCatching fallback
+                    }
 
                 var latest: JSONObject? = null
                 for (i in 0 until releases.length()) {

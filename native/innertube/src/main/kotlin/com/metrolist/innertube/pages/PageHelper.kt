@@ -157,4 +157,19 @@ object PageHelper {
         }
 
     private fun String.isDurationText(): Boolean = matches(Regex("""\d{1,2}[:.,]\d{2}(?:[:.,]\d{2})?"""))
+
+    /**
+     * The play count column of an artist-page song row: after the title and
+     * artist columns, the first plain (unlinked) text that holds a digit and
+     * is not a duration.
+     */
+    fun extractPlayCount(columns: List<List<Run>?>): String? =
+        columns.drop(2)
+            .mapNotNull { runs -> runs?.firstOrNull() }
+            .firstOrNull { run ->
+                run.navigationEndpoint == null &&
+                    run.text.any(Char::isDigit) &&
+                    run.text.parseTime() == null
+            }
+            ?.text
 }
